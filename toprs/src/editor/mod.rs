@@ -1,3 +1,4 @@
+pub mod generic;
 pub mod primitive;
 
 pub type Html = String;

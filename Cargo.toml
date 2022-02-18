@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "toprs",
+    "toprs_derive",
     "examples/*",
 ]

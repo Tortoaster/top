@@ -58,7 +58,7 @@ impl Editor for NumberField {
     }
 
     fn read_value(&self) -> Self::Read {
-        self.0.clone()
+        self.0
     }
 
     fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error> {
