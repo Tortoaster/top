@@ -1,12 +1,30 @@
-use crate::editor::{Editor, FormatParams, Html};
+use crate::editor::{Component, Editor};
 use std::convert::Infallible;
 
 #[derive(Debug, Default)]
-pub struct TextField(String, FormatParams);
+pub struct TextField {
+    value: String,
+    label: Option<String>,
+    disabled: bool,
+}
 
 impl TextField {
-    pub fn new(params: FormatParams) -> Self {
-        TextField(Default::default(), params)
+    pub const fn new() -> Self {
+        TextField {
+            value: String::new(),
+            label: None,
+            disabled: false,
+        }
+    }
+
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
+        self
+    }
+
+    pub fn disabled(mut self) -> Self {
+        self.disabled = true;
+        self
     }
 }
 
@@ -15,31 +33,48 @@ impl Editor for TextField {
     type Write = String;
     type Error = Infallible;
 
-    fn html(&self) -> Html {
-        format!(
-            "<label>{}<input type='text' value='{}' {}/></label>",
-            self.1.label.as_ref().unwrap_or(&String::new()),
-            self.0,
-            if self.1.disabled { "disabled" } else { "" },
-        )
+    fn ui(&self) -> Component {
+        Component::TextField {
+            value: self.value.clone(),
+            label: self.label.clone(),
+            disabled: self.disabled,
+        }
     }
 
     fn read_value(&self) -> Self::Read {
-        self.0.clone()
+        self.value.clone()
     }
 
     fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error> {
-        self.0 = value;
+        self.value = value;
         Ok(())
     }
 }
 
 #[derive(Debug, Default)]
-pub struct NumberField(i32, FormatParams);
+pub struct NumberField {
+    value: i32,
+    label: Option<String>,
+    disabled: bool,
+}
 
 impl NumberField {
-    pub fn new(params: FormatParams) -> Self {
-        NumberField(Default::default(), params)
+    pub const fn new() -> Self {
+        NumberField {
+            value: 0,
+            label: None,
+            disabled: false,
+        }
+    }
+
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
+        self
+    }
+
+    pub fn disabled(mut self) -> Self {
+        self.disabled = true;
+        self
     }
 }
 
@@ -48,21 +83,20 @@ impl Editor for NumberField {
     type Write = i32;
     type Error = Infallible;
 
-    fn html(&self) -> Html {
-        format!(
-            "<label>{}<input type='number' value='{}' {}/></label>",
-            self.1.label.as_ref().unwrap_or(&String::new()),
-            self.0,
-            if self.1.disabled { "disabled" } else { "" },
-        )
+    fn ui(&self) -> Component {
+        Component::NumberField {
+            value: self.value,
+            label: self.label.clone(),
+            disabled: self.disabled,
+        }
     }
 
     fn read_value(&self) -> Self::Read {
-        self.0
+        self.value
     }
 
     fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error> {
-        self.0 = value;
+        self.value = value;
         Ok(())
     }
 }
