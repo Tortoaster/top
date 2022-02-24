@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.4.5"
+axum = { version = "0.4.5", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
 toprs = { path = "../../toprs", features = ["axum"] }
