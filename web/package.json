@@ -2,16 +2,18 @@
   "name": "web",
   "version": "0.1.0",
   "scripts": {
-    "watch": "npx tsc -w"
+    "build": "npm run ts && npm run html",
+    "ts": "npx tsc",
+    "html": "copyfiles -u 1 \"./src/**/*.html\" \"./dist/\""
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.2.0",
     "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "copyfiles": "^2.4.1"
   }
 }
