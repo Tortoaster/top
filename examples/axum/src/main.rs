@@ -1,8 +1,10 @@
 use axum::extract::ws::WebSocket;
 use axum::extract::WebSocketUpgrade;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::get;
+use axum::routing::{get, get_service};
 use axum::Router;
+use tower_http::services::ServeDir;
 
 pub use toprs::prelude::*;
 
@@ -33,10 +35,23 @@ async fn enter_name() -> Task<String, TextField> {
 #[tokio::main]
 async fn main() {
     let app = Router::new()
+        .nest(
+            "/static",
+            get_service(ServeDir::new("../../web/dist/static")).handle_error(
+                |error: std::io::Error| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled internal error: {}", error),
+                    )
+                },
+            ),
+        )
         .route("/", get(enter_name))
         .route("/ws", get(handler));
 
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    const IP: &str = "0.0.0.0:3000";
+    println!("Listening on http://{IP}");
+    axum::Server::bind(&IP.parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();

@@ -4,7 +4,7 @@
   "scripts": {
     "build": "npm run html && npm run css && npm run js",
     "html": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\"",
-    "css": "npx tailwindcss -i src/style.css -o ./dist/style.css",
+    "css": "npx tailwindcss -i ./src/static/style.css -o ./dist/static/style.css",
     "js": "npx tsc"
   },
   "devDependencies": {

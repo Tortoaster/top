@@ -1,5 +1,5 @@
 module.exports = {
-  content: ["./src/component/**/*.hbs"],
+  content: ["./src/**/*.hbs"],
   theme: {
     extend: {},
   },
