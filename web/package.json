@@ -2,20 +2,18 @@
   "name": "web",
   "version": "0.1.0",
   "scripts": {
-    "build": "npm run html && npm run css && npm run js",
-    "html": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\"",
-    "css": "npx tailwindcss -i ./src/static/style.css -o ./dist/static/style.css",
-    "js": "npx tsc"
+    "build": "npm run copyfiles && npm run tailwind:build && npm run ts:build",
+    "tailwind:build": "npx tailwindcss -i ./src/static/style.css -o ./dist/static/style.css",
+    "ts:build": "npx tsc",
+    "copyfiles": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\""
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
+    "copyfiles": "^2.4.1",
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
+    "tailwindcss": "^3.0.23",
     "typescript": "^4.5.5"
-  },
-  "dependencies": {
-    "copyfiles": "^2.4.1",
-    "tailwindcss": "^3.0.23"
   }
 }

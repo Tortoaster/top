@@ -29,7 +29,7 @@ async fn handle_socket(mut socket: WebSocket) {
 }
 
 async fn enter_name() -> Task<String, TextField> {
-    enter(TextField::new())
+    enter(TextField::new().with_label("Name".to_owned()))
 }
 
 #[tokio::main]
