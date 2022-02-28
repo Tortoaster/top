@@ -1,8 +1,6 @@
 use handlebars::Handlebars;
+use lazy_static::lazy_static;
 use serde_json::json;
-
-pub const INDEX: &str = "index";
-const TEXTFIELD: &str = "textfield";
 
 #[derive(Debug)]
 pub enum Component {
@@ -22,28 +20,13 @@ pub enum Component {
 }
 
 impl Component {
-    pub fn registry() -> Handlebars<'static> {
-        // TODO: constant
-        let mut handlebars = Handlebars::new();
-        handlebars
-            .register_template_string(INDEX, include_str!("../../../web/dist/index.hbs"))
-            .unwrap();
-        handlebars
-            .register_template_string(
-                TEXTFIELD,
-                include_str!("../../../web/dist/component/textfield.hbs"),
-            )
-            .unwrap();
-        handlebars
-    }
-
-    pub fn html(&self, reg: &Handlebars) -> String {
-        match self {
+    pub fn render(&self) -> String {
+        match &self {
             Component::TextField {
                 value,
                 label,
                 disabled,
-            } => reg
+            } => REGISTRY
                 .render(
                     TEXTFIELD,
                     &json!({
@@ -67,10 +50,32 @@ impl Component {
                 "<div>{}</div>",
                 children
                     .iter()
-                    .map(|c| c.html(reg))
+                    .map(|c| c.render())
                     .collect::<Vec<String>>()
                     .join("<br/>")
             ),
         }
     }
+
+    pub fn render_page(&self, title: &str) -> String {
+        REGISTRY
+            .render(INDEX, &json!({ "title": title, "content": self.render() }))
+            .expect("failed to render template")
+    }
+}
+
+const INDEX: &'static str = "index";
+const TEXTFIELD: &'static str = "textfield";
+
+lazy_static! {
+    static ref REGISTRY: Handlebars<'static> = {
+        let mut reg = Handlebars::new();
+        #[cfg(debug_assertions)]
+        reg.set_dev_mode(true);
+        reg.register_template_file(INDEX, "../../web/dist/index.hbs")
+            .unwrap();
+        reg.register_template_file(TEXTFIELD, "../../web/dist/component/textfield.hbs")
+            .unwrap();
+        reg
+    };
 }

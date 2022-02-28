@@ -2,10 +2,12 @@
   "name": "web",
   "version": "0.1.0",
   "scripts": {
-    "build": "npm run copyfiles && npm run tailwind:build && npm run ts:build",
-    "tailwind:build": "npx tailwindcss -i ./src/static/style.css -o ./dist/static/style.css",
-    "ts:build": "npx tsc",
-    "copyfiles": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\""
+    "clean": "rimraf dist",
+    "build": "npm run copyfiles && npm run tailwindcss:build && npm run tsc:build",
+    "watch": "npx nodemon --watch src --ext hbs --exec \"npm run build\"",
+    "copyfiles": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\"",
+    "tailwindcss:build": "npx tailwindcss -i ./src/static/style.css -o ./dist/static/style.css",
+    "tsc:build": "npx tsc"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.1",
@@ -13,6 +15,8 @@
     "copyfiles": "^2.4.1",
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
+    "nodemon": "^2.0.15",
+    "rimraf": "^3.0.2",
     "tailwindcss": "^3.0.23",
     "typescript": "^4.5.5"
   }
