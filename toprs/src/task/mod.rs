@@ -1,20 +1,16 @@
 use crate::editor::Editor;
+use crate::task::value::TaskValue;
 
+pub mod combinator;
 pub mod interaction;
+pub mod value;
 
-#[derive(Debug)]
-pub struct TaskId(usize);
+pub trait Task {
+    type Output;
+    // TODO: Lock output
+    type Editor: Editor;
 
-#[derive(Debug)]
-pub struct Task<T, E> {
-    value: Option<TaskValue<T>>,
-    pub editor: E,
-}
+    fn get_value(self) -> TaskValue<Self::Output>;
 
-impl<T, E> Task<T, E> where E: Editor<Read = T> {}
-
-#[derive(Debug)]
-pub enum TaskValue<T> {
-    Stable(T),
-    Unstable(T),
+    fn get_editor(self) -> Self::Editor;
 }

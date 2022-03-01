@@ -1,5 +1,6 @@
 use crate::component::Component;
 
+pub mod container;
 pub mod generic;
 pub mod primitive;
 

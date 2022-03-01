@@ -1,35 +1,15 @@
-use axum::extract::ws::WebSocket;
-use axum::extract::WebSocketUpgrade;
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use axum::routing::{get, get_service};
 use axum::Router;
+use toprs::integration::axum::{AxumResponse, TaskAxumExt};
 use tower_http::services::ServeDir;
 
 pub use toprs::prelude::*;
 
-async fn handler(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(handle_socket)
-}
-
-async fn handle_socket(mut socket: WebSocket) {
-    while let Some(msg) = socket.recv().await {
-        let msg = if let Ok(msg) = msg {
-            msg
-        } else {
-            // client disconnected
-            return;
-        };
-
-        if socket.send(msg).await.is_err() {
-            // client disconnected
-            return;
-        }
-    }
-}
-
-async fn enter_name() -> Task<String, TextField> {
+async fn enter_name() -> AxumResponse<impl Task<Output = String>> {
     enter(TextField::new().with_label("Name".to_owned()))
+        .then(|name| view(name, TextField::new()))
+        .into_axum()
 }
 
 #[tokio::main]
@@ -46,8 +26,7 @@ async fn main() {
                 },
             ),
         )
-        .route("/", get(enter_name))
-        .route("/ws", get(handler));
+        .route("/", get(enter_name));
 
     const IP: &str = "0.0.0.0:3000";
     println!("Listening on http://{IP}");

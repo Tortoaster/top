@@ -14,9 +14,11 @@ pub enum Component {
         label: Option<String>,
         disabled: bool,
     },
-    Column {
-        children: Vec<Component>,
+    Button {
+        text: String,
+        disabled: bool,
     },
+    Column(Vec<Component>),
 }
 
 impl Component {
@@ -46,7 +48,12 @@ impl Component {
                 value,
                 if *disabled { " disabled" } else { "" },
             ),
-            Component::Column { children } => format!(
+            Component::Button { text, disabled } => format!(
+                "<input type='submit' value='{}'{}/>",
+                text,
+                if *disabled { " disabled" } else { "" },
+            ),
+            Component::Column(children) => format!(
                 "<div>{}</div>",
                 children
                     .iter()
@@ -72,6 +79,7 @@ lazy_static! {
         let mut reg = Handlebars::new();
         #[cfg(debug_assertions)]
         reg.set_dev_mode(true);
+        // TODO: Improve paths
         reg.register_template_file(INDEX, "../../web/dist/index.hbs")
             .unwrap();
         reg.register_template_file(TEXTFIELD, "../../web/dist/component/textfield.hbs")
