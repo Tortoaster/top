@@ -4,12 +4,10 @@ pub mod container;
 pub mod generic;
 pub mod primitive;
 
-pub trait Editor {
+pub trait Editor: Default {
     type Read;
     type Write;
     type Error;
-
-    fn new() -> Self;
 
     fn ui(&self) -> Component;
 

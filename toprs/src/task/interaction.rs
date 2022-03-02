@@ -31,7 +31,7 @@ where
 {
     View {
         value,
-        editor: T::Editor::new(),
+        editor: T::Editor::default(),
     }
 }
 
@@ -70,7 +70,7 @@ where
 {
     Enter {
         value: None,
-        editor: T::Editor::new(),
+        editor: T::Editor::default(),
     }
 }
 
@@ -112,7 +112,7 @@ where
 {
     Update {
         value: Some(value),
-        editor: T::Editor::new(),
+        editor: T::Editor::default(),
     }
 }
 

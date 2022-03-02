@@ -1,5 +1,4 @@
 use crate::editor::container::SequentialEditor;
-use crate::editor::Editor;
 use crate::task::{Task, TaskValue};
 use std::marker::PhantomData;
 
@@ -40,7 +39,7 @@ where
     }
 
     fn get_editor(self) -> Self::Editor {
-        SequentialEditor::new()
+        SequentialEditor::default()
             .with_editor(self.task.get_editor())
             .with_button("Next".to_owned())
     }

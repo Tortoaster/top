@@ -25,14 +25,6 @@ impl Editor for TextField {
     type Write = String;
     type Error = Infallible;
 
-    fn new() -> Self {
-        TextField {
-            value: String::new(),
-            label: None,
-            disabled: false,
-        }
-    }
-
     fn ui(&self) -> Component {
         Component::TextField {
             value: self.value.clone(),
@@ -74,14 +66,6 @@ impl Editor for NumberField {
     type Read = i32;
     type Write = i32;
     type Error = Infallible;
-
-    fn new() -> Self {
-        NumberField {
-            value: 0,
-            label: None,
-            disabled: false,
-        }
-    }
 
     fn ui(&self) -> Component {
         Component::NumberField {

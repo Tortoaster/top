@@ -1,7 +1,7 @@
 use crate::component::Component;
 use crate::editor::Editor;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SequentialEditor<E> {
     editor: Option<E>,
     buttons: Vec<String>,
@@ -26,13 +26,6 @@ where
     type Read = E::Read;
     type Write = E::Write;
     type Error = E::Error;
-
-    fn new() -> Self {
-        SequentialEditor {
-            editor: None,
-            buttons: Vec::new(),
-        }
-    }
 
     fn ui(&self) -> Component {
         Component::Column(vec![
