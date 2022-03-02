@@ -9,16 +9,8 @@ pub struct TextField {
 }
 
 impl TextField {
-    pub const fn new() -> Self {
-        TextField {
-            value: String::new(),
-            label: None,
-            disabled: false,
-        }
-    }
-
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(label);
+    pub fn with_label<S: AsRef<str>>(mut self, label: S) -> Self {
+        self.label = Some(label.as_ref().to_owned());
         self
     }
 
@@ -32,6 +24,14 @@ impl Editor for TextField {
     type Read = String;
     type Write = String;
     type Error = Infallible;
+
+    fn new() -> Self {
+        TextField {
+            value: String::new(),
+            label: None,
+            disabled: false,
+        }
+    }
 
     fn ui(&self) -> Component {
         Component::TextField {
@@ -59,14 +59,6 @@ pub struct NumberField {
 }
 
 impl NumberField {
-    pub const fn new() -> Self {
-        NumberField {
-            value: 0,
-            label: None,
-            disabled: false,
-        }
-    }
-
     pub fn with_label(mut self, label: String) -> Self {
         self.label = Some(label);
         self
@@ -82,6 +74,14 @@ impl Editor for NumberField {
     type Read = i32;
     type Write = i32;
     type Error = Infallible;
+
+    fn new() -> Self {
+        NumberField {
+            value: 0,
+            label: None,
+            disabled: false,
+        }
+    }
 
     fn ui(&self) -> Component {
         Component::NumberField {

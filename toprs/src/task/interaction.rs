@@ -1,3 +1,4 @@
+use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::task::value::OptionExt;
 use crate::task::{Task, TaskValue};
@@ -24,7 +25,17 @@ where
     }
 }
 
-pub fn view<T, E>(value: T, editor: E) -> View<T, E>
+pub fn view<T>(value: T) -> View<T, T::Editor>
+where
+    T: Edit,
+{
+    View {
+        value,
+        editor: T::Editor::new(),
+    }
+}
+
+pub fn view_with<T, E>(value: T, editor: E) -> View<T, E>
 where
     E: Editor<Read = T>,
 {
@@ -53,7 +64,17 @@ where
     }
 }
 
-pub fn enter<T, E>(editor: E) -> Enter<T, E>
+pub fn enter<T>() -> Enter<T, T::Editor>
+where
+    T: Edit,
+{
+    Enter {
+        value: None,
+        editor: T::Editor::new(),
+    }
+}
+
+pub fn enter_with<T, E>(editor: E) -> Enter<T, E>
 where
     E: Editor<Read = T>,
 {
@@ -85,7 +106,17 @@ where
     }
 }
 
-pub fn update<T, E>(value: T, editor: E) -> Update<T, E>
+pub fn update<T>(value: T) -> Update<T, T::Editor>
+where
+    T: Edit,
+{
+    Update {
+        value: Some(value),
+        editor: T::Editor::new(),
+    }
+}
+
+pub fn update_with<T, E>(value: T, editor: E) -> Update<T, E>
 where
     E: Editor<Read = T>,
 {

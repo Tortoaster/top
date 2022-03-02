@@ -7,8 +7,8 @@ use tower_http::services::ServeDir;
 pub use toprs::prelude::*;
 
 async fn enter_name() -> AxumResponse<impl Task<Output = String>> {
-    enter(TextField::new().with_label("Name".to_owned()))
-        .then(|name| view(name, TextField::new()))
+    enter_with(TextField::new().with_label("Name"))
+        .then(view)
         .into_axum()
 }
 

@@ -9,6 +9,8 @@ pub trait Editor {
     type Write;
     type Error;
 
+    fn new() -> Self;
+
     fn ui(&self) -> Component;
 
     fn read_value(&self) -> Self::Read;

@@ -18,6 +18,7 @@ pub enum Component {
         text: String,
         disabled: bool,
     },
+    Row(Vec<Component>),
     Column(Vec<Component>),
 }
 
@@ -53,7 +54,7 @@ impl Component {
                 text,
                 if *disabled { " disabled" } else { "" },
             ),
-            Component::Column(children) => format!(
+            Component::Row(children) | Component::Column(children) => format!(
                 "<div>{}</div>",
                 children
                     .iter()

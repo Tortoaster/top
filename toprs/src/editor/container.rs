@@ -3,13 +3,19 @@ use crate::editor::Editor;
 
 #[derive(Debug)]
 pub struct SequentialEditor<E> {
-    editor: E,
-    button: String,
+    editor: Option<E>,
+    buttons: Vec<String>,
 }
 
 impl<E> SequentialEditor<E> {
-    pub fn new(editor: E, button: String) -> Self {
-        SequentialEditor { editor, button }
+    pub fn with_editor(mut self, editor: E) -> Self {
+        self.editor = Some(editor);
+        self
+    }
+
+    pub fn with_button(mut self, button: String) -> Self {
+        self.buttons.push(button);
+        self
     }
 }
 
@@ -21,21 +27,34 @@ where
     type Write = E::Write;
     type Error = E::Error;
 
+    fn new() -> Self {
+        SequentialEditor {
+            editor: None,
+            buttons: Vec::new(),
+        }
+    }
+
     fn ui(&self) -> Component {
         Component::Column(vec![
-            self.editor.ui(),
-            Component::Button {
-                text: self.button.clone(),
-                disabled: false,
-            },
+            self.editor.as_ref().unwrap().ui(),
+            Component::Row(
+                self.buttons
+                    .iter()
+                    .cloned()
+                    .map(|text| Component::Button {
+                        text,
+                        disabled: false,
+                    })
+                    .collect(),
+            ),
         ])
     }
 
     fn read_value(&self) -> Self::Read {
-        self.editor.read_value()
+        self.editor.as_ref().unwrap().read_value()
     }
 
     fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error> {
-        self.editor.write_value(value)
+        self.editor.as_mut().unwrap().write_value(value)
     }
 }
