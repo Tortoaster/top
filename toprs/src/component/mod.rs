@@ -39,42 +39,33 @@ impl Component {
         }
     }
 
-    pub fn label(&self) -> Option<String> {
-        match self {
-            Component::TextField { label, .. } | Component::NumberField { label, .. } => {
-                Some(label.as_ref().cloned().unwrap_or_default())
-            }
-            _ => None,
-        }
-    }
-
-    pub fn disabled(&self) -> Option<&'static str> {
-        match self {
-            Component::TextField { disabled, .. } | Component::NumberField { disabled, .. } => {
-                Some(if *disabled { "disabled" } else { "" })
-            }
-            _ => None,
-        }
-    }
-
     pub fn render(&self) -> String {
         match &self {
-            Component::TextField { .. } | Component::NumberField { .. } => REGISTRY
+            Component::TextField {
+                label, disabled, ..
+            }
+            | Component::NumberField {
+                label, disabled, ..
+            } => REGISTRY
                 .render(
-                    TEXTFIELD,
+                    INPUT,
                     &json!({
                         "type": self.input_type().expect("no input type"),
                         "value": self.value().expect("no value"),
-                        "label": self.label().expect("no label"),
-                        "disabled": self.disabled().expect("no disabled"),
+                        "label": label.as_ref().unwrap_or(&String::new()),
+                        "disabled": *disabled,
                     }),
                 )
                 .unwrap(),
-            Component::Button { text, disabled } => format!(
-                "<input type='submit' value='{}'{}/>",
-                text,
-                if *disabled { " disabled" } else { "" },
-            ),
+            Component::Button { text, disabled } => REGISTRY
+                .render(
+                    BUTTON,
+                    &json!({
+                        "text": text,
+                        "disabled": *disabled,
+                    }),
+                )
+                .unwrap(),
             Component::Row(children) | Component::Column(children) => format!(
                 "<div>{}</div>",
                 children
@@ -94,7 +85,8 @@ impl Component {
 }
 
 const INDEX: &'static str = "index";
-const TEXTFIELD: &'static str = "textfield";
+const INPUT: &'static str = "input";
+const BUTTON: &'static str = "button";
 
 lazy_static! {
     static ref REGISTRY: Handlebars<'static> = {
@@ -104,8 +96,8 @@ lazy_static! {
         // TODO: Improve paths
         reg.register_template_file(INDEX, "../../web/dist/index.hbs")
             .unwrap();
-        reg.register_template_file(TEXTFIELD, "../../web/dist/component/input.hbs")
-            .unwrap();
+        reg.register_template_file(INPUT, "../../web/dist/component/input.hbs").unwrap();
+        reg.register_template_file(BUTTON, "../../web/dist/component/button.hbs").unwrap();
         reg
     };
 }
