@@ -9,8 +9,8 @@ pub struct TextField {
 }
 
 impl TextField {
-    pub fn with_label<S: AsRef<str>>(mut self, label: S) -> Self {
-        self.label = Some(label.as_ref().to_owned());
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
         self
     }
 

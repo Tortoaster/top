@@ -23,32 +23,53 @@ pub enum Component {
 }
 
 impl Component {
+    pub fn value(&self) -> Option<String> {
+        match self {
+            Component::TextField { value, .. } => Some(value.clone()),
+            Component::NumberField { value, .. } => Some(value.to_string()),
+            _ => None,
+        }
+    }
+
+    pub fn input_type(&self) -> Option<&'static str> {
+        match self {
+            Component::TextField { .. } => Some("text"),
+            Component::NumberField { .. } => Some("number"),
+            _ => None,
+        }
+    }
+
+    pub fn label(&self) -> Option<String> {
+        match self {
+            Component::TextField { label, .. } | Component::NumberField { label, .. } => {
+                Some(label.as_ref().cloned().unwrap_or_default())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn disabled(&self) -> Option<&'static str> {
+        match self {
+            Component::TextField { disabled, .. } | Component::NumberField { disabled, .. } => {
+                Some(if *disabled { "disabled" } else { "" })
+            }
+            _ => None,
+        }
+    }
+
     pub fn render(&self) -> String {
         match &self {
-            Component::TextField {
-                value,
-                label,
-                disabled,
-            } => REGISTRY
+            Component::TextField { .. } | Component::NumberField { .. } => REGISTRY
                 .render(
                     TEXTFIELD,
                     &json!({
-                        "value": value,
-                        "label": if let Some(label) = label { label } else { "" },
-                        "disabled": if *disabled { "disabled" } else { "" },
+                        "type": self.input_type().expect("no input type"),
+                        "value": self.value().expect("no value"),
+                        "label": self.label().expect("no label"),
+                        "disabled": self.disabled().expect("no disabled"),
                     }),
                 )
                 .unwrap(),
-            Component::NumberField {
-                value,
-                label,
-                disabled,
-            } => format!(
-                "<label>{}<input type='number' value='{}'{}/></label>",
-                label.as_ref().unwrap_or(&String::new()),
-                value,
-                if *disabled { " disabled" } else { "" },
-            ),
             Component::Button { text, disabled } => format!(
                 "<input type='submit' value='{}'{}/>",
                 text,
@@ -83,7 +104,7 @@ lazy_static! {
         // TODO: Improve paths
         reg.register_template_file(INDEX, "../../web/dist/index.hbs")
             .unwrap();
-        reg.register_template_file(TEXTFIELD, "../../web/dist/component/textfield.hbs")
+        reg.register_template_file(TEXTFIELD, "../../web/dist/component/input.hbs")
             .unwrap();
         reg
     };
