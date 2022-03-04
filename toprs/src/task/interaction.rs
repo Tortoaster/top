@@ -11,7 +11,7 @@ pub struct View<T, E> {
 
 impl<T, E> Task for View<T, E>
 where
-    E: Editor<Read = T>,
+    E: Editor<Read = T> + Send,
 {
     type Output = T;
     type Editor = E;
@@ -50,7 +50,7 @@ pub struct Enter<T, E> {
 
 impl<T, E> Task for Enter<T, E>
 where
-    E: Editor<Read = T>,
+    E: Editor<Read = T> + Send,
 {
     type Output = T;
     type Editor = E;
@@ -92,7 +92,7 @@ pub struct Update<T, E> {
 
 impl<T, E> Task for Update<T, E>
 where
-    E: Editor<Read = T>,
+    E: Editor<Read = T> + Send,
 {
     type Output = T;
     type Editor = E;

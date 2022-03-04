@@ -1,37 +1,24 @@
 use axum::http::StatusCode;
-use axum::routing::{get, get_service};
+use axum::response::IntoResponse;
+use axum::routing::get;
 use axum::Router;
-use toprs::integration::axum::{AxumResponse, TaskAxumExt};
-use tower_http::services::ServeDir;
 
 pub use toprs::prelude::*;
 
-async fn enter_name() -> AxumResponse<impl Task<Output = String>> {
-    enter_with(TextField::default().with_label("Name".to_owned()))
-        .then(view)
-        .into_axum()
+use crate::temp::toprs_router;
+
+mod temp;
+
+async fn enter_name() -> impl Task<Output = String> {
+    enter_with(TextField::default().with_label("Name".to_owned())).then(view)
 }
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
-        .nest(
-            "/static",
-            get_service(ServeDir::new("../../web/dist/static")).handle_error(
-                |error: std::io::Error| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", error),
-                    )
-                },
-            ),
-        )
-        .route("/", get(enter_name));
-
     const IP: &str = "0.0.0.0:3000";
     println!("Listening on http://{IP}");
     axum::Server::bind(&IP.parse().unwrap())
-        .serve(app.into_make_service())
+        .serve(toprs_router().into_make_service())
         .await
         .unwrap();
 }

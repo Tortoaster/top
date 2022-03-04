@@ -77,9 +77,9 @@ impl Component {
         }
     }
 
-    pub fn render_page(&self, title: &str) -> String {
+    pub fn render_wrapper(title: &str) -> String {
         REGISTRY
-            .render(INDEX, &json!({ "title": title, "content": self.render() }))
+            .render(INDEX, &json!({ "title": title }))
             .expect("failed to render template")
     }
 }

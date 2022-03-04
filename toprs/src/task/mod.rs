@@ -8,7 +8,7 @@ pub mod value;
 pub trait Task {
     type Output;
     // TODO: Lock output
-    type Editor: Editor;
+    type Editor: Editor + Send;
 
     fn get_value(self) -> TaskValue<Self::Output>;
 

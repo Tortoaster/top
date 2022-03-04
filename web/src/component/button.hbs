@@ -1,4 +1,5 @@
-<input type="submit"
-       class="h-10 w-full cursor-pointer rounded text-white bg-blue-500 hover:bg-blue-400 focus:outline-none focus:bg-blue-300"
-       value="{{text}}"
-       {{#if disabled}}disabled{{/if}}/>
+<button id="{{id}}" name="{{id}}" type="button" onclick="press(this)"
+        class="h-10 w-full cursor-pointer rounded text-white bg-blue-500 hover:bg-blue-400 focus:outline-none"
+        {{#if disabled}}disabled{{/if}}>
+    {{text}}
+</button>
