@@ -1,86 +1,79 @@
-use crate::editor::{Component, Editor};
-use std::convert::Infallible;
+//! This module contains basic editors for primitive types.
 
-#[derive(Debug, Default)]
-pub struct TextField {
-    value: String,
-    label: Option<String>,
-    disabled: bool,
-}
+use crate::component::{Context, Widget};
+use crate::editor::event::{Event, Response};
+use crate::editor::{Component, Editor, EditorError};
 
-impl TextField {
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(label);
-        self
-    }
+/// Basic editor for strings.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct TextEditor(String);
 
-    pub fn disabled(mut self) -> Self {
-        self.disabled = true;
-        self
+impl TextEditor {
+    /// Creates a new text editor.
+    pub fn new() -> Self {
+        TextEditor(String::new())
     }
 }
 
-impl Editor for TextField {
-    type Read = String;
-    type Write = String;
-    type Error = Infallible;
+impl Editor for TextEditor {
+    type Input = String;
+    type Output = String;
 
-    fn ui(&self) -> Component {
-        Component::TextField {
-            value: self.value.clone(),
-            label: self.label.clone(),
-            disabled: self.disabled,
+    fn start(&self, ctx: &mut Context) -> Component {
+        let widget = Widget::TextField {
+            value: String::new(),
+            label: None,
+            disabled: false,
+        };
+        ctx.create_component(widget)
+    }
+
+    fn respond_to(&mut self, event: Event) -> Result<Option<Response>, EditorError> {
+        if let Event::Update { value, .. } = event {
+            self.0 = value;
         }
+        // TODO: Send feedback that the value is synced.
+        Ok(None)
     }
 
-    fn read_value(&self) -> Self::Read {
-        self.value.clone()
-    }
-
-    fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error> {
-        self.value = value;
-        Ok(())
+    fn finish(self) -> Self::Output {
+        self.0
     }
 }
 
-#[derive(Debug, Default)]
-pub struct NumberField {
-    value: i32,
-    label: Option<String>,
-    disabled: bool,
-}
+/// Basic editor for numbers.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct NumberEditor(i32);
 
-impl NumberField {
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(label);
-        self
-    }
-
-    pub fn disabled(mut self) -> Self {
-        self.disabled = true;
-        self
+impl NumberEditor {
+    /// Creates a new number editor.
+    pub fn new() -> Self {
+        NumberEditor(0)
     }
 }
 
-impl Editor for NumberField {
-    type Read = i32;
-    type Write = i32;
-    type Error = Infallible;
+impl Editor for NumberEditor {
+    type Input = i32;
+    type Output = i32;
 
-    fn ui(&self) -> Component {
-        Component::NumberField {
-            value: self.value,
-            label: self.label.clone(),
-            disabled: self.disabled,
+    fn start(&self, ctx: &mut Context) -> Component {
+        let widget = Widget::NumberField {
+            value: 0,
+            label: None,
+            disabled: false,
+        };
+        ctx.create_component(widget)
+    }
+
+    fn respond_to(&mut self, event: Event) -> Result<Option<Response>, EditorError> {
+        if let Event::Update { value, .. } = event {
+            self.0 = value.parse().map_err(|_| EditorError::Format(value))?;
         }
+        // TODO: Send feedback that the value is synced.
+        Ok(None)
     }
 
-    fn read_value(&self) -> Self::Read {
-        self.value
-    }
-
-    fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error> {
-        self.value = value;
-        Ok(())
+    fn finish(self) -> Self::Output {
+        self.0
     }
 }

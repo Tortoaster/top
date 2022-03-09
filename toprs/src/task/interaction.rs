@@ -1,4 +1,4 @@
-use crate::editor::generic::Edit;
+use crate::editor::generic::DefaultEditor;
 use crate::editor::Editor;
 use crate::task::value::OptionExt;
 use crate::task::{Task, TaskValue};
@@ -11,7 +11,7 @@ pub struct View<T, E> {
 
 impl<T, E> Task for View<T, E>
 where
-    E: Editor<Read = T> + Send,
+    E: Editor<Output = T> + Send,
 {
     type Output = T;
     type Editor = E;
@@ -27,17 +27,15 @@ where
 
 pub fn view<T>(value: T) -> View<T, T::Editor>
 where
-    T: Edit,
+    T: Clone + DefaultEditor,
 {
-    View {
-        value,
-        editor: T::Editor::default(),
-    }
+    let editor = T::default_editor();
+    View { value, editor }
 }
 
 pub fn view_with<T, E>(value: T, editor: E) -> View<T, E>
 where
-    E: Editor<Read = T>,
+    E: Editor<Output = T>,
 {
     View { value, editor }
 }
@@ -50,7 +48,7 @@ pub struct Enter<T, E> {
 
 impl<T, E> Task for Enter<T, E>
 where
-    E: Editor<Read = T> + Send,
+    E: Editor<Output = T> + Send,
 {
     type Output = T;
     type Editor = E;
@@ -66,17 +64,18 @@ where
 
 pub fn enter<T>() -> Enter<T, T::Editor>
 where
-    T: Edit,
+    T: DefaultEditor,
 {
+    let editor = T::default_editor();
     Enter {
         value: None,
-        editor: T::Editor::default(),
+        editor,
     }
 }
 
 pub fn enter_with<T, E>(editor: E) -> Enter<T, E>
 where
-    E: Editor<Read = T>,
+    E: Editor<Output = T>,
 {
     Enter {
         value: None,
@@ -92,7 +91,7 @@ pub struct Update<T, E> {
 
 impl<T, E> Task for Update<T, E>
 where
-    E: Editor<Read = T> + Send,
+    E: Editor<Output = T> + Send,
 {
     type Output = T;
     type Editor = E;
@@ -108,17 +107,18 @@ where
 
 pub fn update<T>(value: T) -> Update<T, T::Editor>
 where
-    T: Edit,
+    T: DefaultEditor,
 {
+    let editor = T::default_editor();
     Update {
         value: Some(value),
-        editor: T::Editor::default(),
+        editor,
     }
 }
 
 pub fn update_with<T, E>(value: T, editor: E) -> Update<T, E>
 where
-    E: Editor<Read = T>,
+    E: Editor<Output = T>,
 {
     Update {
         value: Some(value),

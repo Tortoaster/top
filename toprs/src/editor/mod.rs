@@ -1,17 +1,51 @@
-use crate::component::Component;
+//! This module contains functionality for the interaction between the user and the server.
+
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+
+use crate::component::{Component, Context};
+use crate::editor::event::{Event, Response};
 
 pub mod container;
+pub mod event;
 pub mod generic;
 pub mod primitive;
 
-pub trait Editor: Default {
-    type Read;
-    type Write;
-    type Error;
+/// Common [`Editor::Output`] type for editors.
+pub type Report<T> = Result<Option<T>, EditorError>;
 
-    fn ui(&self) -> Component;
+/// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
+pub trait Editor {
+    /// The type of data this editor accepts. For example, a checkbox accepts a boolean to set or
+    /// clear its state.
+    type Input;
+    /// The type of data this editor can produce, usually [`Report<Self::Input>`]. For example, a
+    /// checkbox also produces a boolean value, but retrieving the value might fail.
+    type Output;
 
-    fn read_value(&self) -> Self::Read;
+    /// Create the initial user interface for this editor.
+    fn start(&self, ctx: &mut Context) -> Component;
 
-    fn write_value(&mut self, value: Self::Write) -> Result<(), Self::Error>;
+    /// React to interaction events from the user, such as when the user checks a checkbox or
+    /// presses a button.
+    fn respond_to(&mut self, event: Event) -> Result<Option<Response>, EditorError>;
+
+    /// Consume the editor, retrieving its value.
+    fn finish(self) -> Self::Output;
 }
+
+/// Common error type for editors.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum EditorError {
+    Format(String),
+}
+
+impl Display for EditorError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EditorError::Format(s) => write!(f, "{} is not the right format for this field", s),
+        }
+    }
+}
+
+impl Error for EditorError {}

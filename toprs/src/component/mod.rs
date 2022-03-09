@@ -1,9 +1,30 @@
-use handlebars::Handlebars;
-use lazy_static::lazy_static;
-use serde_json::json;
+//! This module contains functionality for generating user interfaces for tasks.
 
-#[derive(Debug)]
-pub enum Component {
+use std::fmt::{Display, Formatter};
+
+use serde::{Deserialize, Serialize};
+
+pub mod html;
+
+/// Assigns a unique identifier to a [`Widget`], allowing the library to synchronize their values
+/// with the server.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Component {
+    id: ComponentId,
+    widget: Widget,
+}
+
+impl Component {
+    /// Retrieve this component's unique identifier.
+    pub fn id(&self) -> ComponentId {
+        self.id
+    }
+}
+
+/// Represents the visual aspect of tasks. In the context of webpages, these are usually translated
+/// into (groups of) input elements.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum Widget {
     TextField {
         value: String,
         label: Option<String>,
@@ -22,82 +43,50 @@ pub enum Component {
     Column(Vec<Component>),
 }
 
-impl Component {
-    pub fn value(&self) -> Option<String> {
-        match self {
-            Component::TextField { value, .. } => Some(value.clone()),
-            Component::NumberField { value, .. } => Some(value.to_string()),
-            _ => None,
-        }
-    }
+/// Unique component identifier.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ComponentId(u32);
 
-    pub fn input_type(&self) -> Option<&'static str> {
-        match self {
-            Component::TextField { .. } => Some("text"),
-            Component::NumberField { .. } => Some("number"),
-            _ => None,
-        }
-    }
-
-    pub fn render(&self) -> String {
-        match &self {
-            Component::TextField {
-                label, disabled, ..
-            }
-            | Component::NumberField {
-                label, disabled, ..
-            } => REGISTRY
-                .render(
-                    INPUT,
-                    &json!({
-                        "type": self.input_type().expect("no input type"),
-                        "value": self.value().expect("no value"),
-                        "label": label.as_ref().unwrap_or(&String::new()),
-                        "disabled": *disabled,
-                    }),
-                )
-                .unwrap(),
-            Component::Button { text, disabled } => REGISTRY
-                .render(
-                    BUTTON,
-                    &json!({
-                        "text": text,
-                        "disabled": *disabled,
-                    }),
-                )
-                .unwrap(),
-            Component::Row(children) | Component::Column(children) => format!(
-                "<div>{}</div>",
-                children
-                    .iter()
-                    .map(|c| c.render())
-                    .collect::<Vec<String>>()
-                    .join("<br/>")
-            ),
-        }
-    }
-
-    pub fn render_wrapper(title: &str) -> String {
-        REGISTRY
-            .render(INDEX, &json!({ "title": title }))
-            .expect("failed to render template")
+impl Display for ComponentId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "top-{}", self.0)
     }
 }
 
-const INDEX: &'static str = "index";
-const INPUT: &'static str = "input";
-const BUTTON: &'static str = "button";
+/// A context used to generate components with unique identifiers.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Context {
+    current_id: ComponentId,
+}
 
-lazy_static! {
-    static ref REGISTRY: Handlebars<'static> = {
-        let mut reg = Handlebars::new();
-        #[cfg(debug_assertions)]
-        reg.set_dev_mode(true);
-        // TODO: Improve paths
-        reg.register_template_file(INDEX, "../../web/dist/index.hbs")
-            .unwrap();
-        reg.register_template_file(INPUT, "../../web/dist/component/input.hbs").unwrap();
-        reg.register_template_file(BUTTON, "../../web/dist/component/button.hbs").unwrap();
-        reg
-    };
+impl Context {
+    /// Construct a new context for generating components with unique identifiers.
+    pub fn new() -> Self {
+        Context {
+            current_id: ComponentId(0),
+        }
+    }
+
+    /// Generate a new, uniquely-identifiable component.
+    pub fn create_component(&mut self, widget: Widget) -> Component {
+        let id = self.generate_id();
+        Component { id, widget }
+    }
+
+    /// Retrieve the last generated identifier.
+    pub fn current_id(&self) -> ComponentId {
+        self.current_id
+    }
+
+    fn generate_id(&mut self) -> ComponentId {
+        self.current_id = ComponentId(self.current_id.0 + 1);
+        self.current_id
+    }
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        Self::new()
+    }
 }

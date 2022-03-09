@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::mem;
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum TaskValue<T> {
     Stable(T),
     Unstable(T),
@@ -6,12 +8,22 @@ pub enum TaskValue<T> {
 }
 
 impl<T> TaskValue<T> {
-    pub fn unwrap(self) -> T {
+    pub fn into_option(self) -> Option<T> {
         match self {
-            TaskValue::Stable(value) => value,
-            TaskValue::Unstable(value) => value,
-            TaskValue::Empty => panic!("unwrap on `Empty` value"),
+            TaskValue::Stable(t) => Some(t),
+            TaskValue::Unstable(t) => Some(t),
+            TaskValue::Empty => None,
         }
+    }
+
+    pub fn take(&mut self) -> Option<T> {
+        mem::take(self).into_option()
+    }
+}
+
+impl<T> Default for TaskValue<T> {
+    fn default() -> Self {
+        TaskValue::Empty
     }
 }
 

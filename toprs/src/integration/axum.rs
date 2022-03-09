@@ -1,9 +1,7 @@
-use crate::component::Component;
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::{Html, IntoResponse};
 
-use crate::editor::Editor;
-use crate::task::Task;
+use crate::component::Component;
 
 pub async fn index() -> impl IntoResponse {
-    Html(Component::render_wrapper("TopRs Axum"))
+    Html(Component::html_wrapper("TopRs Axum"))
 }

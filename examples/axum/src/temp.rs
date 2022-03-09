@@ -1,31 +1,16 @@
-use crate::{enter_name, IntoResponse, StatusCode};
 use axum::extract::ws::WebSocket;
 use axum::extract::{ws, WebSocketUpgrade};
 use axum::routing::{get, get_service};
 use axum::Router;
-use serde::{Deserialize, Serialize};
+use tower_http::services::ServeDir;
+
+use toprs::component::Context;
+use toprs::editor::event::{Event, Response};
 use toprs::editor::Editor;
 use toprs::integration::axum::index;
 use toprs::task::Task;
-use tower_http::services::ServeDir;
 
-pub type InputId = String;
-pub type ButtonId = String;
-pub type FormId = String;
-pub type Html = String;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ClientMessage {
-    Update { id: InputId, value: String },
-    Press { id: ButtonId },
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ServerMessage {
-    NewContent { content: Html },
-}
+use crate::{enter_name, IntoResponse, StatusCode};
 
 async fn handler(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_socket)
@@ -34,19 +19,25 @@ async fn handler(ws: WebSocketUpgrade) -> impl IntoResponse {
 async fn handle_socket(mut socket: WebSocket) {
     let route = enter_name().await;
     let mut editor = route.get_editor();
-    let message = ServerMessage::NewContent {
-        content: editor.ui().render(),
+    let mut ctx = Context::new();
+    let component = editor.start(&mut ctx);
+
+    let initial = Response::NewContent {
+        content: component.html(),
     };
     socket
-        .send(ws::Message::Text(serde_json::to_string(&message).unwrap()))
+        .send(ws::Message::Text(serde_json::to_string(&initial).unwrap()))
         .await
         .unwrap();
+
     while let Some(message) = socket.recv().await {
         if let Ok(ws::Message::Text(text)) = message {
-            if let Ok(message) = serde_json::from_str::<'_, ClientMessage>(&text) {
-                match message {
-                    ClientMessage::Update { id, value } => println!("update {id} to {value}"),
-                    ClientMessage::Press { .. } => {}
+            if let Ok(event) = serde_json::from_str::<'_, Event>(&text) {
+                if let Some(response) = editor.respond_to(event).unwrap() {
+                    socket
+                        .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
+                        .await
+                        .unwrap();
                 }
             };
         }
@@ -61,7 +52,7 @@ pub fn toprs_router() -> Router {
         .nest(
             "/static",
             get_service(ServeDir::new("../../web/dist/static")).handle_error(
-                |error: std::io::Error| async move { (StatusCode::INTERNAL_SERVER_ERROR, ":(") },
+                |_: std::io::Error| async move { (StatusCode::INTERNAL_SERVER_ERROR, ":(") },
             ),
         )
 }
