@@ -1,8 +1,9 @@
 //! This module contains functionality for generating user interfaces for tasks.
 
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 pub mod html;
 
@@ -44,13 +45,23 @@ pub enum Widget {
 }
 
 /// Unique component identifier.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
+#[derive(
+    Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, SerializeDisplay, DeserializeFromStr,
+)]
 pub struct ComponentId(u32);
 
 impl Display for ComponentId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "top-{}", self.0)
+    }
+}
+
+impl FromStr for ComponentId {
+    type Err = <u32 as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let id: u32 = s[4..].parse()?;
+        Ok(ComponentId(id))
     }
 }
 
