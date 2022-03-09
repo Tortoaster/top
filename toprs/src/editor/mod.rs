@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 use crate::component::{Component, Context};
-use crate::editor::event::{Event, Response};
+use crate::editor::event::{EditorError, Event, Response};
 
 pub mod container;
 pub mod event;
@@ -24,26 +24,22 @@ pub trait Editor {
     type Output;
 
     /// Create the initial user interface for this editor.
-    fn start(&self, ctx: &mut Context) -> Component;
+    fn start(&mut self, ctx: &mut Context) -> Component;
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    fn respond_to(&mut self, event: Event) -> Result<Option<Response>, EditorError>;
+    fn respond_to(&mut self, event: Event) -> Option<Result<Response, EditorError>>;
 
     /// Consume the editor, retrieving its value.
     fn finish(self) -> Self::Output;
 }
 
-/// Common error type for editors.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum EditorError {
-    Format(String),
-}
-
 impl Display for EditorError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            EditorError::Format(s) => write!(f, "{} is not the right format for this field", s),
+            EditorError::Format { id: s } => {
+                write!(f, "{} is not the right format for this field", s)
+            }
         }
     }
 }

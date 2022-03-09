@@ -46,7 +46,17 @@ pub enum Widget {
 
 /// Unique component identifier.
 #[derive(
-    Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, SerializeDisplay, DeserializeFromStr,
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    SerializeDisplay,
+    DeserializeFromStr,
 )]
 pub struct ComponentId(u32);
 
@@ -66,7 +76,7 @@ impl FromStr for ComponentId {
 }
 
 /// A context used to generate components with unique identifiers.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Context {
     current_id: ComponentId,
 }
@@ -81,23 +91,10 @@ impl Context {
 
     /// Generate a new, uniquely-identifiable component.
     pub fn create_component(&mut self, widget: Widget) -> Component {
-        let id = self.generate_id();
-        Component { id, widget }
-    }
-
-    /// Retrieve the last generated identifier.
-    pub fn current_id(&self) -> ComponentId {
-        self.current_id
-    }
-
-    fn generate_id(&mut self) -> ComponentId {
         self.current_id = ComponentId(self.current_id.0 + 1);
-        self.current_id
-    }
-}
-
-impl Default for Context {
-    fn default() -> Self {
-        Self::new()
+        Component {
+            id: self.current_id,
+            widget,
+        }
     }
 }

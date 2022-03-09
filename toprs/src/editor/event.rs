@@ -18,5 +18,17 @@ pub enum Event {
 #[serde(rename_all = "camelCase")]
 pub enum Response {
     /// Replace the entire UI with the given [`Component`].
-    NewContent { content: Html },
+    NewContent {
+        content: Html,
+    },
+    ValueOk {
+        id: ComponentId,
+    },
+}
+
+/// Error type for editors, indicating that an interaction event was invalid.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum EditorError {
+    Format { id: ComponentId },
 }

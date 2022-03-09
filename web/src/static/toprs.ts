@@ -18,6 +18,12 @@ function connect(ev: Event) {
  * @param {HTMLInputElement} input The input field that was changed.
  */
 function update(input: HTMLInputElement) {
+  // TODO: Fix
+  if(input.attributes.getNamedItem('synced') != null)
+    input.attributes.removeNamedItem('synced');
+  if(input.attributes.getNamedItem('failed') != null)
+    input.attributes.removeNamedItem('failed');
+  input.attributes.setNamedItem(document.createAttribute('syncing'));
   const message = JSON.stringify({
     update: {
       id: input.id,
@@ -55,8 +61,24 @@ function onMessage(ev: MessageEvent) {
   const data = JSON.parse(ev.data);
   console.log(`received: ${data}`);
   const content = document.getElementById(CONTENT) as HTMLDivElement;
-  if(data.newContent !== null) {
+  if(data.newContent != null) {
     content.innerHTML = data.newContent.content;
+  } else if(data.Ok != null) {
+    const result = data.Ok;
+    if(result.valueOk != null) {
+      const id = result.valueOk.id;
+      const input = document.getElementById(id) as HTMLElement;
+      input.attributes.removeNamedItem('syncing');
+      input.attributes.setNamedItem(document.createAttribute('synced'));
+    }
+  } else if(data.Err != null) {
+    const result = data.Err;
+    if(result.format != null) {
+      const id = result.format.id;
+      const input = document.getElementById(id) as HTMLElement;
+      input.attributes.removeNamedItem('syncing');
+      input.attributes.setNamedItem(document.createAttribute('failed'));
+    }
   }
 }
 

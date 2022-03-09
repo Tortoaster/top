@@ -37,7 +37,7 @@ async fn handle_socket(mut socket: WebSocket) {
         if let Ok(ws::Message::Text(text)) = message {
             if let Ok(event) = serde_json::from_str::<Event>(&text) {
                 info!("Received event: {:?}", event);
-                if let Some(response) = editor.respond_to(event).unwrap() {
+                if let Some(response) = editor.respond_to(event) {
                     socket
                         .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
                         .await
