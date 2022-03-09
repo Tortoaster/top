@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use log::info;
 
 pub use toprs::prelude::*;
 
@@ -20,7 +21,9 @@ async fn enter_name() -> impl Task<Output = String> {
 #[tokio::main]
 async fn main() {
     const IP: &str = "0.0.0.0:3000";
-    println!("Listening on http://{IP}");
+    env_logger::init();
+
+    info!("Listening on http://{IP}");
     axum::Server::bind(&IP.parse().unwrap())
         .serve(toprs_router().into_make_service())
         .await

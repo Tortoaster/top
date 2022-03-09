@@ -2,6 +2,7 @@ use axum::extract::ws::WebSocket;
 use axum::extract::{ws, WebSocketUpgrade};
 use axum::routing::{get, get_service};
 use axum::Router;
+use log::{error, info};
 use tower_http::services::ServeDir;
 
 use toprs::component::Context;
@@ -22,6 +23,8 @@ async fn handle_socket(mut socket: WebSocket) {
     let mut ctx = Context::new();
     let component = editor.start(&mut ctx);
 
+    info!("Client connected");
+
     let initial = Response::NewContent {
         content: component.html(),
     };
@@ -33,13 +36,19 @@ async fn handle_socket(mut socket: WebSocket) {
     while let Some(message) = socket.recv().await {
         if let Ok(ws::Message::Text(text)) = message {
             if let Ok(event) = serde_json::from_str::<'_, Event>(&text) {
+                info!("Received event: {:?}", event);
                 if let Some(response) = editor.respond_to(event).unwrap() {
+                    info!("Sent response: {:?}", response);
                     socket
                         .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
                         .await
                         .unwrap();
                 }
-            };
+            } else {
+                error!("Received ill-formatted event: {:?}", text);
+            }
+        } else {
+            error!("Received non-text message: {:?}", message);
         }
     }
 }
