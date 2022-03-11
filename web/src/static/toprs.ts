@@ -58,23 +58,23 @@ function onOpen(ev: Event) {
  * @param {MessageEvent} ev The event.
  */
 function onMessage(ev: MessageEvent) {
-  const data = JSON.parse(ev.data);
-  console.log(`received: ${data}`);
-  const content = document.getElementById(CONTENT) as HTMLDivElement;
-  if(data.newContent != null) {
-    content.innerHTML = data.newContent.content;
-  } else if(data.Ok != null) {
-    const result = data.Ok;
-    if(result.valueOk != null) {
-      const id = result.valueOk.id;
+  console.log(`received: ${ev.data}`);
+  const result = JSON.parse(ev.data);
+  if(result.Ok != null) {
+    const data = result.Ok;
+    if(data.replace != null) {
+      const element = document.getElementById(data.replace.id) as HTMLDivElement;
+      element.innerHTML = data.replace.content;
+    } else if(data.valueOk != null) {
+      const id = data.valueOk.id;
       const input = document.getElementById(id) as HTMLElement;
       input.attributes.removeNamedItem('syncing');
       input.attributes.setNamedItem(document.createAttribute('synced'));
     }
-  } else if(data.Err != null) {
-    const result = data.Err;
-    if(result.format != null) {
-      const id = result.format.id;
+  } else if(result.Err != null) {
+    const data = result.Err;
+    if(data.format != null) {
+      const id = data.format.id;
       const input = document.getElementById(id) as HTMLElement;
       input.attributes.removeNamedItem('syncing');
       input.attributes.setNamedItem(document.createAttribute('failed'));

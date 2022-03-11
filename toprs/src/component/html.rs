@@ -69,7 +69,7 @@ impl Component {
                     }),
                 )
                 .unwrap(),
-            Widget::Row(children) | Widget::Column(children) => format!(
+            Widget::Group(children) => format!(
                 "<div id=\"{}\">{}</div>",
                 self.id(),
                 children

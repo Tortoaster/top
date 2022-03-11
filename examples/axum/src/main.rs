@@ -3,19 +3,23 @@ use axum::response::IntoResponse;
 use log::info;
 
 pub use toprs::prelude::*;
+use toprs::task::Task;
 
 use crate::temp::toprs_router;
 
 mod temp;
 
-async fn enter_name() -> impl Task<Output = String> {
-    enter()
-    // enter_with(TextEditor::default().with_label("Name".to_owned())).then(|name| {
-    //     let mut buf = Vec::new();
-    //     ferris_says::say(name.as_bytes(), 24, &mut buf).unwrap();
-    //     let text = String::from_utf8(buf).unwrap();
-    //     view(text)
-    // })
+async fn enter_name() -> impl Task {
+    enter::<i32>().then(|n| {
+        enter::<String>().then(move |s| {
+            view(
+                std::iter::repeat(s)
+                    .take(n as usize)
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )
+        })
+    })
 }
 
 #[tokio::main]

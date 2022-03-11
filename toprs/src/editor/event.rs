@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+
 use serde::{Deserialize, Serialize};
 
 use crate::component::ComponentId;
@@ -18,7 +21,8 @@ pub enum Event {
 #[serde(rename_all = "camelCase")]
 pub enum Response {
     /// Replace the entire UI with the given [`Component`].
-    NewContent {
+    Replace {
+        id: ComponentId,
         content: Html,
     },
     ValueOk {
@@ -31,4 +35,18 @@ pub enum Response {
 #[serde(rename_all = "camelCase")]
 pub enum EditorError {
     Format { id: ComponentId },
+    Incomplete,
 }
+
+impl Display for EditorError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EditorError::Format { id: s } => {
+                write!(f, "{} is not the right format for this field", s)
+            }
+            EditorError::Incomplete => write!(f, "Incomplete data"),
+        }
+    }
+}
+
+impl Error for EditorError {}

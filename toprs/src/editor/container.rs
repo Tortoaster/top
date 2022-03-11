@@ -1,68 +1,91 @@
-// use std::marker::PhantomData;
-//
-// use crate::component::Component;
-// use crate::editor::Editor;
-// use crate::prelude::Task;
-//
-// #[derive(Debug)]
-// pub struct SequentialEditor<E, T2> {
-//     editor: Option<E>,
-//     buttons: Vec<String>,
-//     _then: PhantomData<T2>,
-// }
-//
-// impl<E, T2> Default for SequentialEditor<E, T2> {
-//     fn default() -> Self {
-//         SequentialEditor {
-//             editor: None,
-//             buttons: Vec::new(),
-//             _then: PhantomData,
-//         }
-//     }
-// }
-//
-// impl<E, T2> SequentialEditor<E, T2> {
-//     pub fn with_editor(mut self, editor: E) -> Self {
-//         self.editor = Some(editor);
-//         self
-//     }
-//
-//     pub fn with_button(mut self, button: String) -> Self {
-//         self.buttons.push(button);
-//         self
-//     }
-// }
-//
-// impl<E, T2> Editor for SequentialEditor<E, T2>
-// where
-//     E: Editor,
-//     T2: Task,
-// {
-//     type Output = E::Output;
-//     type Input = E::Input;
-//     type Error = E::Error;
-//
-//     fn new(&self) -> Component {
-//         Component::Column(vec![
-//             self.editor.as_ref().unwrap().reset(),
-//             Component::Row(
-//                 self.buttons
-//                     .iter()
-//                     .cloned()
-//                     .map(|text| Component::Button {
-//                         text,
-//                         disabled: false,
-//                     })
-//                     .collect(),
-//             ),
-//         ])
-//     }
-//
-//     fn finish(&self) -> Self::Output {
-//         self.editor.as_ref().unwrap().finish()
-//     }
-//
-//     fn write_value(&mut self, value: Self::Input) -> Result<(), Self::Error> {
-//         self.editor.as_mut().unwrap().write_value(value)
-//     }
-// }
+use crate::component::{Component, ComponentId, Context, Widget};
+use crate::editor::event::{EditorError, Event, Response};
+use crate::editor::Editor;
+use crate::task::Task;
+
+/// Basic sequential editor. It starts with one editor, adds a continue button, and when the user
+/// presses it, it turns into another editor, passing the result of the previous as an argument.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct SequentialEditor<E1, F, E2> {
+    first: Option<E1>,
+    f: F,
+    then: Option<E2>,
+    done: bool,
+    id: ComponentId,
+    button_id: ComponentId,
+}
+
+impl<E1, F, T2, E2, O> SequentialEditor<E1, F, E2>
+where
+    E1: Editor<Output = O>,
+    F: Fn(O) -> T2,
+    T2: Task<Editor = E2>,
+    E2: Editor,
+{
+    /// Creates a new sequential editor.
+    pub fn new(first: E1, f: F) -> Self {
+        SequentialEditor {
+            first: Some(first),
+            f,
+            then: None,
+            done: false,
+            id: ComponentId::default(),
+            button_id: ComponentId::default(),
+        }
+    }
+}
+
+impl<E1, F, T2, E2, O> Editor for SequentialEditor<E1, F, E2>
+where
+    E1: Editor<Output = O>,
+    F: Fn(O) -> T2,
+    T2: Task<Editor = E2>,
+    E2: Editor,
+{
+    type Output = E2::Output;
+
+    fn start(&mut self, ctx: &mut Context) -> Component {
+        let form = self.first.as_mut().unwrap().start(ctx);
+        let button = ctx.create_component(Widget::Button {
+            text: "Next".to_string(),
+            disabled: false,
+        });
+        self.button_id = button.id();
+        let component = ctx.create_component(Widget::Group(vec![form, button]));
+        self.id = component.id();
+        component
+    }
+
+    fn respond_to(
+        &mut self,
+        event: Event,
+        ctx: &mut Context,
+    ) -> Option<Result<Response, EditorError>> {
+        match event {
+            Event::Press { id } if id == self.button_id => {
+                let value = self.first.take().unwrap().finish();
+                let mut editor = (self.f)(value).editor();
+                let component = editor.start(ctx);
+                self.then = Some(editor);
+                let response = Response::Replace {
+                    id: self.id,
+                    content: component.html(),
+                };
+                self.id = component.id();
+                self.done = true;
+                Some(Ok(response))
+            }
+            e => {
+                if self.done {
+                    self.then.as_mut().unwrap().respond_to(e, ctx)
+                } else {
+                    self.first.as_mut().unwrap().respond_to(e, ctx)
+                }
+            }
+        }
+    }
+
+    fn finish(self) -> Self::Output {
+        self.then.unwrap().finish()
+    }
+}

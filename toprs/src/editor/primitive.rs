@@ -11,17 +11,21 @@ pub struct TextEditor(ComponentId, String);
 impl TextEditor {
     /// Creates a new text editor.
     pub fn new() -> Self {
-        TextEditor(ComponentId::default(), String::new())
+        Self::with_value(Default::default())
+    }
+
+    /// Creates a new text editor with a default value.
+    pub fn with_value(value: String) -> Self {
+        TextEditor(ComponentId::default(), value)
     }
 }
 
 impl Editor for TextEditor {
-    type Input = String;
     type Output = String;
 
     fn start(&mut self, ctx: &mut Context) -> Component {
         let widget = Widget::TextField {
-            value: String::new(),
+            value: self.1.clone(),
             label: None,
             disabled: false,
         };
@@ -31,12 +35,16 @@ impl Editor for TextEditor {
         component
     }
 
-    fn respond_to(&mut self, event: Event) -> Option<Result<Response, EditorError>> {
+    fn respond_to(
+        &mut self,
+        event: Event,
+        _: &mut Context,
+    ) -> Option<Result<Response, EditorError>> {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
                     self.1 = value;
-                    Some(Ok(Response::ValueOk { id: id }))
+                    Some(Ok(Response::ValueOk { id }))
                 } else {
                     None
                 }
@@ -57,17 +65,21 @@ pub struct NumberEditor(ComponentId, i32);
 impl NumberEditor {
     /// Creates a new number editor.
     pub fn new() -> Self {
-        NumberEditor(ComponentId::default(), 0)
+        Self::with_value(Default::default())
+    }
+
+    /// Creates a new number editor with a default value.
+    pub fn with_value(value: i32) -> Self {
+        NumberEditor(ComponentId::default(), value)
     }
 }
 
 impl Editor for NumberEditor {
-    type Input = i32;
     type Output = i32;
 
     fn start(&mut self, ctx: &mut Context) -> Component {
         let widget = Widget::NumberField {
-            value: 0,
+            value: self.1,
             label: None,
             disabled: false,
         };
@@ -77,16 +89,20 @@ impl Editor for NumberEditor {
         component
     }
 
-    fn respond_to(&mut self, event: Event) -> Option<Result<Response, EditorError>> {
+    fn respond_to(
+        &mut self,
+        event: Event,
+        _: &mut Context,
+    ) -> Option<Result<Response, EditorError>> {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
                     match value.parse() {
                         Ok(value) => {
                             self.1 = value;
-                            Some(Ok(Response::ValueOk { id: id }))
+                            Some(Ok(Response::ValueOk { id }))
                         }
-                        Err(_) => Some(Err(EditorError::Format { id: id })),
+                        Err(_) => Some(Err(EditorError::Format { id })),
                     }
                 } else {
                     None

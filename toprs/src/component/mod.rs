@@ -40,8 +40,7 @@ pub enum Widget {
         text: String,
         disabled: bool,
     },
-    Row(Vec<Component>),
-    Column(Vec<Component>),
+    Group(Vec<Component>),
 }
 
 /// Unique component identifier.

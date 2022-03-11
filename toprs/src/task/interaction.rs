@@ -1,127 +1,102 @@
 use crate::editor::generic::DefaultEditor;
 use crate::editor::Editor;
-use crate::task::value::OptionExt;
-use crate::task::{Task, TaskValue};
+use crate::task::Task;
 
-#[derive(Debug)]
-pub struct View<T, E> {
-    value: T,
+/// Basic view interaction task. See [`view`] to construct one.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct View<E> {
     editor: E,
 }
 
-impl<T, E> Task for View<T, E>
-where
-    E: Editor<Output = T> + Send,
-{
-    type Output = T;
-    type Editor = E;
-
-    fn get_value(self) -> TaskValue<Self::Output> {
-        TaskValue::Stable(self.value)
-    }
-
-    fn get_editor(self) -> Self::Editor {
-        self.editor
-    }
-}
-
-pub fn view<T>(value: T) -> View<T, T::Editor>
+/// Displays the provided value to the user. To use a custom editor, see [`view_with`].
+pub fn view<T>(value: T) -> View<T::Editor>
 where
     T: Clone + DefaultEditor,
 {
-    let editor = T::default_editor();
-    View { value, editor }
+    view_with(value.clone(), T::default_editor(Some(value)))
 }
 
-pub fn view_with<T, E>(value: T, editor: E) -> View<T, E>
+/// Display the provided value to the user, through a custom editor.
+pub fn view_with<T, E>(value: T, editor: E) -> View<E>
 where
     E: Editor<Output = T>,
 {
-    View { value, editor }
+    View { editor }
 }
 
-#[derive(Debug)]
-pub struct Enter<T, E> {
-    value: Option<T>,
-    editor: E,
-}
-
-impl<T, E> Task for Enter<T, E>
+impl<T, E> Task for View<E>
 where
     E: Editor<Output = T> + Send,
 {
-    type Output = T;
     type Editor = E;
 
-    fn get_value(self) -> TaskValue<Self::Output> {
-        self.value.into_unstable()
-    }
-
-    fn get_editor(self) -> Self::Editor {
+    fn editor(self) -> Self::Editor {
         self.editor
     }
 }
 
-pub fn enter<T>() -> Enter<T, T::Editor>
-where
-    T: DefaultEditor,
-{
-    let editor = T::default_editor();
-    Enter {
-        value: None,
-        editor,
-    }
-}
-
-pub fn enter_with<T, E>(editor: E) -> Enter<T, E>
-where
-    E: Editor<Output = T>,
-{
-    Enter {
-        value: None,
-        editor,
-    }
-}
-
-#[derive(Debug)]
-pub struct Update<T, E> {
-    value: Option<T>,
+/// Basic enter interaction task. See [`enter`] to construct one.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Enter<E> {
     editor: E,
 }
 
-impl<T, E> Task for Update<T, E>
+/// Have the user enter a value. To use a custom editor, see [`enter_with`].
+pub fn enter<T>() -> Enter<T::Editor>
+where
+    T: DefaultEditor,
+{
+    enter_with(T::default_editor(None))
+}
+
+/// Have the user enter a value, through a custom editor.
+pub fn enter_with<T, E>(editor: E) -> Enter<E>
+where
+    E: Editor<Output = T>,
+{
+    Enter { editor }
+}
+
+impl<T, E> Task for Enter<E>
 where
     E: Editor<Output = T> + Send,
 {
-    type Output = T;
     type Editor = E;
 
-    fn get_value(self) -> TaskValue<Self::Output> {
-        self.value.into_unstable()
-    }
-
-    fn get_editor(self) -> Self::Editor {
+    fn editor(self) -> Self::Editor {
         self.editor
     }
 }
 
-pub fn update<T>(value: T) -> Update<T, T::Editor>
-where
-    T: DefaultEditor,
-{
-    let editor = T::default_editor();
-    Update {
-        value: Some(value),
-        editor,
-    }
+/// Basic update interaction task. See [`update`] to construct one.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Update<E> {
+    editor: E,
 }
 
-pub fn update_with<T, E>(value: T, editor: E) -> Update<T, E>
+/// Have the user update a value. To use a custom editor, see [`update_with`].
+pub fn update<T>(value: T) -> Update<T::Editor>
+where
+    T: Clone + DefaultEditor,
+{
+    update_with(value.clone(), T::default_editor(Some(value)))
+}
+
+/// Have the user update a value, through a custom editor.
+pub fn update_with<T, E>(value: T, editor: E) -> Update<E>
 where
     E: Editor<Output = T>,
 {
-    Update {
-        value: Some(value),
-        editor,
+    Update { editor }
+}
+
+impl<T, E> Task for Update<E>
+where
+    E: Editor<Output = T> + Send,
+{
+    type Editor = E;
+
+    fn editor(self) -> Self::Editor {
+        self.editor
     }
 }

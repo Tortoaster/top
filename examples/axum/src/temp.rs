@@ -5,8 +5,8 @@ use axum::Router;
 use log::{error, info};
 use tower_http::services::ServeDir;
 
-use toprs::component::Context;
-use toprs::editor::event::{Event, Response};
+use toprs::component::{ComponentId, Context};
+use toprs::editor::event::{EditorError, Event, Response};
 use toprs::editor::Editor;
 use toprs::integration::axum::index;
 use toprs::task::Task;
@@ -19,15 +19,16 @@ async fn handler(ws: WebSocketUpgrade) -> impl IntoResponse {
 
 async fn handle_socket(mut socket: WebSocket) {
     let route = enter_name().await;
-    let mut editor = route.get_editor();
+    let mut editor = route.editor();
     let mut ctx = Context::new();
     let component = editor.start(&mut ctx);
 
     info!("Client connected");
 
-    let initial = Response::NewContent {
+    let initial: Result<Response, EditorError> = Ok(Response::Replace {
+        id: ComponentId::default(),
         content: component.html(),
-    };
+    });
     socket
         .send(ws::Message::Text(serde_json::to_string(&initial).unwrap()))
         .await
@@ -37,7 +38,7 @@ async fn handle_socket(mut socket: WebSocket) {
         if let Ok(ws::Message::Text(text)) = message {
             if let Ok(event) = serde_json::from_str::<Event>(&text) {
                 info!("Received event: {:?}", event);
-                if let Some(response) = editor.respond_to(event) {
+                if let Some(response) = editor.respond_to(event, &mut ctx) {
                     socket
                         .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
                         .await
