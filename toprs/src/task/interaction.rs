@@ -13,11 +13,11 @@ pub fn view<T>(value: T) -> View<T::Editor>
 where
     T: Clone + DefaultEditor,
 {
-    view_with(value.clone(), T::default_editor(Some(value)))
+    view_with(T::default_editor(Some(value)))
 }
 
 /// Display the provided value to the user, through a custom editor.
-pub fn view_with<T, E>(value: T, editor: E) -> View<E>
+pub fn view_with<T, E>(editor: E) -> View<E>
 where
     E: Editor<Output = T>,
 {
@@ -79,11 +79,11 @@ pub fn update<T>(value: T) -> Update<T::Editor>
 where
     T: Clone + DefaultEditor,
 {
-    update_with(value.clone(), T::default_editor(Some(value)))
+    update_with(T::default_editor(Some(value)))
 }
 
 /// Have the user update a value, through a custom editor.
-pub fn update_with<T, E>(value: T, editor: E) -> Update<E>
+pub fn update_with<T, E>(editor: E) -> Update<E>
 where
     E: Editor<Output = T>,
 {

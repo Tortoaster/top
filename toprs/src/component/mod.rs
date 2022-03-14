@@ -43,6 +43,7 @@ pub enum Widget {
     Group(Vec<Component>),
 }
 
+// TODO: Allow identifying containing form, and disable any buttons while syncing or invalid
 /// Unique component identifier.
 #[derive(
     Copy,

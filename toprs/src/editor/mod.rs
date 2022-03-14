@@ -17,6 +17,7 @@ pub trait Editor {
     /// checkbox also produces a boolean value, but retrieving the value might fail.
     type Output;
 
+    // TODO: Add optional initial value?
     /// Create the initial user interface for this editor.
     fn start(&mut self, ctx: &mut Context) -> Component;
 

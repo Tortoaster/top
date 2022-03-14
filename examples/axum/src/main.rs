@@ -1,15 +1,9 @@
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use log::info;
 
+use toprs::integration::axum::TopRsRouter;
 pub use toprs::prelude::*;
-use toprs::task::Task;
 
-use crate::temp::toprs_router;
-
-mod temp;
-
-async fn enter_name() -> impl Task {
+fn repeat() -> impl Task {
     enter::<i32>().then(|n| {
         enter::<String>().then(move |s| {
             view(
@@ -22,14 +16,17 @@ async fn enter_name() -> impl Task {
     })
 }
 
+const HOST: &str = "0.0.0.0:3000";
+
 #[tokio::main]
 async fn main() {
-    const IP: &str = "0.0.0.0:3000";
     env_logger::init();
+    info!("Listening on http://{HOST}");
 
-    info!("Listening on http://{IP}");
-    axum::Server::bind(&IP.parse().unwrap())
-        .serve(toprs_router().into_make_service())
+    let router = TopRsRouter::new().task("/", repeat);
+
+    axum::Server::bind(&HOST.parse().unwrap())
+        .serve(router.into_make_service())
         .await
         .unwrap();
 }

@@ -1,2 +1,2 @@
-#[cfg(feature = "axum")]
+#[cfg(feature = "axum_integration")]
 pub mod axum;

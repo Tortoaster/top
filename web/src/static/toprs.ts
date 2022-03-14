@@ -1,6 +1,6 @@
 const CONTENT = 'toprs-content';
 
-const socket = new WebSocket(`ws://${document.location.host}/ws`);
+const socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}/ws`);
 
 document.addEventListener('DOMContentLoaded', connect);
 
@@ -18,7 +18,6 @@ function connect(ev: Event) {
  * @param {HTMLInputElement} input The input field that was changed.
  */
 function update(input: HTMLInputElement) {
-  // TODO: Fix
   if(input.attributes.getNamedItem('synced') != null)
     input.attributes.removeNamedItem('synced');
   if(input.attributes.getNamedItem('failed') != null)
