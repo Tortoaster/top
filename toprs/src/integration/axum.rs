@@ -7,7 +7,7 @@ use log::{error, info};
 use tower_http::services::ServeDir;
 
 use crate::component::{Component, ComponentId, Context};
-use crate::editor::event::{EditorError, Event, Response};
+use crate::editor::event::{Event, Feedback};
 use crate::editor::Editor;
 use crate::task::Task;
 
@@ -62,10 +62,10 @@ where
 
         info!("Client connected");
 
-        let initial: Result<Response, EditorError> = Ok(Response::Replace {
+        let initial = Feedback::Replace {
             id: ComponentId::default(),
             content: component.html(),
-        });
+        };
         socket
             .send(ws::Message::Text(serde_json::to_string(&initial).unwrap()))
             .await

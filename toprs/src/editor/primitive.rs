@@ -1,8 +1,8 @@
 //! This module contains basic editors for primitive types.
 
 use crate::component::{ComponentId, Context, Widget};
-use crate::editor::event::{Event, Response};
-use crate::editor::{Component, Editor, EditorError};
+use crate::editor::event::{Event, Feedback};
+use crate::editor::{Component, Editor};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -35,16 +35,12 @@ impl Editor for TextEditor {
         component
     }
 
-    fn respond_to(
-        &mut self,
-        event: Event,
-        _: &mut Context,
-    ) -> Option<Result<Response, EditorError>> {
+    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
                     self.1 = value;
-                    Some(Ok(Response::ValueOk { id }))
+                    Some(Feedback::ValueOk { id })
                 } else {
                     None
                 }
@@ -89,20 +85,16 @@ impl Editor for NumberEditor {
         component
     }
 
-    fn respond_to(
-        &mut self,
-        event: Event,
-        _: &mut Context,
-    ) -> Option<Result<Response, EditorError>> {
+    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
                     match value.parse() {
                         Ok(value) => {
                             self.1 = value;
-                            Some(Ok(Response::ValueOk { id }))
+                            Some(Feedback::ValueOk { id })
                         }
-                        Err(_) => Some(Err(EditorError::Format { id })),
+                        Err(_) => Some(Feedback::ValueError { id }),
                     }
                 } else {
                     None

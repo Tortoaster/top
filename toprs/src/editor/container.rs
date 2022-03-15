@@ -1,5 +1,5 @@
 use crate::component::{Component, ComponentId, Context, Widget};
-use crate::editor::event::{EditorError, Event, Response};
+use crate::editor::event::{Event, Feedback};
 use crate::editor::Editor;
 use crate::task::Task;
 
@@ -56,24 +56,20 @@ where
         component
     }
 
-    fn respond_to(
-        &mut self,
-        event: Event,
-        ctx: &mut Context,
-    ) -> Option<Result<Response, EditorError>> {
+    fn respond_to(&mut self, event: Event, ctx: &mut Context) -> Option<Feedback> {
         match event {
             Event::Press { id } if id == self.button_id => {
                 let value = self.first.take().unwrap().finish();
                 let mut editor = (self.f)(value).editor();
                 let component = editor.start(ctx);
                 self.then = Some(editor);
-                let response = Response::Replace {
+                let response = Feedback::Replace {
                     id: self.id,
                     content: component.html(),
                 };
                 self.id = component.id();
                 self.done = true;
-                Some(Ok(response))
+                Some(response)
             }
             e => {
                 if self.done {

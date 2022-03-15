@@ -58,26 +58,20 @@ function onOpen(ev: Event) {
  */
 function onMessage(ev: MessageEvent) {
   console.log(`received: ${ev.data}`);
-  const result = JSON.parse(ev.data);
-  if(result.Ok != null) {
-    const data = result.Ok;
-    if(data.replace != null) {
-      const element = document.getElementById(data.replace.id) as HTMLDivElement;
-      element.innerHTML = data.replace.content;
-    } else if(data.valueOk != null) {
-      const id = data.valueOk.id;
-      const input = document.getElementById(id) as HTMLElement;
-      input.attributes.removeNamedItem('syncing');
-      input.attributes.setNamedItem(document.createAttribute('synced'));
-    }
-  } else if(result.Err != null) {
-    const data = result.Err;
-    if(data.format != null) {
-      const id = data.format.id;
-      const input = document.getElementById(id) as HTMLElement;
-      input.attributes.removeNamedItem('syncing');
-      input.attributes.setNamedItem(document.createAttribute('failed'));
-    }
+  const data = JSON.parse(ev.data);
+  if(data.replace != null) {
+    const element = document.getElementById(data.replace.id) as HTMLDivElement;
+    element.innerHTML = data.replace.content;
+  } else if(data.valueOk != null) {
+    const id = data.valueOk.id;
+    const input = document.getElementById(id) as HTMLElement;
+    input.attributes.removeNamedItem('syncing');
+    input.attributes.setNamedItem(document.createAttribute('synced'));
+  } else if(data.valueError != null) {
+    const id = data.valueError.id;
+    const input = document.getElementById(id) as HTMLElement;
+    input.attributes.removeNamedItem('syncing');
+    input.attributes.setNamedItem(document.createAttribute('failed'));
   }
 }
 
