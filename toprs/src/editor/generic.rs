@@ -1,12 +1,12 @@
 pub use toprs_derive::DefaultEditor;
 
-use crate::editor::Editor;
+use crate::editor::{Editor, Report};
 use crate::prelude::{NumberEditor, TextEditor};
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`DefaultEditor`].
 pub trait DefaultEditor: Sized {
-    type Editor: Editor<Output = Self>;
+    type Editor: Editor<Input = Self, Output = Report<Self>>;
 
     /// Specifies the default editor for this type.
     fn default_editor(value: Option<Self>) -> Self::Editor;

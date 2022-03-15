@@ -1,6 +1,6 @@
 use crate::component::{Component, ComponentId, Context, Widget};
 use crate::editor::event::{Event, Feedback};
-use crate::editor::Editor;
+use crate::editor::{Editor, Report};
 use crate::task::Task;
 
 /// Basic sequential editor. It starts with one editor, adds a continue button, and when the user
@@ -17,7 +17,7 @@ pub struct SequentialEditor<E1, F, E2> {
 
 impl<E1, F, T2, E2, O> SequentialEditor<E1, F, E2>
 where
-    E1: Editor<Output = O>,
+    E1: Editor<Output = Report<O>>,
     F: Fn(O) -> T2,
     T2: Task<Editor = E2>,
     E2: Editor,
@@ -37,11 +37,12 @@ where
 
 impl<E1, F, T2, E2, O> Editor for SequentialEditor<E1, F, E2>
 where
-    E1: Editor<Output = O>,
+    E1: Editor<Output = Report<O>>,
     F: Fn(O) -> T2,
     T2: Task<Editor = E2>,
     E2: Editor,
 {
+    type Input = E1::Input;
     type Output = E2::Output;
 
     fn start(&mut self, ctx: &mut Context) -> Component {
@@ -59,17 +60,25 @@ where
     fn respond_to(&mut self, event: Event, ctx: &mut Context) -> Option<Feedback> {
         match event {
             Event::Press { id } if id == self.button_id => {
-                let value = self.first.take().unwrap().finish();
-                let mut editor = (self.f)(value).editor();
-                let component = editor.start(ctx);
-                self.then = Some(editor);
-                let response = Feedback::Replace {
-                    id: self.id,
-                    content: component.html(),
-                };
-                self.id = component.id();
-                self.done = true;
-                Some(response)
+                let report = self.first.take().unwrap().finish();
+                match report {
+                    Ok(value) => {
+                        let mut editor = (self.f)(value).editor();
+                        let component = editor.start(ctx);
+                        self.then = Some(editor);
+                        let response = Feedback::Replace {
+                            id: self.id,
+                            content: component.html(),
+                        };
+                        self.id = component.id();
+                        self.done = true;
+                        Some(response)
+                    }
+                    Err(_) => {
+                        let response = Feedback::ValueError { id: self.id };
+                        Some(response)
+                    }
+                }
             }
             e => {
                 if self.done {

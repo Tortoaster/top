@@ -2,7 +2,7 @@
 
 use crate::component::{ComponentId, Context, Widget};
 use crate::editor::event::{Event, Feedback};
-use crate::editor::{Component, Editor};
+use crate::editor::{Component, Editor, Report};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -21,7 +21,8 @@ impl TextEditor {
 }
 
 impl Editor for TextEditor {
-    type Output = String;
+    type Input = String;
+    type Output = Report<String>;
 
     fn start(&mut self, ctx: &mut Context) -> Component {
         let widget = Widget::TextField {
@@ -50,13 +51,13 @@ impl Editor for TextEditor {
     }
 
     fn finish(self) -> Self::Output {
-        self.1
+        Ok(self.1)
     }
 }
 
 /// Basic editor for numbers.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct NumberEditor(ComponentId, i32);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NumberEditor(ComponentId, Report<i32>);
 
 impl NumberEditor {
     /// Creates a new number editor.
@@ -66,16 +67,17 @@ impl NumberEditor {
 
     /// Creates a new number editor with a default value.
     pub fn with_value(value: i32) -> Self {
-        NumberEditor(ComponentId::default(), value)
+        NumberEditor(ComponentId::default(), Ok(value))
     }
 }
 
 impl Editor for NumberEditor {
-    type Output = i32;
+    type Input = i32;
+    type Output = Report<i32>;
 
     fn start(&mut self, ctx: &mut Context) -> Component {
         let widget = Widget::NumberField {
-            value: self.1,
+            value: *self.1.as_ref().unwrap_or(&0),
             label: None,
             disabled: false,
         };
@@ -91,10 +93,13 @@ impl Editor for NumberEditor {
                 if id == self.0 {
                     match value.parse() {
                         Ok(value) => {
-                            self.1 = value;
+                            self.1 = Ok(value);
                             Some(Feedback::ValueOk { id })
                         }
-                        Err(_) => Some(Feedback::ValueError { id }),
+                        Err(error) => {
+                            self.1 = Err(error.into());
+                            Some(Feedback::ValueError { id })
+                        }
                     }
                 } else {
                     None
