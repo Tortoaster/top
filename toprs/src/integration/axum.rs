@@ -92,7 +92,6 @@ impl EventHandler for AxumEventHandler {
 
     async fn send(&mut self, feedback: Feedback) -> Result<(), Self::Error> {
         let serialized = serde_json::to_string(&feedback)?;
-        info!("{serialized}");
         self.socket.send(Message::Text(serialized)).await?;
         Ok(())
     }

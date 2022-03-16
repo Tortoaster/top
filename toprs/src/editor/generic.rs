@@ -9,27 +9,21 @@ pub trait DefaultEditor: Sized {
     type Editor: Editor<Input = Self, Output = Report<Self>>;
 
     /// Specifies the default editor for this type.
-    fn default_editor(value: Option<Self>) -> Self::Editor;
+    fn default_editor() -> Self::Editor;
 }
 
 impl DefaultEditor for String {
     type Editor = TextEditor;
 
-    fn default_editor(value: Option<Self>) -> Self::Editor {
-        match value {
-            None => TextEditor::new(),
-            Some(value) => TextEditor::with_value(value),
-        }
+    fn default_editor() -> Self::Editor {
+        TextEditor::default()
     }
 }
 
 impl DefaultEditor for i32 {
     type Editor = NumberEditor;
 
-    fn default_editor(value: Option<Self>) -> Self::Editor {
-        match value {
-            None => NumberEditor::new(),
-            Some(value) => NumberEditor::with_value(value),
-        }
+    fn default_editor() -> Self::Editor {
+        NumberEditor::default()
     }
 }

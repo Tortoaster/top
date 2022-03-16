@@ -6,27 +6,15 @@ use crate::editor::{Component, Editor, Report};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct TextEditor(Id, String);
-
-impl TextEditor {
-    /// Creates a new text editor.
-    pub fn new() -> Self {
-        Self::with_value(Default::default())
-    }
-
-    /// Creates a new text editor with a default value.
-    pub fn with_value(value: String) -> Self {
-        TextEditor(Id::default(), value)
-    }
-}
+pub struct TextEditor(Id);
 
 impl Editor for TextEditor {
     type Input = String;
     type Output = Report<String>;
 
-    fn start(&mut self, ctx: &mut Context) -> Component {
+    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut Context) -> Component {
         let widget = Widget::TextField {
-            value: self.1.clone(),
+            value: initial.unwrap_or_default(),
             label: None,
             disabled: false,
         };
@@ -38,46 +26,23 @@ impl Editor for TextEditor {
 
     fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<Feedback> {
         match event {
-            Event::Update { id, value } => {
-                if id == self.0 {
-                    self.1 = value;
-                    Some(Feedback::ValueOk { id })
-                } else {
-                    None
-                }
-            }
+            Event::Update { id, .. } if id == self.0 => Some(Feedback::ValueOk { id }),
             _ => None,
         }
-    }
-
-    fn finish(self) -> Self::Output {
-        Ok(self.1)
     }
 }
 
 /// Basic editor for numbers.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NumberEditor(Id, Report<i32>);
-
-impl NumberEditor {
-    /// Creates a new number editor.
-    pub fn new() -> Self {
-        Self::with_value(Default::default())
-    }
-
-    /// Creates a new number editor with a default value.
-    pub fn with_value(value: i32) -> Self {
-        NumberEditor(Id::default(), Ok(value))
-    }
-}
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct NumberEditor(Id);
 
 impl Editor for NumberEditor {
     type Input = i32;
     type Output = Report<i32>;
 
-    fn start(&mut self, ctx: &mut Context) -> Component {
+    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut Context) -> Component {
         let widget = Widget::NumberField {
-            value: *self.1.as_ref().unwrap_or(&0),
+            value: initial.unwrap_or_default(),
             label: None,
             disabled: false,
         };
@@ -91,15 +56,9 @@ impl Editor for NumberEditor {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
-                    match value.parse() {
-                        Ok(value) => {
-                            self.1 = Ok(value);
-                            Some(Feedback::ValueOk { id })
-                        }
-                        Err(error) => {
-                            self.1 = Err(error.into());
-                            Some(Feedback::ValueError { id })
-                        }
+                    match value.parse::<i32>() {
+                        Ok(_) => Some(Feedback::ValueOk { id }),
+                        Err(_) => Some(Feedback::ValueError { id }),
                     }
                 } else {
                     None
@@ -107,9 +66,5 @@ impl Editor for NumberEditor {
             }
             _ => None,
         }
-    }
-
-    fn finish(self) -> Self::Output {
-        self.1
     }
 }

@@ -16,8 +16,30 @@ impl<T> TaskValue<T> {
         }
     }
 
+    pub const fn as_ref(&self) -> TaskValue<&T> {
+        match *self {
+            TaskValue::Stable(ref x) => TaskValue::Stable(x),
+            TaskValue::Unstable(ref x) => TaskValue::Unstable(x),
+            TaskValue::Empty => TaskValue::Empty,
+        }
+    }
+
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> TaskValue<U> {
+        match self {
+            TaskValue::Stable(x) => TaskValue::Stable(f(x)),
+            TaskValue::Unstable(x) => TaskValue::Unstable(f(x)),
+            TaskValue::Empty => TaskValue::Empty,
+        }
+    }
+
     pub fn take(&mut self) -> Option<T> {
         mem::take(self).into_option()
+    }
+}
+
+impl<T: Clone> TaskValue<&T> {
+    pub fn cloned(self) -> TaskValue<T> {
+        self.map(|t| t.clone())
     }
 }
 

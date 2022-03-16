@@ -18,8 +18,8 @@ pub struct Interact<T, E> {
 #[async_trait]
 impl<T, E> Task for Interact<T, E>
 where
-    T: Send,
-    E: Editor<Output = Report<T>> + Send,
+    T: Clone + Send,
+    E: Editor<Input = T, Output = Report<T>> + Send,
 {
     type Value = T;
 
@@ -27,7 +27,10 @@ where
         mut self,
         executor: &mut Executor<impl EventHandler + Send>,
     ) -> Result<TaskValue<Self::Value>, TaskError> {
-        let component = self.editor.start(&mut executor.ctx);
+        let component = self.editor.start(
+            self.value.as_ref().cloned().into_option(),
+            &mut executor.ctx,
+        );
 
         let initial = Feedback::Replace {
             id: Id::ROOT,
@@ -47,20 +50,41 @@ where
 }
 
 /// Have the user enter a value. To use a custom editor, see [`enter_with`].
+#[inline]
 pub fn enter<T>() -> Interact<T, T::Editor>
 where
-    T: DefaultEditor,
+    T: Default + DefaultEditor,
 {
-    enter_with(T::default_editor(None))
+    enter_with(T::default_editor())
 }
 
 /// Have the user enter a value, through a custom editor.
+#[inline]
 pub fn enter_with<T, E>(editor: E) -> Interact<T, E>
+where
+    T: Default,
+    E: Editor<Output = Report<T>>,
+{
+    update_with(T::default(), editor)
+}
+
+/// Have the user update a value. To use a custom editor, see [`update_with`].
+#[inline]
+pub fn update<T>(value: T) -> Interact<T, T::Editor>
+where
+    T: DefaultEditor,
+{
+    update_with(value, T::default_editor())
+}
+
+/// Have the user update a value, through a custom editor.
+#[inline]
+pub fn update_with<T, E>(value: T, editor: E) -> Interact<T, E>
 where
     E: Editor<Output = Report<T>>,
 {
     Interact {
-        value: TaskValue::Empty,
+        value: TaskValue::Unstable(value),
         editor,
     }
 }

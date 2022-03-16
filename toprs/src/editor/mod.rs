@@ -18,16 +18,12 @@ pub trait Editor {
     /// tasks. For example, a number field produces a number, but the value may not always be valid.
     type Output;
 
-    // TODO: Add optional initial value
     /// Create the initial user interface for this editor.
-    fn start(&mut self, ctx: &mut Context) -> Component;
+    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut Context) -> Component;
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
     fn respond_to(&mut self, event: Event, ctx: &mut Context) -> Option<Feedback>;
-
-    /// Consume the editor, retrieving its value.
-    fn finish(self) -> Self::Output;
 }
 
 /// Common output type for [`Editor`]s.
