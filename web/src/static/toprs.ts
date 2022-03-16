@@ -61,7 +61,7 @@ function onMessage(ev: MessageEvent) {
   const data = JSON.parse(ev.data);
   if(data.replace != null) {
     const element = document.getElementById(data.replace.id) as HTMLDivElement;
-    element.innerHTML = data.replace.content;
+    element.innerHTML = data.replace.component;
   } else if(data.valueOk != null) {
     const id = data.valueOk.id;
     const input = document.getElementById(id) as HTMLElement;

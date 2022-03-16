@@ -5,20 +5,27 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
+pub mod event;
 pub mod html;
 
 /// Assigns a unique identifier to a [`Widget`], allowing the library to synchronize their values
 /// with the server.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, SerializeDisplay)]
 pub struct Component {
-    id: ComponentId,
+    id: Id,
     widget: Widget,
 }
 
 impl Component {
     /// Retrieve this component's unique identifier.
-    pub fn id(&self) -> ComponentId {
+    pub fn id(&self) -> Id {
         self.id
+    }
+}
+
+impl Display for Component {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.html())
     }
 }
 
@@ -58,40 +65,43 @@ pub enum Widget {
     SerializeDisplay,
     DeserializeFromStr,
 )]
-pub struct ComponentId(u32);
+pub struct Id(u32);
 
-impl Display for ComponentId {
+impl Id {
+    /// Identity of the wrapper containing the entire application.
+    pub const ROOT: Id = Id(0);
+}
+
+impl Display for Id {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "top-{}", self.0)
     }
 }
 
-impl FromStr for ComponentId {
+impl FromStr for Id {
     type Err = <u32 as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let id: u32 = s[4..].parse()?;
-        Ok(ComponentId(id))
+        Ok(Id(id))
     }
 }
 
 /// A context used to generate components with unique identifiers.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Context {
-    current_id: ComponentId,
+    current_id: Id,
 }
 
 impl Context {
     /// Construct a new context for generating components with unique identifiers.
     pub fn new() -> Self {
-        Context {
-            current_id: ComponentId(0),
-        }
+        Context { current_id: Id(0) }
     }
 
     /// Generate a new, uniquely-identifiable component.
     pub fn create_component(&mut self, widget: Widget) -> Component {
-        self.current_id = ComponentId(self.current_id.0 + 1);
+        self.current_id = Id(self.current_id.0 + 1);
         Component {
             id: self.current_id,
             widget,

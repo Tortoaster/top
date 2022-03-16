@@ -1,48 +1,53 @@
-use crate::editor::generic::DefaultEditor;
-use crate::editor::Editor;
-use crate::task::Task;
+use async_trait::async_trait;
 
-/// Basic view interaction task. See [`view`] to construct one.
+use crate::component::event::{EventHandler, Feedback};
+use crate::component::Id;
+use crate::editor::generic::DefaultEditor;
+use crate::editor::{Editor, Report};
+use crate::task::value::TaskValue;
+use crate::task::{Executor, Task, TaskError};
+
+/// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`update`] to
+/// construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct View<E> {
+pub struct Interact<T, E> {
+    value: TaskValue<T>,
     editor: E,
 }
 
-/// Displays the provided value to the user. To use a custom editor, see [`view_with`].
-pub fn view<T>(value: T) -> View<T::Editor>
+#[async_trait]
+impl<T, E> Task for Interact<T, E>
 where
-    T: Clone + DefaultEditor,
+    T: Send,
+    E: Editor<Output = Report<T>> + Send,
 {
-    view_with(T::default_editor(Some(value)))
-}
+    type Value = T;
 
-/// Display the provided value to the user, through a custom editor.
-pub fn view_with<T, E>(editor: E) -> View<E>
-where
-    E: Editor<Output = T>,
-{
-    View { editor }
-}
+    async fn execute(
+        mut self,
+        executor: &mut Executor<impl EventHandler + Send>,
+    ) -> Result<TaskValue<Self::Value>, TaskError> {
+        let component = self.editor.start(&mut executor.ctx);
 
-impl<T, E> Task for View<E>
-where
-    E: Editor<Output = T> + Send,
-{
-    type Editor = E;
+        let initial = Feedback::Replace {
+            id: Id::ROOT,
+            component,
+        };
+        executor.events.send(initial).await;
 
-    fn editor(self) -> Self::Editor {
-        self.editor
+        while let Some(event) = executor.events.receive().await {
+            let feedback = self.editor.respond_to(event, &mut executor.ctx);
+            if let Some(feedback) = feedback {
+                executor.events.send(feedback).await;
+            }
+        }
+
+        Ok(self.value)
     }
 }
 
-/// Basic enter interaction task. See [`enter`] to construct one.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Enter<E> {
-    editor: E,
-}
-
 /// Have the user enter a value. To use a custom editor, see [`enter_with`].
-pub fn enter<T>() -> Enter<T::Editor>
+pub fn enter<T>() -> Interact<T, T::Editor>
 where
     T: DefaultEditor,
 {
@@ -50,53 +55,12 @@ where
 }
 
 /// Have the user enter a value, through a custom editor.
-pub fn enter_with<T, E>(editor: E) -> Enter<E>
+pub fn enter_with<T, E>(editor: E) -> Interact<T, E>
 where
-    E: Editor<Output = T>,
+    E: Editor<Output = Report<T>>,
 {
-    Enter { editor }
-}
-
-impl<T, E> Task for Enter<E>
-where
-    E: Editor<Output = T> + Send,
-{
-    type Editor = E;
-
-    fn editor(self) -> Self::Editor {
-        self.editor
-    }
-}
-
-/// Basic update interaction task. See [`update`] to construct one.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Update<E> {
-    editor: E,
-}
-
-/// Have the user update a value. To use a custom editor, see [`update_with`].
-pub fn update<T>(value: T) -> Update<T::Editor>
-where
-    T: Clone + DefaultEditor,
-{
-    update_with(T::default_editor(Some(value)))
-}
-
-/// Have the user update a value, through a custom editor.
-pub fn update_with<T, E>(editor: E) -> Update<E>
-where
-    E: Editor<Output = T>,
-{
-    Update { editor }
-}
-
-impl<T, E> Task for Update<E>
-where
-    E: Editor<Output = T> + Send,
-{
-    type Editor = E;
-
-    fn editor(self) -> Self::Editor {
-        self.editor
+    Interact {
+        value: TaskValue::Empty,
+        editor,
     }
 }

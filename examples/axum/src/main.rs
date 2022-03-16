@@ -4,16 +4,7 @@ use toprs::integration::axum::TopRsRouter;
 pub use toprs::prelude::*;
 
 fn repeat() -> impl Task {
-    enter::<i32>().then(|n| {
-        enter::<String>().then(move |s| {
-            view(
-                std::iter::repeat(s)
-                    .take(n as usize)
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            )
-        })
-    })
+    enter::<i32>()
 }
 
 const HOST: &str = "0.0.0.0:3000";

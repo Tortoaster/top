@@ -1,15 +1,17 @@
-use axum::extract::{ws, WebSocketUpgrade};
+use async_trait::async_trait;
+use axum::extract::ws::{Message, WebSocket};
+use axum::extract::WebSocketUpgrade;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, IntoMakeService};
 use axum::Router;
-use log::{error, info};
+use log::info;
+use thiserror::Error;
 use tower_http::services::ServeDir;
 
-use crate::component::{Component, ComponentId, Context};
-use crate::editor::event::{Event, Feedback};
-use crate::editor::Editor;
-use crate::task::Task;
+use crate::component::event::{Event, EventHandler, Feedback};
+use crate::component::Component;
+use crate::task::{Executor, Task};
 
 #[derive(Debug)]
 pub struct TopRsRouter(Router);
@@ -49,45 +51,57 @@ async fn wrapper() -> impl IntoResponse {
     Html(Component::html_wrapper("TopRs Axum"))
 }
 
-async fn connect<F, T>(ws: WebSocketUpgrade, handler: F) -> impl IntoResponse
+async fn connect<F, T>(ws: WebSocketUpgrade, task: F) -> impl IntoResponse
 where
     F: FnOnce() -> T + Send + 'static,
     T: Task + Send + 'static,
 {
-    ws.on_upgrade(|mut socket| async move {
-        let task = handler();
-        let mut editor = task.editor();
-        let mut ctx = Context::new();
-        let component = editor.start(&mut ctx);
-
-        info!("Client connected");
-
-        let initial = Feedback::Replace {
-            id: ComponentId::default(),
-            content: component.html(),
-        };
-        socket
-            .send(ws::Message::Text(serde_json::to_string(&initial).unwrap()))
-            .await
-            .unwrap();
-
-        while let Some(message) = socket.recv().await {
-            if let Ok(ws::Message::Text(text)) = message {
-                if let Ok(event) = serde_json::from_str::<Event>(&text) {
-                    info!("Received event: {:?}", event);
-                    if let Some(response) = editor.respond_to(event, &mut ctx) {
-                        socket
-                            .send(ws::Message::Text(serde_json::to_string(&response).unwrap()))
-                            .await
-                            .unwrap();
-                        info!("Sent response: {:?}", response);
-                    }
-                } else {
-                    error!("Received ill-formatted event: {:?}", text);
-                }
-            } else {
-                error!("Received non-text message: {:?}", message);
-            }
-        }
+    ws.on_upgrade(|socket| async move {
+        task()
+            .execute(&mut Executor::new(AxumEventHandler::new(socket)))
+            .await;
     })
+}
+
+pub struct AxumEventHandler {
+    socket: WebSocket,
+}
+
+impl AxumEventHandler {
+    pub fn new(socket: WebSocket) -> Self {
+        AxumEventHandler { socket }
+    }
+}
+
+#[async_trait]
+impl EventHandler for AxumEventHandler {
+    type Error = AxumEventError;
+
+    async fn receive(&mut self) -> Option<Event> {
+        // TODO: Error handling
+        let message = self.socket.recv().await?.ok()?;
+        let event = match message {
+            Message::Text(text) => match serde_json::from_str::<Event>(&text) {
+                Ok(event) => event,
+                Err(_) => self.receive().await?,
+            },
+            _ => self.receive().await?,
+        };
+        Some(event)
+    }
+
+    async fn send(&mut self, feedback: Feedback) -> Result<(), Self::Error> {
+        let serialized = serde_json::to_string(&feedback)?;
+        info!("{serialized}");
+        self.socket.send(Message::Text(serialized)).await?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum AxumEventError {
+    #[error("failed to transmit event")]
+    Inner(#[from] axum_core::Error),
+    #[error("failed to serialize feedback")]
+    Serialize(#[from] serde_json::Error),
 }

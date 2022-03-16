@@ -2,11 +2,10 @@
 
 use thiserror::Error;
 
+use crate::component::event::{Event, Feedback};
 use crate::component::{Component, Context};
-use crate::editor::event::{Event, Feedback};
 
 pub mod container;
-pub mod event;
 pub mod generic;
 pub mod primitive;
 

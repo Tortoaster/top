@@ -1,15 +1,23 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::component::ComponentId;
+use crate::component::{Component, Id};
 
-pub type Html = String;
+#[async_trait]
+pub trait EventHandler {
+    type Error;
+
+    async fn receive(&mut self) -> Option<Event>;
+
+    async fn send(&mut self, feedback: Feedback) -> Result<(), Self::Error>;
+}
 
 /// Interaction event from the user, such as checking a checkbox or pressing a button.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Event {
-    Update { id: ComponentId, value: String },
-    Press { id: ComponentId },
+    Update { id: Id, value: String },
+    Press { id: Id },
 }
 
 /// Changes to the user interface in response to [`Event`]s, such as confirming a value is valid, or
@@ -17,15 +25,7 @@ pub enum Event {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Feedback {
-    /// Replace the entire UI with the given [`Component`].
-    Replace {
-        id: ComponentId,
-        content: Html,
-    },
-    ValueOk {
-        id: ComponentId,
-    },
-    ValueError {
-        id: ComponentId,
-    },
+    Replace { id: Id, component: Component },
+    ValueOk { id: Id },
+    ValueError { id: Id },
 }

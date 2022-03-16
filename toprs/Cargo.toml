@@ -9,6 +9,7 @@ edition = "2021"
 axum_integration = ["axum", "axum-core", "tower-http", "tower-service"]
 
 [dependencies]
+async-trait = "0.1.52"
 handlebars = "4.2"
 lazy_static = "1.4"
 log = "0.4"

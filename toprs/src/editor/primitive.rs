@@ -1,12 +1,12 @@
 //! This module contains basic editors for primitive types.
 
-use crate::component::{ComponentId, Context, Widget};
-use crate::editor::event::{Event, Feedback};
+use crate::component::event::{Event, Feedback};
+use crate::component::{Context, Id, Widget};
 use crate::editor::{Component, Editor, Report};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct TextEditor(ComponentId, String);
+pub struct TextEditor(Id, String);
 
 impl TextEditor {
     /// Creates a new text editor.
@@ -16,7 +16,7 @@ impl TextEditor {
 
     /// Creates a new text editor with a default value.
     pub fn with_value(value: String) -> Self {
-        TextEditor(ComponentId::default(), value)
+        TextEditor(Id::default(), value)
     }
 }
 
@@ -57,7 +57,7 @@ impl Editor for TextEditor {
 
 /// Basic editor for numbers.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NumberEditor(ComponentId, Report<i32>);
+pub struct NumberEditor(Id, Report<i32>);
 
 impl NumberEditor {
     /// Creates a new number editor.
@@ -67,7 +67,7 @@ impl NumberEditor {
 
     /// Creates a new number editor with a default value.
     pub fn with_value(value: i32) -> Self {
-        NumberEditor(ComponentId::default(), Ok(value))
+        NumberEditor(Id::default(), Ok(value))
     }
 }
 
