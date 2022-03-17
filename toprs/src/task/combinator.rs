@@ -56,26 +56,29 @@ where
 {
     type Value = T2::Value;
 
-    async fn start(&mut self, executor: &mut Executor<impl EventHandler + Send>) {
+    async fn start<H: EventHandler + Send>(
+        &mut self,
+        executor: &mut Executor<H>,
+    ) -> Result<(), TaskError<H::Error>> {
         match &mut self.current {
             Either::Left(task) => task.start(executor).await,
             Either::Right(task) => task.start(executor).await,
         }
     }
 
-    async fn inspect(
+    async fn inspect<H: EventHandler + Send>(
         &mut self,
-        executor: &mut Executor<impl EventHandler + Send>,
-    ) -> Result<TaskValue<Self::Value>, TaskError> {
+        executor: &mut Executor<H>,
+    ) -> Result<TaskValue<Self::Value>, TaskError<H::Error>> {
         match &mut self.current {
             Either::Left(first) => {
                 let value = first.inspect(executor).await?;
                 let next = self.continuations.iter().find_map(|cont| match cont {
                     Continuation::OnValue(f) | Continuation::OnAction(_, f) => f(value.clone()),
                 });
-                if let Some(mut next) = next {
-                    next.start(executor).await;
+                if let Some(next) = next {
                     self.current = Either::Right(next);
+                    self.start(executor).await?;
                 }
                 Ok(TaskValue::Empty)
             }

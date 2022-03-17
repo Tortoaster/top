@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::WebSocketUpgrade;
@@ -6,14 +8,12 @@ use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, IntoMakeService};
 use axum::Router;
 use log::info;
-use std::time::Duration;
-use thiserror::Error;
 use tokio::time;
 use tower_http::services::ServeDir;
 
 use crate::component::event::{Event, EventHandler, Feedback};
 use crate::component::Component;
-use crate::task::{Executor, Task};
+use crate::task::{Executor, HandlerError, Task, TaskError};
 
 #[derive(Debug)]
 pub struct TopRsRouter(Router);
@@ -81,7 +81,7 @@ impl AxumEventHandler {
 
 #[async_trait]
 impl EventHandler for AxumEventHandler {
-    type Error = AxumEventError;
+    type Error = axum_core::Error;
 
     async fn receive(&mut self) -> Option<Event> {
         // TODO: Error handling
@@ -97,7 +97,7 @@ impl EventHandler for AxumEventHandler {
         Some(event)
     }
 
-    async fn send(&mut self, feedback: Feedback) -> Result<(), Self::Error> {
+    async fn send(&mut self, feedback: Feedback) -> Result<(), TaskError<Self::Error>> {
         let serialized = serde_json::to_string(&feedback)?;
         self.socket.send(Message::Text(serialized)).await?;
         info!("Sent feedback: {:?}", feedback);
@@ -105,10 +105,4 @@ impl EventHandler for AxumEventHandler {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum AxumEventError {
-    #[error("failed to transmit event")]
-    Inner(#[from] axum_core::Error),
-    #[error("failed to serialize feedback")]
-    Serialize(#[from] serde_json::Error),
-}
+impl HandlerError for axum_core::Error {}

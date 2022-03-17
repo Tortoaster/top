@@ -2,14 +2,15 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::component::{Component, Id};
+use crate::task::{HandlerError, TaskError};
 
 #[async_trait]
 pub trait EventHandler {
-    type Error;
+    type Error: HandlerError;
 
     async fn receive(&mut self) -> Option<Event>;
 
-    async fn send(&mut self, feedback: Feedback) -> Result<(), Self::Error>;
+    async fn send(&mut self, feedback: Feedback) -> Result<(), TaskError<Self::Error>>;
 }
 
 /// Interaction event from the user, such as checking a checkbox or pressing a button.

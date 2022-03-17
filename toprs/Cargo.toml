@@ -22,7 +22,7 @@ toprs_derive = { path = "../toprs_derive" }
 
 # Axum integration
 axum = { version = "0.4.8", features = ["ws"], optional = true }
-axum-core = {version = "0.1.2", optional = true }
+axum-core = { version = "0.1.2", optional = true }
 tokio = { version = "1.17", optional = true }
 tower-http = { version = "0.2.0", features = ["fs", "trace"], optional = true }
 tower-service = { version = "0.3.1", optional = true }

@@ -23,7 +23,10 @@ where
 {
     type Value = T;
 
-    async fn start(&mut self, executor: &mut Executor<impl EventHandler + Send>) {
+    async fn start<H: EventHandler + Send>(
+        &mut self,
+        executor: &mut Executor<H>,
+    ) -> Result<(), TaskError<H::Error>> {
         let component = self.editor.start(
             self.value.as_ref().cloned().into_option(),
             &mut executor.ctx,
@@ -34,19 +37,20 @@ where
             component,
         };
 
-        executor.events.send(initial).await;
+        executor.events.send(initial).await?;
+        Ok(())
     }
 
-    async fn inspect(
+    async fn inspect<H: EventHandler + Send>(
         &mut self,
-        executor: &mut Executor<impl EventHandler + Send>,
-    ) -> Result<TaskValue<Self::Value>, TaskError> {
+        executor: &mut Executor<H>,
+    ) -> Result<TaskValue<Self::Value>, TaskError<H::Error>> {
         if let Some(event) = executor.events.receive().await {
             if let Some((value, feedback)) = self.editor.respond_to(event, &mut executor.ctx) {
                 if let Ok(value) = value {
                     self.value = TaskValue::Unstable(value);
                 }
-                executor.events.send(feedback).await;
+                executor.events.send(feedback).await?;
             }
         }
 
