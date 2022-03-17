@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use either::Either;
 
-use crate::component::event::EventHandler;
+use crate::component::event::{Event, FeedbackHandler};
 use crate::task::value::TaskValue;
-use crate::task::{Executor, Task, TaskError};
+use crate::task::{Context, Error, Task};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
@@ -56,33 +56,34 @@ where
 {
     type Value = T2::Value;
 
-    async fn start<H: EventHandler + Send>(
+    async fn start<H: FeedbackHandler + Send>(
         &mut self,
-        executor: &mut Executor<H>,
-    ) -> Result<(), TaskError<H::Error>> {
+        ctx: &mut Context<H>,
+    ) -> Result<(), Error<H::Error>> {
         match &mut self.current {
-            Either::Left(task) => task.start(executor).await,
-            Either::Right(task) => task.start(executor).await,
+            Either::Left(task) => task.start(ctx).await,
+            Either::Right(task) => task.start(ctx).await,
         }
     }
 
-    async fn inspect<H: EventHandler + Send>(
+    async fn on_event<H: FeedbackHandler + Send>(
         &mut self,
-        executor: &mut Executor<H>,
-    ) -> Result<TaskValue<Self::Value>, TaskError<H::Error>> {
+        event: Event,
+        ctx: &mut Context<H>,
+    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
         match &mut self.current {
             Either::Left(first) => {
-                let value = first.inspect(executor).await?;
+                let value = first.on_event(event, ctx).await?;
                 let next = self.continuations.iter().find_map(|cont| match cont {
                     Continuation::OnValue(f) | Continuation::OnAction(_, f) => f(value.clone()),
                 });
                 if let Some(next) = next {
                     self.current = Either::Right(next);
-                    self.start(executor).await?;
+                    self.start(ctx).await?;
                 }
                 Ok(TaskValue::Empty)
             }
-            Either::Right(then) => then.inspect(executor).await,
+            Either::Right(then) => then.on_event(event, ctx).await,
         }
     }
 }

@@ -1,7 +1,7 @@
 //! This module contains basic editors for primitive types.
 
 use crate::component::event::{Event, Feedback};
-use crate::component::{Context, Id, Widget};
+use crate::component::{ComponentCreator, Id, Widget};
 use crate::editor::{Component, Editor, Report};
 
 /// Basic editor for strings.
@@ -12,19 +12,23 @@ impl Editor for TextEditor {
     type Input = String;
     type Output = Report<String>;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut Context) -> Component {
+    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::TextField {
             value: initial.unwrap_or_default(),
             label: None,
             disabled: false,
         };
-        let component = ctx.create_component(widget);
+        let component = ctx.create(widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.0 = component.id();
         component
     }
 
-    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<(Self::Output, Feedback)> {
+    fn on_event(
+        &mut self,
+        event: Event,
+        _: &mut ComponentCreator,
+    ) -> Option<(Self::Output, Feedback)> {
         match event {
             Event::Update { id, value } if id == self.0 => {
                 Some((Ok(value), Feedback::ValueOk { id }))
@@ -42,19 +46,23 @@ impl Editor for NumberEditor {
     type Input = i32;
     type Output = Report<i32>;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut Context) -> Component {
+    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::NumberField {
             value: initial.unwrap_or_default(),
             label: None,
             disabled: false,
         };
-        let component = ctx.create_component(widget);
+        let component = ctx.create(widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.0 = component.id();
         component
     }
 
-    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<(Self::Output, Feedback)> {
+    fn on_event(
+        &mut self,
+        event: Event,
+        _: &mut ComponentCreator,
+    ) -> Option<(Self::Output, Feedback)> {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {

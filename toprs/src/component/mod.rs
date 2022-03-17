@@ -87,20 +87,20 @@ impl FromStr for Id {
     }
 }
 
-/// A context used to generate components with unique identifiers.
+/// A creator used to generate components with unique identifiers.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Context {
+pub struct ComponentCreator {
     current_id: Id,
 }
 
-impl Context {
+impl ComponentCreator {
     /// Construct a new context for generating components with unique identifiers.
     pub fn new() -> Self {
-        Context { current_id: Id(0) }
+        ComponentCreator { current_id: Id(0) }
     }
 
     /// Generate a new, uniquely-identifiable component.
-    pub fn create_component(&mut self, widget: Widget) -> Component {
+    pub fn create(&mut self, widget: Widget) -> Component {
         self.current_id = Id(self.current_id.0 + 1);
         Component {
             id: self.current_id,

@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::component::event::EventHandler;
-use crate::component::Context;
+use crate::component::event::{Event, FeedbackHandler};
+use crate::component::ComponentCreator;
 use crate::task::value::TaskValue;
 
 pub mod combinator;
@@ -13,19 +13,20 @@ pub mod value;
 pub trait Task: Send {
     type Value;
 
-    async fn start<H: EventHandler + Send>(
+    async fn start<H: FeedbackHandler + Send>(
         &mut self,
-        executor: &mut Executor<H>,
-    ) -> Result<(), TaskError<H::Error>>;
+        executor: &mut Context<H>,
+    ) -> Result<(), Error<H::Error>>;
 
-    async fn inspect<H: EventHandler + Send>(
+    async fn on_event<H: FeedbackHandler + Send>(
         &mut self,
-        executor: &mut Executor<H>,
-    ) -> Result<TaskValue<Self::Value>, TaskError<H::Error>>;
+        event: Event,
+        executor: &mut Context<H>,
+    ) -> Result<TaskValue<Self::Value>, Error<H::Error>>;
 }
 
 #[derive(Debug, Error)]
-pub enum TaskError<H: HandlerError> {
+pub enum Error<H: HandlerError> {
     #[error("event handler failure: {0}")]
     Handler(#[from] H),
     #[error("error during serialization")]
@@ -36,21 +37,21 @@ pub enum TaskError<H: HandlerError> {
 
 pub trait HandlerError {}
 
-/// Represents the TopRs runtime.
+/// A context for [`Task`]s to interact with their environment.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Executor<E> {
-    events: E,
-    ctx: Context,
+pub struct Context<E> {
+    feedback: E,
+    components: ComponentCreator,
 }
 
-impl<E> Executor<E>
+impl<E> Context<E>
 where
-    E: EventHandler,
+    E: FeedbackHandler,
 {
     pub fn new(handler: E) -> Self {
-        Executor {
-            events: handler,
-            ctx: Context::new(),
+        Context {
+            feedback: handler,
+            components: ComponentCreator::new(),
         }
     }
 }

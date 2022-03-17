@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 
-use crate::component::event::{EventHandler, Feedback};
+use crate::component::event::{Event, Feedback, FeedbackHandler};
 use crate::component::Id;
 use crate::editor::generic::DefaultEditor;
 use crate::editor::{Editor, Report};
 use crate::task::value::TaskValue;
-use crate::task::{Executor, Task, TaskError};
+use crate::task::{Context, Error, Task};
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`update`] to
 /// construct one.
@@ -23,13 +23,13 @@ where
 {
     type Value = T;
 
-    async fn start<H: EventHandler + Send>(
+    async fn start<H: FeedbackHandler + Send>(
         &mut self,
-        executor: &mut Executor<H>,
-    ) -> Result<(), TaskError<H::Error>> {
+        ctx: &mut Context<H>,
+    ) -> Result<(), Error<H::Error>> {
         let component = self.editor.start(
             self.value.as_ref().cloned().into_option(),
-            &mut executor.ctx,
+            &mut ctx.components,
         );
 
         let initial = Feedback::Replace {
@@ -37,21 +37,20 @@ where
             component,
         };
 
-        executor.events.send(initial).await?;
+        ctx.feedback.send(initial).await?;
         Ok(())
     }
 
-    async fn inspect<H: EventHandler + Send>(
+    async fn on_event<H: FeedbackHandler + Send>(
         &mut self,
-        executor: &mut Executor<H>,
-    ) -> Result<TaskValue<Self::Value>, TaskError<H::Error>> {
-        if let Some(event) = executor.events.receive().await {
-            if let Some((value, feedback)) = self.editor.respond_to(event, &mut executor.ctx) {
-                if let Ok(value) = value {
-                    self.value = TaskValue::Unstable(value);
-                }
-                executor.events.send(feedback).await?;
+        event: Event,
+        ctx: &mut Context<H>,
+    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
+        if let Some((value, feedback)) = self.editor.on_event(event, &mut ctx.components) {
+            if let Ok(value) = value {
+                self.value = TaskValue::Unstable(value);
             }
+            ctx.feedback.send(feedback).await?;
         }
 
         Ok(self.value.clone())

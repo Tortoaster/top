@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::WebSocketUpgrade;
@@ -7,13 +5,13 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, IntoMakeService};
 use axum::Router;
-use log::info;
-use tokio::time;
+use futures::stream::SplitSink;
+use futures::{SinkExt, StreamExt};
 use tower_http::services::ServeDir;
 
-use crate::component::event::{Event, EventHandler, Feedback};
+use crate::component::event::{Feedback, FeedbackHandler};
 use crate::component::Component;
-use crate::task::{Executor, HandlerError, Task, TaskError};
+use crate::task::{Context, Error, HandlerError, Task};
 
 #[derive(Debug)]
 pub struct TopRsRouter(Router);
@@ -59,50 +57,47 @@ where
     T: Task + Send + 'static,
 {
     ws.on_upgrade(|socket| async move {
+        let (sender, mut receiver) = socket.split();
         let mut task = task();
-        let mut executor = Executor::new(AxumEventHandler::new(socket));
-        task.start(&mut executor).await;
-        loop {
-            task.inspect(&mut executor).await;
-            time::sleep(Duration::from_millis(100)).await;
+        let mut ctx = Context::new(AxumFeedbackHandler::new(sender));
+
+        task.start(&mut ctx).await;
+
+        while let Some(result) = receiver.next().await {
+            if let Ok(message) = result {
+                if let Message::Text(text) = message {
+                    if let Ok(event) = serde_json::from_str(&text) {
+                        task.on_event(event, &mut ctx).await;
+                    } else {
+                        // TODO: Send feedback
+                    }
+                };
+            } else {
+                // TODO: Send feedback
+            }
         }
     })
 }
 
-pub struct AxumEventHandler {
-    socket: WebSocket,
+pub struct AxumFeedbackHandler {
+    sender: SplitSink<WebSocket, Message>,
 }
 
-impl AxumEventHandler {
-    pub fn new(socket: WebSocket) -> Self {
-        AxumEventHandler { socket }
+impl AxumFeedbackHandler {
+    pub fn new(sender: SplitSink<WebSocket, Message>) -> Self {
+        AxumFeedbackHandler { sender }
     }
 }
 
 #[async_trait]
-impl EventHandler for AxumEventHandler {
-    type Error = axum_core::Error;
+impl FeedbackHandler for AxumFeedbackHandler {
+    type Error = axum::Error;
 
-    async fn receive(&mut self) -> Option<Event> {
-        // TODO: Error handling
-        let message = self.socket.recv().await?.ok()?;
-        let event = match message {
-            Message::Text(text) => match serde_json::from_str::<Event>(&text) {
-                Ok(event) => event,
-                Err(_) => self.receive().await?,
-            },
-            _ => self.receive().await?,
-        };
-        info!("Received event: {:?}", event);
-        Some(event)
-    }
-
-    async fn send(&mut self, feedback: Feedback) -> Result<(), TaskError<Self::Error>> {
+    async fn send(&mut self, feedback: Feedback) -> Result<(), Error<Self::Error>> {
         let serialized = serde_json::to_string(&feedback)?;
-        self.socket.send(Message::Text(serialized)).await?;
-        info!("Sent feedback: {:?}", feedback);
+        self.sender.send(Message::Text(serialized)).await?;
         Ok(())
     }
 }
 
-impl HandlerError for axum_core::Error {}
+impl HandlerError for axum::Error {}
