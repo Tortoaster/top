@@ -10,11 +10,13 @@ pub mod interaction;
 pub mod value;
 
 #[async_trait]
-pub trait Task {
+pub trait Task: Send {
     type Value;
 
-    async fn execute(
-        self,
+    async fn start(&mut self, executor: &mut Executor<impl EventHandler + Send>);
+
+    async fn inspect(
+        &mut self,
         executor: &mut Executor<impl EventHandler + Send>,
     ) -> Result<TaskValue<Self::Value>, TaskError>;
 }

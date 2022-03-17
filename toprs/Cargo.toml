@@ -6,13 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-axum_integration = ["axum", "axum-core", "tower-http", "tower-service"]
+axum_integration = ["axum", "axum-core", "tokio", "tower-http", "tower-service"]
 
 [dependencies]
 async-trait = "0.1.52"
+either = "1.6"
 handlebars = "4.2"
 lazy_static = "1.4"
-log = "0.4"
+log = "0.4.14"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "1.12"
@@ -22,5 +23,6 @@ toprs_derive = { path = "../toprs_derive" }
 # Axum integration
 axum = { version = "0.4.8", features = ["ws"], optional = true }
 axum-core = {version = "0.1.2", optional = true }
+tokio = { version = "1.17", optional = true }
 tower-http = { version = "0.2.0", features = ["fs", "trace"], optional = true }
 tower-service = { version = "0.3.1", optional = true }

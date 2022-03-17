@@ -24,9 +24,11 @@ impl Editor for TextEditor {
         component
     }
 
-    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<Feedback> {
+    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<(Self::Output, Feedback)> {
         match event {
-            Event::Update { id, .. } if id == self.0 => Some(Feedback::ValueOk { id }),
+            Event::Update { id, value } if id == self.0 => {
+                Some((Ok(value), Feedback::ValueOk { id }))
+            }
             _ => None,
         }
     }
@@ -52,13 +54,13 @@ impl Editor for NumberEditor {
         component
     }
 
-    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<Feedback> {
+    fn respond_to(&mut self, event: Event, _: &mut Context) -> Option<(Self::Output, Feedback)> {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
                     match value.parse::<i32>() {
-                        Ok(_) => Some(Feedback::ValueOk { id }),
-                        Err(_) => Some(Feedback::ValueError { id }),
+                        Ok(value) => Some((Ok(value), Feedback::ValueOk { id })),
+                        Err(error) => Some((Err(error.into()), Feedback::ValueError { id })),
                     }
                 } else {
                     None

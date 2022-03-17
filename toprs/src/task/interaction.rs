@@ -23,10 +23,7 @@ where
 {
     type Value = T;
 
-    async fn execute(
-        mut self,
-        executor: &mut Executor<impl EventHandler + Send>,
-    ) -> Result<TaskValue<Self::Value>, TaskError> {
+    async fn start(&mut self, executor: &mut Executor<impl EventHandler + Send>) {
         let component = self.editor.start(
             self.value.as_ref().cloned().into_option(),
             &mut executor.ctx,
@@ -36,16 +33,24 @@ where
             id: Id::ROOT,
             component,
         };
-        executor.events.send(initial).await;
 
-        while let Some(event) = executor.events.receive().await {
-            let feedback = self.editor.respond_to(event, &mut executor.ctx);
-            if let Some(feedback) = feedback {
+        executor.events.send(initial).await;
+    }
+
+    async fn inspect(
+        &mut self,
+        executor: &mut Executor<impl EventHandler + Send>,
+    ) -> Result<TaskValue<Self::Value>, TaskError> {
+        if let Some(event) = executor.events.receive().await {
+            if let Some((value, feedback)) = self.editor.respond_to(event, &mut executor.ctx) {
+                if let Ok(value) = value {
+                    self.value = TaskValue::Unstable(value);
+                }
                 executor.events.send(feedback).await;
             }
         }
 
-        Ok(self.value)
+        Ok(self.value.clone())
     }
 }
 

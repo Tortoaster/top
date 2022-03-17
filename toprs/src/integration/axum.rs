@@ -6,7 +6,9 @@ use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, IntoMakeService};
 use axum::Router;
 use log::info;
+use std::time::Duration;
 use thiserror::Error;
+use tokio::time;
 use tower_http::services::ServeDir;
 
 use crate::component::event::{Event, EventHandler, Feedback};
@@ -57,9 +59,13 @@ where
     T: Task + Send + 'static,
 {
     ws.on_upgrade(|socket| async move {
-        task()
-            .execute(&mut Executor::new(AxumEventHandler::new(socket)))
-            .await;
+        let mut task = task();
+        let mut executor = Executor::new(AxumEventHandler::new(socket));
+        task.start(&mut executor).await;
+        loop {
+            task.inspect(&mut executor).await;
+            time::sleep(Duration::from_millis(100)).await;
+        }
     })
 }
 
@@ -87,12 +93,14 @@ impl EventHandler for AxumEventHandler {
             },
             _ => self.receive().await?,
         };
+        info!("Received event: {:?}", event);
         Some(event)
     }
 
     async fn send(&mut self, feedback: Feedback) -> Result<(), Self::Error> {
         let serialized = serde_json::to_string(&feedback)?;
         self.socket.send(Message::Text(serialized)).await?;
+        info!("Sent feedback: {:?}", feedback);
         Ok(())
     }
 }

@@ -5,7 +5,6 @@ use thiserror::Error;
 use crate::component::event::{Event, Feedback};
 use crate::component::{Component, Context};
 
-pub mod container;
 pub mod generic;
 pub mod primitive;
 
@@ -23,7 +22,7 @@ pub trait Editor {
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    fn respond_to(&mut self, event: Event, ctx: &mut Context) -> Option<Feedback>;
+    fn respond_to(&mut self, event: Event, ctx: &mut Context) -> Option<(Self::Output, Feedback)>;
 }
 
 /// Common output type for [`Editor`]s.
