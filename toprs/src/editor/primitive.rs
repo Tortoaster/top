@@ -31,7 +31,7 @@ impl Editor for TextEditor {
     ) -> Option<(Self::Output, Feedback)> {
         match event {
             Event::Update { id, value } if id == self.0 => {
-                Some((Ok(value), Feedback::ValueOk { id }))
+                Some((Ok(value), Feedback::Valid { id }))
             }
             _ => None,
         }
@@ -67,8 +67,8 @@ impl Editor for NumberEditor {
             Event::Update { id, value } => {
                 if id == self.0 {
                     match value.parse::<i32>() {
-                        Ok(value) => Some((Ok(value), Feedback::ValueOk { id })),
-                        Err(error) => Some((Err(error.into()), Feedback::ValueError { id })),
+                        Ok(value) => Some((Ok(value), Feedback::Valid { id })),
+                        Err(error) => Some((Err(error.into()), Feedback::Invalid { id })),
                     }
                 } else {
                     None

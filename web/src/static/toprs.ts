@@ -62,13 +62,16 @@ function onMessage(ev: MessageEvent) {
   if(data.replace != null) {
     const element = document.getElementById(data.replace.id) as HTMLDivElement;
     element.innerHTML = data.replace.component;
-  } else if(data.valueOk != null) {
-    const id = data.valueOk.id;
+  } else if(data.append != null) {
+    const element = document.getElementById(data.append.id) as HTMLDivElement;
+    element.innerHTML += data.append.component;
+  } else if(data.valid != null) {
+    const id = data.valid.id;
     const input = document.getElementById(id) as HTMLElement;
     input.attributes.removeNamedItem('syncing');
     input.attributes.setNamedItem(document.createAttribute('synced'));
-  } else if(data.valueError != null) {
-    const id = data.valueError.id;
+  } else if(data.invalid != null) {
+    const id = data.invalid.id;
     const input = document.getElementById(id) as HTMLElement;
     input.attributes.removeNamedItem('syncing');
     input.attributes.setNamedItem(document.createAttribute('failed'));

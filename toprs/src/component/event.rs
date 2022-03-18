@@ -24,7 +24,12 @@ pub enum Event {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Feedback {
+    /// Replace this component with a new component.
     Replace { id: Id, component: Component },
-    ValueOk { id: Id },
-    ValueError { id: Id },
+    /// Add a component to this component.
+    Append { id: Id, component: Component },
+    /// The value of this component is valid.
+    Valid { id: Id },
+    /// The value of this component is invalid.
+    Invalid { id: Id },
 }

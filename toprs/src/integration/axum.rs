@@ -7,6 +7,7 @@ use axum::routing::{get, get_service, IntoMakeService};
 use axum::Router;
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
+use log::info;
 use tower_http::services::ServeDir;
 
 use crate::component::event::{Feedback, FeedbackHandler};
@@ -67,6 +68,7 @@ where
             if let Ok(message) = result {
                 if let Message::Text(text) = message {
                     if let Ok(event) = serde_json::from_str(&text) {
+                        info!("received event: {:?}", event);
                         task.on_event(event, &mut ctx).await;
                     } else {
                         // TODO: Send feedback
@@ -94,8 +96,10 @@ impl FeedbackHandler for AxumFeedbackHandler {
     type Error = axum::Error;
 
     async fn send(&mut self, feedback: Feedback) -> Result<(), Error<Self::Error>> {
+        info!("sending feedback: {:?}", feedback);
         let serialized = serde_json::to_string(&feedback)?;
         self.sender.send(Message::Text(serialized)).await?;
+        info!("sent feedback: {:?}", feedback);
         Ok(())
     }
 }

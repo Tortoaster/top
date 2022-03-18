@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use either::Either;
 
-use crate::component::event::{Event, FeedbackHandler};
+use crate::component::event::{Event, Feedback, FeedbackHandler};
+use crate::component::{Id, Widget};
 use crate::task::value::TaskValue;
 use crate::task::{Context, Error, Task};
 
@@ -28,22 +29,26 @@ pub enum Continuation<F> {
 /// the user presses the associated button, and the associated predicate in the continuation is met,
 /// the current task is consumed and the next task will be created from the resulting value.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Action(pub &'static str);
+pub struct Action(&'static str, Option<Id>);
 
 impl Action {
-    pub const OK: Self = Action("Ok");
-    pub const CANCEL: Self = Action("Cancel");
-    pub const YES: Self = Action("Yes");
-    pub const NO: Self = Action("No");
-    pub const NEXT: Self = Action("Next");
-    pub const PREVIOUS: Self = Action("Previous");
-    pub const FINISH: Self = Action("Finish");
-    pub const CONTINUE: Self = Action("Continue");
-    pub const NEW: Self = Action("New");
-    pub const EDIT: Self = Action("Edit");
-    pub const DELETE: Self = Action("Delete");
-    pub const REFRESH: Self = Action("Refresh");
-    pub const CLOSE: Self = Action("Close");
+    pub const OK: Self = Action::new("Ok");
+    pub const CANCEL: Self = Action::new("Cancel");
+    pub const YES: Self = Action::new("Yes");
+    pub const NO: Self = Action::new("No");
+    pub const NEXT: Self = Action::new("Next");
+    pub const PREVIOUS: Self = Action::new("Previous");
+    pub const FINISH: Self = Action::new("Finish");
+    pub const CONTINUE: Self = Action::new("Continue");
+    pub const NEW: Self = Action::new("New");
+    pub const EDIT: Self = Action::new("Edit");
+    pub const DELETE: Self = Action::new("Delete");
+    pub const REFRESH: Self = Action::new("Refresh");
+    pub const CLOSE: Self = Action::new("Close");
+
+    pub const fn new(label: &'static str) -> Self {
+        Action(label, None)
+    }
 }
 
 #[async_trait]
@@ -61,7 +66,26 @@ where
         ctx: &mut Context<H>,
     ) -> Result<(), Error<H::Error>> {
         match &mut self.current {
-            Either::Left(task) => task.start(ctx).await,
+            Either::Left(task) => {
+                task.start(ctx).await?;
+                for cont in &mut self.continuations {
+                    if let Continuation::OnAction(action, _) = cont {
+                        let widget = Widget::Button {
+                            text: action.0.to_owned(),
+                            disabled: false,
+                        };
+                        let button = ctx.components.create(widget);
+                        // TODO: Type-safe way?
+                        action.1 = Some(button.id());
+                        let feedback = Feedback::Append {
+                            id: Id::ROOT,
+                            component: button,
+                        };
+                        ctx.feedback.send(feedback).await?;
+                    }
+                }
+                Ok(())
+            }
             Either::Right(task) => task.start(ctx).await,
         }
     }
@@ -73,9 +97,24 @@ where
     ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
         match &mut self.current {
             Either::Left(first) => {
-                let value = first.on_event(event, ctx).await?;
+                let value = first.on_event(event.clone(), ctx).await?;
                 let next = self.continuations.iter().find_map(|cont| match cont {
-                    Continuation::OnValue(f) | Continuation::OnAction(_, f) => f(value.clone()),
+                    Continuation::OnValue(f) => f(value.clone()),
+                    Continuation::OnAction(action, f) => {
+                        if let Event::Press { id } = &event {
+                            if action
+                                .1
+                                .map(|action_id| action_id == *id)
+                                .unwrap_or_default()
+                            {
+                                f(value.clone())
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
                 });
                 if let Some(next) = next {
                     self.current = Either::Right(next);
