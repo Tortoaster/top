@@ -8,21 +8,19 @@ use crate::task::{Context, Error, Task};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Then<T1, F, T2> {
+pub struct Step<T1: Task, T2> {
     current: Either<T1, T2>,
-    continuations: Vec<Continuation<F>>,
+    continuations: Vec<Continuation<T1::Value, T2>>,
 }
 
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
 /// construct the next task.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum Continuation<F> {
+pub enum Continuation<A, B> {
     /// Consume the current task as soon as the value satisfies the predicate.
-    OnValue(F),
+    OnValue(Box<dyn Fn(TaskValue<A>) -> Option<B> + Send>),
     /// Consume the current task as soon as the user performs and action and the value satisfies the
     /// predicate.
-    OnAction(Action, F),
+    OnAction(Action, Box<dyn Fn(TaskValue<A>) -> Option<B> + Send>),
 }
 
 /// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
@@ -52,11 +50,10 @@ impl Action {
 }
 
 #[async_trait]
-impl<T1, F, T2> Task for Then<T1, F, T2>
+impl<T1, T2> Task for Step<T1, T2>
 where
     T1: Task + Send,
     T1::Value: Clone + Send,
-    F: Fn(TaskValue<T1::Value>) -> Option<T2> + Send,
     T2: Task + Send,
 {
     type Value = T2::Value;
@@ -128,15 +125,26 @@ where
 }
 
 pub trait TaskExt: Task {
-    fn then<F, T2>(self, f: F) -> Then<Self, F, T2>
+    fn then<F, T2>(self, f: F) -> Step<Self, T2>
     where
         Self: Task + Sized,
-        F: Fn(TaskValue<Self::Value>) -> Option<T2>,
+        F: Fn(TaskValue<Self::Value>) -> Option<T2> + Send + 'static,
         T2: Task,
     {
-        Then {
+        Step {
             current: Either::Left(self),
-            continuations: vec![Continuation::OnAction(Action::NEXT, f)],
+            continuations: vec![Continuation::OnAction(Action::NEXT, Box::new(f))],
+        }
+    }
+
+    fn step<T2>(self, continuations: Vec<Continuation<Self::Value, T2>>) -> Step<Self, T2>
+    where
+        Self: Task + Sized,
+        T2: Task,
+    {
+        Step {
+            current: Either::Left(self),
+            continuations,
         }
     }
 }

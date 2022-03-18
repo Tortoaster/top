@@ -4,15 +4,27 @@ use log::info;
 
 use toprs::integration::axum::TopRsRouter;
 pub use toprs::prelude::*;
+use toprs::task::combinator::{Action, Continuation};
+use toprs::task::value::TaskValue;
 
 fn name() -> impl Task {
-    enter::<String>().then(|value| {
-        value.into_option().and_then(|name| {
-            name.is_empty()
-                .not()
-                .then(|| update(format!("Hello, {name}!")))
-        })
-    })
+    enter::<String>().step(vec![
+        Continuation::OnValue(Box::new(|value: TaskValue<String>| {
+            value
+                .into_option()
+                .and_then(|name| (&name == "Rick").then(|| update(format!("Hi, {name}!"))))
+        })),
+        Continuation::OnAction(
+            Action::new("Hi"),
+            Box::new(|value: TaskValue<String>| {
+                value.into_option().and_then(|name| {
+                    name.is_empty()
+                        .not()
+                        .then(|| update(format!("Hello, {name}!")))
+                })
+            }),
+        ),
+    ])
 }
 
 const HOST: &str = "0.0.0.0:3000";
