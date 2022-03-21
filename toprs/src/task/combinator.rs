@@ -124,6 +124,49 @@ where
     }
 }
 
+/// Builder for the step combinator.
+pub struct Steps<T1: Task, T2> {
+    current: T1,
+    continuations: Vec<Continuation<T1::Value, T2>>,
+}
+
+impl<T1, T2> Steps<T1, T2>
+where
+    T1: Task,
+{
+    pub fn on_value(
+        mut self,
+        f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
+    ) -> Self {
+        self.continuations.push(Continuation::OnValue(Box::new(f)));
+        self
+    }
+
+    pub fn on_action(
+        mut self,
+        action: Action,
+        f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
+    ) -> Self {
+        self.continuations
+            .push(Continuation::OnAction(action, Box::new(f)));
+        self
+    }
+
+    pub fn confirm(self) -> Step<T1, T2> {
+        Step {
+            current: Either::Left(self.current),
+            continuations: self.continuations,
+        }
+    }
+}
+
+pub fn if_value<V, O>(
+    f: impl Fn(&V) -> bool,
+    g: impl Fn(V) -> O,
+) -> impl Fn(TaskValue<V>) -> Option<O> {
+    move |value| value.into_option().and_then(|x| f(&x).then(|| g(x)))
+}
+
 pub trait TaskExt: Task {
     fn then<F, T2>(self, f: F) -> Step<Self, T2>
     where
@@ -145,6 +188,16 @@ pub trait TaskExt: Task {
         Step {
             current: Either::Left(self),
             continuations,
+        }
+    }
+
+    fn steps<T2>(self) -> Steps<Self, T2>
+    where
+        Self: Sized,
+    {
+        Steps {
+            current: self,
+            continuations: Vec::new(),
         }
     }
 }

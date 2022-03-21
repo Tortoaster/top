@@ -1,30 +1,23 @@
-use std::ops::Not;
-
 use log::info;
 
 use toprs::integration::axum::TopRsRouter;
-pub use toprs::prelude::*;
-use toprs::task::combinator::{Action, Continuation};
-use toprs::task::value::TaskValue;
+use toprs::prelude::*;
 
 fn name() -> impl Task {
-    enter::<String>().step(vec![
-        Continuation::OnValue(Box::new(|value: TaskValue<String>| {
-            value
-                .into_option()
-                .and_then(|name| (&name == "Rick").then(|| update(format!("Hi, {name}!"))))
-        })),
-        Continuation::OnAction(
-            Action::new("Hi"),
-            Box::new(|value: TaskValue<String>| {
-                value.into_option().and_then(|name| {
-                    name.is_empty()
-                        .not()
-                        .then(|| update(format!("Hello, {name}!")))
-                })
-            }),
-        ),
-    ])
+    enter::<String>()
+        .steps()
+        .on_value(if_value(
+            |name| name == "Bob",
+            |name| update(format!("Hi, {name}!")),
+        ))
+        .on_action(
+            Action::OK,
+            if_value(
+                |name: &String| !name.is_empty(),
+                |name| update(format!("Hello, {name}!")),
+            ),
+        )
+        .confirm()
 }
 
 const HOST: &str = "0.0.0.0:3000";
