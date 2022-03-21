@@ -1,5 +1,12 @@
 //! This module contains basic editors for primitive types.
 
+use std::fmt::Display;
+use std::marker::PhantomData;
+use std::num::ParseIntError;
+use std::str::FromStr;
+
+use num_traits::PrimInt;
+
 use crate::component::event::{Event, Feedback};
 use crate::component::{ComponentCreator, Id, Widget};
 use crate::editor::{Component, Editor, Report};
@@ -40,15 +47,18 @@ impl Editor for TextEditor {
 
 /// Basic editor for numbers.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct NumberEditor(Id);
+pub struct NumberEditor<N>(Id, PhantomData<N>);
 
-impl Editor for NumberEditor {
-    type Input = i32;
-    type Output = Report<i32>;
+impl<N> Editor for NumberEditor<N>
+where
+    N: Default + Display + FromStr<Err = ParseIntError> + PrimInt,
+{
+    type Input = N;
+    type Output = Report<N>;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::NumberField {
-            value: initial.unwrap_or_default(),
+            value: initial.unwrap_or_default().to_string(),
             label: None,
             disabled: false,
         };
@@ -66,7 +76,7 @@ impl Editor for NumberEditor {
         match event {
             Event::Update { id, value } => {
                 if id == self.0 {
-                    match value.parse::<i32>() {
+                    match value.parse::<N>() {
                         Ok(value) => Some((Ok(value), Feedback::Valid { id })),
                         Err(error) => Some((Err(error.into()), Feedback::Invalid { id })),
                     }

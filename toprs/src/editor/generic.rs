@@ -20,10 +20,18 @@ impl DefaultEditor for String {
     }
 }
 
-impl DefaultEditor for i32 {
-    type Editor = NumberEditor;
+macro_rules! impl_default_editor_for_primitive {
+    ($($ty:ty),*) => {
+        $(
+            impl DefaultEditor for $ty {
+                type Editor = NumberEditor<$ty>;
 
-    fn default_editor() -> Self::Editor {
-        NumberEditor::default()
-    }
+                fn default_editor() -> Self::Editor {
+                    NumberEditor::default()
+                }
+            }
+        )*
+    };
 }
+
+impl_default_editor_for_primitive!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);

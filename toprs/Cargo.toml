@@ -13,6 +13,7 @@ async-trait = "0.1.52"
 either = "1.6"
 handlebars = "4.2"
 lazy_static = "1.4"
+num-traits = "0.2.14"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "1.12"

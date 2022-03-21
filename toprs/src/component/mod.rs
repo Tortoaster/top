@@ -39,7 +39,7 @@ pub enum Widget {
         disabled: bool,
     },
     NumberField {
-        value: i32,
+        value: String,
         label: Option<String>,
         disabled: bool,
     },
