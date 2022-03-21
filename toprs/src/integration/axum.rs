@@ -1,55 +1,86 @@
+use std::convert::Infallible;
+use std::task::Poll;
+
 use async_trait::async_trait;
+use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::WebSocketUpgrade;
-use axum::http::StatusCode;
+use axum::http::{Request, StatusCode};
 use axum::response::{Html, IntoResponse};
-use axum::routing::{get, get_service, IntoMakeService};
-use axum::Router;
+use axum::routing::{get, get_service, MethodRouter};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use log::info;
 use tower_http::services::ServeDir;
+use tower_service::Service;
 
 use crate::component::event::{Feedback, FeedbackHandler};
 use crate::component::Component;
 use crate::task::{Context, Error, HandlerError, Task};
 
-#[derive(Debug)]
-pub struct TopRsRouter(Router);
+#[derive(Clone, Debug)]
+pub struct TopService(MethodRouter);
 
-// TODO: Use a TaskRouter service so tasks can be intertwined with other web services without nesting an entire router.
-impl TopRsRouter {
+impl TopService {
     pub fn new() -> Self {
-        // TODO: Improve path
-        TopRsRouter(
-            Router::new().nest(
-                "/static",
-                get_service(ServeDir::new("../../web/dist/static"))
-                    .handle_error(|_: std::io::Error| async move { StatusCode::NOT_FOUND }),
-            ),
+        // TODO: Fix path
+        TopService(
+            get_service(ServeDir::new("../../web/dist/static"))
+                .handle_error(|_: std::io::Error| async move { StatusCode::NOT_FOUND }),
         )
     }
+}
 
-    pub fn task<F, T>(mut self, path: &str, handler: F) -> Self
-    where
-        F: FnOnce() -> T + Clone + Send + 'static,
-        T: Task + Send + 'static,
-    {
-        self.0 = self.0.route(path, get(wrapper));
-        self.0 = self.0.route(
-            format!("{path}/ws").as_str(),
-            get(|ws| connect(ws, handler)),
-        );
-        self
+impl Service<Request<Body>> for TopService {
+    type Response = <MethodRouter as Service<Request<Body>>>::Response;
+    type Error = <MethodRouter as Service<Request<Body>>>::Error;
+    type Future = <MethodRouter as Service<Request<Body>>>::Future;
+
+    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.0.poll_ready(cx)
     }
 
-    pub fn into_make_service(self) -> IntoMakeService<Router> {
-        self.0.into_make_service()
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
+        self.0.call(req)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TaskRouter {
+    wrapper: MethodRouter<Body, Infallible>,
+    connect: MethodRouter<Body, Infallible>,
+}
+
+pub fn task<F, T>(handler: F) -> TaskRouter
+where
+    F: FnOnce() -> T + Clone + Send + 'static,
+    T: Task + Send + 'static,
+{
+    let wrapper = get(wrapper);
+    let connect = get(|ws| connect(ws, handler));
+
+    TaskRouter { wrapper, connect }
+}
+
+impl Service<Request<Body>> for TaskRouter {
+    type Response = <MethodRouter as Service<Request<Body>>>::Response;
+    type Error = <MethodRouter as Service<Request<Body>>>::Error;
+    type Future = <MethodRouter as Service<Request<Body>>>::Future;
+
+    fn poll_ready(&mut self, _cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
+        match req.headers().get("upgrade") {
+            Some(header) if header == "websocket" => self.connect.call(req),
+            _ => self.wrapper.call(req),
+        }
     }
 }
 
 async fn wrapper() -> impl IntoResponse {
-    Html(Component::html_wrapper("TopRs Axum"))
+    Html(Component::html_wrapper("Top Axum"))
 }
 
 async fn connect<F, T>(ws: WebSocketUpgrade, task: F) -> impl IntoResponse
@@ -96,7 +127,6 @@ impl FeedbackHandler for AxumFeedbackHandler {
     type Error = axum::Error;
 
     async fn send(&mut self, feedback: Feedback) -> Result<(), Error<Self::Error>> {
-        info!("sending feedback: {:?}", feedback);
         let serialized = serde_json::to_string(&feedback)?;
         self.sender.send(Message::Text(serialized)).await?;
         info!("sent feedback: {:?}", feedback);

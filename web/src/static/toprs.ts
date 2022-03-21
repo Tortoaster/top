@@ -1,11 +1,9 @@
-const CONTENT = 'toprs-content';
-
-const socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}/ws`);
+const socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}`);
 
 document.addEventListener('DOMContentLoaded', connect);
 
 /**
- * Connect to the TopRs server.
+ * Connect to the server.
  */
 function connect(ev: Event) {
   socket.onopen = onOpen;

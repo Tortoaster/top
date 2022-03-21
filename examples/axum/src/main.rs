@@ -1,6 +1,7 @@
+use axum::Router;
 use log::info;
 
-use toprs::integration::axum::TopRsRouter;
+use toprs::integration::axum::{task, TopService};
 use toprs::prelude::*;
 
 fn name() -> impl Task {
@@ -27,7 +28,9 @@ async fn main() {
     env_logger::init();
     info!("Listening on http://{HOST}");
 
-    let router = TopRsRouter::new().task("/", name);
+    let router = Router::new()
+        .nest("/static", TopService::new())
+        .route("/", task(name));
 
     axum::Server::bind(&HOST.parse().unwrap())
         .serve(router.into_make_service())
