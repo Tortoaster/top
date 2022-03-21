@@ -4,7 +4,7 @@ use log::info;
 use toprs::integration::axum::{task, TopService};
 use toprs::prelude::*;
 
-fn name() -> impl Task {
+async fn name() -> impl Task {
     enter::<String>()
         .steps()
         .on_value(if_value(
