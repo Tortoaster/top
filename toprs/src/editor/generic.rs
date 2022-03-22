@@ -1,5 +1,6 @@
 pub use toprs_derive::DefaultEditor;
 
+use crate::editor::primitive::BooleanEditor;
 use crate::editor::{Editor, Report};
 use crate::prelude::{NumberEditor, TextEditor};
 
@@ -35,3 +36,11 @@ macro_rules! impl_default_editor_for_primitive {
 }
 
 impl_default_editor_for_primitive!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+
+impl DefaultEditor for bool {
+    type Editor = BooleanEditor;
+
+    fn default_editor() -> Self::Editor {
+        BooleanEditor::default()
+    }
+}

@@ -14,8 +14,9 @@ function connect(ev: Event) {
 
 /**
  * @param {HTMLInputElement} input The input field that was changed.
+ * @param {string} value The new value.
  */
-function update(input: HTMLInputElement) {
+function update(input: HTMLInputElement, value: string = input.value) {
   if(input.attributes.getNamedItem('synced') != null)
     input.attributes.removeNamedItem('synced');
   if(input.attributes.getNamedItem('failed') != null)
@@ -24,7 +25,7 @@ function update(input: HTMLInputElement) {
   const message = JSON.stringify({
     update: {
       id: input.id,
-      value: input.value,
+      value: value,
     },
   });
   socket.send(message);

@@ -6,6 +6,7 @@ use crate::component::{Component, Widget};
 
 const INDEX: &str = "index";
 const INPUT: &str = "input";
+const CHECKBOX: &str = "checkbox";
 const BUTTON: &str = "button";
 
 lazy_static! {
@@ -17,6 +18,7 @@ lazy_static! {
         reg.register_template_file(INDEX, "../../web/dist/index.hbs")
             .unwrap();
         reg.register_template_file(INPUT, "../../web/dist/component/input.hbs").unwrap();
+        reg.register_template_file(CHECKBOX, "../../web/dist/component/checkbox.hbs").unwrap();
         reg.register_template_file(BUTTON, "../../web/dist/component/button.hbs").unwrap();
         reg
     };
@@ -54,6 +56,21 @@ impl Component {
                         "id": self.id(),
                         "type": self.input_type().expect("no input type"),
                         "value": self.value().expect("no value"),
+                        "label": label.as_ref().unwrap_or(&String::new()),
+                        "disabled": *disabled,
+                    }),
+                )
+                .unwrap(),
+            Widget::Checkbox {
+                checked,
+                label,
+                disabled,
+            } => REGISTRY
+                .render(
+                    CHECKBOX,
+                    &json!({
+                        "id": self.id(),
+                        "checked": *checked,
                         "label": label.as_ref().unwrap_or(&String::new()),
                         "disabled": *disabled,
                     }),

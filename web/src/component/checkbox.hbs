@@ -1,0 +1,16 @@
+<div class="relative">
+    <input
+            id="{{id}}"
+            type="checkbox"
+            onclick="update(this, this.checked.toString())"
+            class="peer"
+        {{#if checked}}checked{{/if}}
+        {{#if disabled}}disabled{{/if}}
+    />
+    <label
+            for="{{id}}"
+            class="text-gray-500 peer-syncing:bg-yellow-500 peer-synced:bg-green-500 peer-failed:bg-red-500"
+    >
+        {{label}}
+    </label>
+</div>

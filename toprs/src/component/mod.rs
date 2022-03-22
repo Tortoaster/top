@@ -43,6 +43,11 @@ pub enum Widget {
         label: Option<String>,
         disabled: bool,
     },
+    Checkbox {
+        checked: bool,
+        label: Option<String>,
+        disabled: bool,
+    },
     Button {
         text: String,
         disabled: bool,
