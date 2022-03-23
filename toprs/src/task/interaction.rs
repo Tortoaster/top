@@ -11,14 +11,14 @@ use crate::task::{Context, Error, Task};
 /// construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Interact<T, E> {
-    value: TaskValue<T>,
+    initial_value: Option<T>,
     editor: E,
 }
 
 #[async_trait]
 impl<T, E> Task for Interact<T, E>
 where
-    T: Clone + Send,
+    T: Clone + Send + Sync,
     E: Editor<Input = T, Output = Report<T>> + Send,
 {
     type Value = T;
@@ -27,10 +27,9 @@ where
         &mut self,
         ctx: &mut Context<H>,
     ) -> Result<(), Error<H::Error>> {
-        let component = self.editor.start(
-            self.value.as_ref().cloned().into_option(),
-            &mut ctx.components,
-        );
+        let component = self
+            .editor
+            .start(self.initial_value.take(), &mut ctx.components);
 
         let initial = Feedback::Replace {
             id: Id::ROOT,
@@ -45,15 +44,21 @@ where
         &mut self,
         event: Event,
         ctx: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
-        if let Some((value, feedback)) = self.editor.on_event(event, &mut ctx.components) {
-            if let Ok(value) = value {
-                self.value = TaskValue::Unstable(value);
-            }
+    ) -> Result<TaskValue<&Self::Value>, Error<H::Error>> {
+        if let Some(feedback) = self.editor.on_event(event, &mut ctx.components) {
             ctx.feedback.send(feedback).await?;
         }
+        match self.editor.value() {
+            Ok(value) => Ok(TaskValue::Unstable(value)),
+            Err(_) => Ok(TaskValue::Empty),
+        }
+    }
 
-        Ok(self.value.clone())
+    async fn finish(self) -> TaskValue<Self::Value> {
+        match self.editor.finish() {
+            Ok(value) => TaskValue::Stable(value),
+            Err(_) => TaskValue::Empty,
+        }
     }
 }
 
@@ -92,7 +97,7 @@ where
     E: Editor<Output = Report<T>>,
 {
     Interact {
-        value: TaskValue::Unstable(value),
+        initial_value: Some(value),
         editor,
     }
 }

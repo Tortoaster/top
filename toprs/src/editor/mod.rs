@@ -22,11 +22,13 @@ pub trait Editor {
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    fn on_event(
-        &mut self,
-        event: Event,
-        ctx: &mut ComponentCreator,
-    ) -> Option<(Self::Output, Feedback)>;
+    fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback>;
+
+    /// Get a reference to the current value of this editor.
+    fn value(&self) -> &Self::Output;
+
+    /// Consume this editor and return its value.
+    fn finish(self) -> Self::Output;
 }
 
 /// Common output type for [`Editor`]s.

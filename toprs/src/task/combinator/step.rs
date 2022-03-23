@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use async_trait::async_trait;
 use either::Either;
 
@@ -52,9 +54,9 @@ pub struct Step<T1: Task, T2> {
 #[async_trait]
 impl<T1, T2> Task for Step<T1, T2>
 where
-    T1: Task + Send,
-    T1::Value: Clone + Send,
-    T2: Task + Send,
+    T1: Task + Debug + Send,
+    T1::Value: Clone + Send + Sync,
+    T2: Task + Debug + Send,
 {
     type Value = T2::Value;
 
@@ -91,35 +93,55 @@ where
         &mut self,
         event: Event,
         ctx: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
-        match &mut self.current {
-            Either::Left(first) => {
-                let value = first.on_event(event.clone(), ctx).await?;
-                let next = self.continuations.iter().find_map(|cont| match cont {
-                    Continuation::OnValue(f) => f(value.clone()),
-                    Continuation::OnAction(action, f) => {
-                        if let Event::Press { id } = &event {
-                            if action
-                                .1
-                                .map(|action_id| action_id == *id)
-                                .unwrap_or_default()
-                            {
-                                f(value.clone())
-                            } else {
-                                None
-                            }
+    ) -> Result<TaskValue<&Self::Value>, Error<H::Error>> {
+        if self.current.is_left() {
+            let value = self
+                .current
+                .as_mut()
+                .unwrap_left()
+                .on_event(event.clone(), ctx)
+                .await?
+                .cloned();
+
+            let next = self.continuations.iter().find_map(|cont| match cont {
+                Continuation::OnValue(f) => f(value.clone()),
+                Continuation::OnAction(action, f) => {
+                    if let Event::Press { id } = &event {
+                        if action
+                            .1
+                            .map(|action_id| action_id == *id)
+                            .unwrap_or_default()
+                        {
+                            f(value.clone())
                         } else {
                             None
                         }
+                    } else {
+                        None
                     }
-                });
-                if let Some(next) = next {
-                    self.current = Either::Right(next);
-                    self.start(ctx).await?;
                 }
-                Ok(TaskValue::Empty)
+            });
+
+            if let Some(next) = next {
+                self.current = Either::Right(next);
+                self.continuations.clear();
+                self.start(ctx).await?;
             }
-            Either::Right(then) => then.on_event(event, ctx).await,
+
+            Ok(TaskValue::Empty)
+        } else {
+            self.current
+                .as_mut()
+                .unwrap_right()
+                .on_event(event, ctx)
+                .await
+        }
+    }
+
+    async fn finish(self) -> TaskValue<Self::Value> {
+        match self.current {
+            Either::Left(_) => TaskValue::Empty,
+            Either::Right(then) => then.finish().await,
         }
     }
 }

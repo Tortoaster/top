@@ -22,7 +22,9 @@ pub trait Task: Send {
         &mut self,
         event: Event,
         executor: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>>;
+    ) -> Result<TaskValue<&Self::Value>, Error<H::Error>>;
+
+    async fn finish(self) -> TaskValue<Self::Value>;
 }
 
 #[derive(Debug, Error)]

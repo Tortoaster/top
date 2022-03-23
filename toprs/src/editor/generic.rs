@@ -17,7 +17,7 @@ impl DefaultEditor for String {
     type Editor = TextEditor;
 
     fn default_editor() -> Self::Editor {
-        TextEditor::default()
+        TextEditor::new()
     }
 }
 
@@ -28,7 +28,7 @@ macro_rules! impl_default_editor_for_primitive {
                 type Editor = NumberEditor<$ty>;
 
                 fn default_editor() -> Self::Editor {
-                    NumberEditor::default()
+                    NumberEditor::new()
                 }
             }
         )*
@@ -41,6 +41,6 @@ impl DefaultEditor for bool {
     type Editor = BooleanEditor;
 
     fn default_editor() -> Self::Editor {
-        BooleanEditor::default()
+        BooleanEditor::new()
     }
 }
