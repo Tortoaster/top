@@ -1,7 +1,3 @@
-pub use crate::editor::{
-    primitive::{NumberEditor, TextEditor},
-    Editor,
-};
 pub use crate::task::combinator::step::{
     dsl::{has_value, if_value, TaskStepExt},
     Action,

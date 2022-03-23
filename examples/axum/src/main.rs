@@ -5,17 +5,17 @@ use toprs::integration::axum::{task, TopService};
 use toprs::prelude::*;
 
 async fn name() -> impl Task {
-    enter::<(String, u8)>()
+    enter::<(String, u8, bool)>()
         .steps()
         .on_value(if_value(
-            |(name, code)| name == "Bob" && *code == 123,
-            |(name, _)| update(format!("Hi, {name}!")),
+            |(name, code, enable)| name == "Bob" && *code == 123 && *enable,
+            |(name, _, _)| update(format!("Hi, {name}!")),
         ))
         .on_action(
             Action::OK,
             if_value(
-                |(name, code): &(String, _)| !name.is_empty() && *code == 123,
-                |(name, _)| update(format!("Hello, {name}!")),
+                |(name, code, enable): &(String, _, _)| !name.is_empty() && *code == 123 && *enable,
+                |(name, _, _)| update(format!("Hello, {name}!")),
             ),
         )
         .confirm()

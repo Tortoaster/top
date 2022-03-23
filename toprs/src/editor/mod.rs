@@ -7,6 +7,7 @@ use crate::component::{Component, ComponentCreator};
 
 pub mod generic;
 pub mod primitive;
+pub mod tuple;
 
 /// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
 pub trait Editor {
