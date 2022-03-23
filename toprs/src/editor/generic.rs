@@ -1,6 +1,6 @@
 pub use toprs_derive::DefaultEditor;
 
-use crate::editor::primitive::BooleanEditor;
+use crate::editor::primitive::{BooleanEditor, TupleEditor};
 use crate::editor::{Editor, Report};
 use crate::prelude::{NumberEditor, TextEditor};
 
@@ -42,5 +42,19 @@ impl DefaultEditor for bool {
 
     fn default_editor() -> Self::Editor {
         BooleanEditor::new()
+    }
+}
+
+impl<A, E, B, F> DefaultEditor for (A, B)
+where
+    A: DefaultEditor<Editor = E> + Clone + Default,
+    E: Editor<Input = A, Output = Report<A>>,
+    B: DefaultEditor<Editor = F> + Clone + Default,
+    F: Editor<Input = B, Output = Report<B>>,
+{
+    type Editor = TupleEditor<A::Editor, A, B::Editor, B>;
+
+    fn default_editor() -> Self::Editor {
+        TupleEditor::new(A::default_editor(), B::default_editor())
     }
 }
