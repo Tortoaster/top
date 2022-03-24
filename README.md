@@ -1,5 +1,8 @@
 # top
 
+[![Crates.io](https://img.shields.io/crates/v/top.svg)](https://crates.io/crates/top)
+[![Docs Status](https://docs.rs/top/badge.svg)](https://docs.rs/top)
+
 ## License
 
 Licensed under either of
