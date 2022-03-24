@@ -93,15 +93,14 @@ where
         &mut self,
         event: Event,
         ctx: &mut Context<H>,
-    ) -> Result<TaskValue<&Self::Value>, Error<H::Error>> {
+    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
         if self.current.is_left() {
             let value = self
                 .current
                 .as_mut()
                 .unwrap_left()
                 .on_event(event.clone(), ctx)
-                .await?
-                .cloned();
+                .await?;
 
             let next = self.continuations.iter().find_map(|cont| match cont {
                 Continuation::OnValue(f) => f(value.clone()),

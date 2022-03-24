@@ -14,21 +14,21 @@ use crate::editor::{Component, Editor, Report};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TextEditor {
     id: Id,
-    value: Report<String>,
+    value: String,
 }
 
 impl TextEditor {
     pub fn new() -> Self {
         TextEditor {
             id: Id::default(),
-            value: Ok(String::new()),
+            value: String::new(),
         }
     }
 }
 
 impl Editor for TextEditor {
     type Input = String;
-    type Output = Report<String>;
+    type Output = String;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::TextField {
@@ -45,19 +45,15 @@ impl Editor for TextEditor {
     fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } if id == self.id => {
-                self.value = Ok(value);
+                self.value = value;
                 Some(Feedback::Valid { id })
             }
             _ => None,
         }
     }
 
-    fn value(&self) -> &Self::Output {
-        &self.value
-    }
-
-    fn finish(self) -> Self::Output {
-        self.value
+    fn value(&self) -> Report<Self::Output> {
+        Ok(self.value.clone())
     }
 }
 
@@ -85,7 +81,7 @@ where
     N: Default + Display + FromStr<Err = ParseIntError> + PrimInt,
 {
     type Input = N;
-    type Output = Report<N>;
+    type Output = N;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::NumberField {
@@ -121,12 +117,8 @@ where
         }
     }
 
-    fn value(&self) -> &Self::Output {
-        &self.value
-    }
-
-    fn finish(self) -> Self::Output {
-        self.value
+    fn value(&self) -> Report<Self::Output> {
+        self.value.clone()
     }
 }
 
@@ -148,7 +140,7 @@ impl BooleanEditor {
 
 impl Editor for BooleanEditor {
     type Input = bool;
-    type Output = Report<bool>;
+    type Output = bool;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::Checkbox {
@@ -184,11 +176,7 @@ impl Editor for BooleanEditor {
         }
     }
 
-    fn value(&self) -> &Self::Output {
-        &self.value
-    }
-
-    fn finish(self) -> Self::Output {
-        self.value
+    fn value(&self) -> Report<Self::Output> {
+        self.value.clone()
     }
 }

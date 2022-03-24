@@ -14,8 +14,8 @@ pub trait Editor {
     /// The type of data this editor can read. For example, a checkbox can take a boolean value to
     /// represent its checked state.
     type Input;
-    /// The type of data this editor can produce, usually [`Report<Self::Input>`] for interaction
-    /// tasks. For example, a number field produces a number, but the value may not always be valid.
+    /// The type of data this editor can produce, usually [`Self::Input`] for interaction tasks. For
+    /// example, a number field produces a number, but the value may not always be valid.
     type Output;
 
     /// Create the initial user interface for this editor.
@@ -25,11 +25,9 @@ pub trait Editor {
     /// presses a button.
     fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback>;
 
-    /// Get a reference to the current value of this editor.
-    fn value(&self) -> &Self::Output;
-
-    /// Consume this editor and return its value.
-    fn finish(self) -> Self::Output;
+    // TODO: Allow borrow and consume
+    /// Get the current value of this editor.
+    fn value(&self) -> Report<Self::Output>;
 }
 
 /// Common output type for [`Editor`]s.

@@ -9,7 +9,7 @@ pub struct UnitEditor;
 
 impl Editor for UnitEditor {
     type Input = ();
-    type Output = Report<()>;
+    type Output = ();
 
     fn start(&mut self, _initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
         ctx.create(Widget::Group(Vec::new()))
@@ -19,11 +19,7 @@ impl Editor for UnitEditor {
         None
     }
 
-    fn value(&self) -> &Self::Output {
-        &Ok(())
-    }
-
-    fn finish(self) -> Self::Output {
+    fn value(&self) -> Report<Self::Output> {
         Ok(())
     }
 }
@@ -34,58 +30,34 @@ macro_rules! none {
     };
 }
 
-// TODO: Remove clones, report, and trait bounds; reuse state of inner editors
 macro_rules! tuple_editor {
-    ($name:ident<$($editor:ident, $output:ident),*>) => {
+    ($name:ident<$($editor:ident),*>) => {
         paste! {
             #[derive(Clone, Debug, Eq, PartialEq)]
-            pub struct $name<$($editor, $output),*> {
-                $([<$editor:snake>]: $editor,)*
-                value: Report<($($output,)*)>,
+            pub struct $name<$($editor),*> {
+                $([<$editor:snake>]: $editor),*
             }
         }
 
-        impl<$($editor, $output),*> $name<$($editor, $output),*>
+        impl<$($editor),*> $name<$($editor),*>
         where
-            $(
-                $editor: Editor<Output = Report<$output>>,
-                $output: Default
-            ),*
+            $($editor: Editor),*
         {
             paste! {
                 pub fn new($(paste! { [<$editor:snake>] }: $editor),*) -> Self {
                     $name {
-                        $([<$editor:snake>],)*
-                        value: Ok(($($output::default(),)*)),
+                        $([<$editor:snake>]),*
                     }
                 }
             }
         }
 
-        impl<$($editor, $output),*> $name<$($editor, $output),*>
+        impl<$($editor),*> Editor for $name<$($editor),*>
         where
-            $(
-                $editor: Editor<Output = Report<$output>>,
-                $output: Clone
-            ),*
-        {
-            paste! {
-                pub fn value(&self) -> Report<($($output,)*)> {
-                    $(let [<$editor:snake>] = self.[<$editor:snake>].value().clone()?;)*
-                    Ok(($([<$editor:snake>],)*))
-                }
-            }
-        }
-
-        impl<$($editor, $output),*> Editor for $name<$($editor, $output),*>
-        where
-            $(
-                $editor: Editor<Output = Report<$output>>,
-                $output: Clone
-            ),*
+            $($editor: Editor),*
         {
             type Input = ($($editor::Input,)*);
-            type Output = Report<($($output,)*)>;
+            type Output = ($($editor::Output,)*);
 
             paste! {
                 fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
@@ -104,25 +76,14 @@ macro_rules! tuple_editor {
 
             paste! {
                 fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
-                    let feedback = None
-                        $(.or_else(|| self.[<$editor:snake>].on_event(event.clone(), ctx)))*;
-
-                    if feedback.is_some() {
-                        let value = self.value();
-                        self.value = value;
-                    }
-
-                    feedback
+                    None
+                        $(.or_else(|| self.[<$editor:snake>].on_event(event.clone(), ctx)))*
                 }
             }
 
-            fn value(&self) -> &Self::Output {
-                &self.value
-            }
-
             paste! {
-                fn finish(self) -> Self::Output {
-                    Ok(($(self.[<$editor:snake>].finish()?,)*))
+                fn value(&self) -> Report<Self::Output> {
+                    Ok(($(self.[<$editor:snake>].value()?,)*))
                 }
             }
         }
@@ -130,15 +91,15 @@ macro_rules! tuple_editor {
 }
 
 // Beautiful, don't touch
-tuple_editor!(MonupleEditor<A, AValue>);
-tuple_editor!(CoupleEditor<A, AValue, B, BValue>);
-tuple_editor!(TripleEditor<A, AValue, B, BValue, C, CValue>);
-tuple_editor!(QuadrupleEditor<A, AValue, B, BValue, C, CValue, D, DValue>);
-tuple_editor!(QuintupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue>);
-tuple_editor!(SextupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue>);
-tuple_editor!(SeptupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue, G, GValue>);
-tuple_editor!(OctupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue, G, GValue, H, HValue>);
-tuple_editor!(NonupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue, G, GValue, H, HValue, I, IValue>);
-tuple_editor!(DecupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue, G, GValue, H, HValue, I, IValue, J, JValue>);
-tuple_editor!(UndecupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue, G, GValue, H, HValue, I, IValue, J, JValue, K, KValue>);
-tuple_editor!(DuodecupleEditor<A, AValue, B, BValue, C, CValue, D, DValue, E, EValue, F, FValue, G, GValue, H, HValue, I, IValue, J, JValue, K, KValue, L, LValue>);
+tuple_editor!(MonupleEditor<A>);
+tuple_editor!(CoupleEditor<A, B>);
+tuple_editor!(TripleEditor<A, B, C>);
+tuple_editor!(QuadrupleEditor<A, B, C, D>);
+tuple_editor!(QuintupleEditor<A, B, C, D, E>);
+tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
+tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
+tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
+tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
+tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
+tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
+tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);

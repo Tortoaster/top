@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::component::event::{Event, Feedback, FeedbackHandler};
 use crate::component::Id;
 use crate::editor::generic::DefaultEditor;
-use crate::editor::{Editor, Report};
+use crate::editor::Editor;
 use crate::task::value::TaskValue;
 use crate::task::{Context, Error, Task};
 
@@ -19,7 +19,7 @@ pub struct Interact<T, E> {
 impl<T, E> Task for Interact<T, E>
 where
     T: Clone + Send + Sync,
-    E: Editor<Input = T, Output = Report<T>> + Send,
+    E: Editor<Input = T, Output = T> + Send,
 {
     type Value = T;
 
@@ -44,7 +44,7 @@ where
         &mut self,
         event: Event,
         ctx: &mut Context<H>,
-    ) -> Result<TaskValue<&Self::Value>, Error<H::Error>> {
+    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
         if let Some(feedback) = self.editor.on_event(event, &mut ctx.components) {
             ctx.feedback.send(feedback).await?;
         }
@@ -55,7 +55,7 @@ where
     }
 
     async fn finish(self) -> TaskValue<Self::Value> {
-        match self.editor.finish() {
+        match self.editor.value() {
             Ok(value) => TaskValue::Stable(value),
             Err(_) => TaskValue::Empty,
         }
@@ -76,7 +76,7 @@ where
 pub fn enter_with<T, E>(editor: E) -> Interact<T, E>
 where
     T: Default,
-    E: Editor<Output = Report<T>>,
+    E: Editor<Output = T>,
 {
     update_with(T::default(), editor)
 }
@@ -94,7 +94,7 @@ where
 #[inline]
 pub fn update_with<T, E>(value: T, editor: E) -> Interact<T, E>
 where
-    E: Editor<Output = Report<T>>,
+    E: Editor<Output = T>,
 {
     Interact {
         initial_value: Some(value),
