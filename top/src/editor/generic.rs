@@ -1,4 +1,4 @@
-pub use toprs_derive::DefaultEditor;
+pub use top_derive::DefaultEditor;
 
 use crate::editor::primitive::{BooleanEditor, NumberEditor, TextEditor};
 use crate::editor::tuple::*;

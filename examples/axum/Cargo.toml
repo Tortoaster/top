@@ -10,4 +10,4 @@ axum = { version = "0.4.5" }
 env_logger = "0.8"
 log = "0.4"
 tokio = { version = "1", features = ["full"] }
-toprs = { path = "../../toprs", features = ["axum_integration"] }
+top = { path = "../../top", features = ["axum_integration"] }
