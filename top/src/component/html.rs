@@ -2,24 +2,39 @@ use handlebars::Handlebars;
 use lazy_static::lazy_static;
 use serde_json::json;
 
+use crate::component::icon::Icon;
 use crate::component::{Component, Widget};
 
 const INDEX: &str = "index";
+
+const GROUP: &str = "group";
 const INPUT: &str = "input";
 const CHECKBOX: &str = "checkbox";
 const BUTTON: &str = "button";
+const ICON_BUTTON: &str = "icon_button";
+
+const PLUS: &str = "plus";
+const MINUS: &str = "minus";
 
 lazy_static! {
     static ref REGISTRY: Handlebars<'static> = {
         let mut reg = Handlebars::new();
+
         #[cfg(debug_assertions)]
         reg.set_dev_mode(true);
+
         // TODO: Improve paths
-        reg.register_template_file(INDEX, "../../web/dist/index.hbs")
-            .unwrap();
+        reg.register_template_file(INDEX, "../../web/dist/index.hbs").unwrap();
+
+        reg.register_template_file(GROUP, "../../web/dist/component/group.hbs").unwrap();
         reg.register_template_file(INPUT, "../../web/dist/component/input.hbs").unwrap();
         reg.register_template_file(CHECKBOX, "../../web/dist/component/checkbox.hbs").unwrap();
         reg.register_template_file(BUTTON, "../../web/dist/component/button.hbs").unwrap();
+        reg.register_template_file(ICON_BUTTON, "../../web/dist/component/icon_button.hbs").unwrap();
+
+        reg.register_template_file(PLUS, "../../web/dist/icon/plus.hbs").unwrap();
+        reg.register_template_file(MINUS, "../../web/dist/icon/minus.hbs").unwrap();
+
         reg
     };
 }
@@ -86,15 +101,33 @@ impl Component {
                     }),
                 )
                 .unwrap(),
-            Widget::Group(children) => format!(
-                "<div id=\"{}\">{}</div>",
-                self.id(),
-                children
-                    .iter()
-                    .map(|c| c.html())
-                    .collect::<Vec<String>>()
-                    .join("<br/>")
-            ),
+            Widget::IconButton { icon, disabled } => REGISTRY
+                .render(
+                    ICON_BUTTON,
+                    &json!({
+                        "id": self.id(),
+                        "icon": icon.html(),
+                        "disabled": *disabled,
+                    }),
+                )
+                .unwrap(),
+            Widget::Group {
+                children,
+                horizontal,
+            } => REGISTRY
+                .render(
+                    GROUP,
+                    &json!({
+                        "id": self.id(),
+                        "horizontal": *horizontal,
+                        "content": children
+                            .iter()
+                            .map(|child| child.html())
+                            .collect::<Vec<_>>()
+                            .join("<br/>"),
+                    }),
+                )
+                .unwrap(),
         }
     }
 
@@ -103,5 +136,14 @@ impl Component {
         REGISTRY
             .render(INDEX, &json!({ "title": title }))
             .expect("failed to render template")
+    }
+}
+
+impl Icon {
+    pub fn html(&self) -> String {
+        match self {
+            Icon::Plus => REGISTRY.render(PLUS, &()).unwrap(),
+            Icon::Minus => REGISTRY.render(MINUS, &()).unwrap(),
+        }
     }
 }

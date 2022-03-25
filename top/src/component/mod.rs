@@ -5,8 +5,11 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
+use crate::component::icon::Icon;
+
 pub mod event;
 pub mod html;
+pub mod icon;
 
 /// Assigns a unique identifier to a [`Widget`], allowing the library to synchronize their values
 /// with the server.
@@ -52,7 +55,14 @@ pub enum Widget {
         text: String,
         disabled: bool,
     },
-    Group(Vec<Component>),
+    IconButton {
+        icon: Icon,
+        disabled: bool,
+    },
+    Group {
+        children: Vec<Component>,
+        horizontal: bool,
+    },
 }
 
 // TODO: Allow identifying containing form, and disable any buttons while syncing or invalid

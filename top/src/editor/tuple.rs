@@ -12,7 +12,10 @@ impl Editor for UnitEditor {
     type Output = ();
 
     fn start(&mut self, _initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        ctx.create(Widget::Group(Vec::new()))
+        ctx.create(Widget::Group {
+            children: Vec::new(),
+            horizontal: false,
+        })
     }
 
     fn on_event(&mut self, _event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
@@ -65,12 +68,10 @@ macro_rules! tuple_editor {
                         Some(($([<value_ $editor:snake>],)*)) => ($(Some([<value_ $editor:snake>]),)*),
                         None => ($(none!($editor),)*),
                     };
-                    let components = vec![
+                    let children = vec![
                         $(self.[<$editor:snake>].start([<initial_ $editor:snake>], ctx)),*
                     ];
-                    let widget = Widget::Group(components);
-                    let component = ctx.create(widget);
-                    component
+                    ctx.create(Widget::Group { children, horizontal: false })
                 }
             }
 

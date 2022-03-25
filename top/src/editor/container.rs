@@ -1,4 +1,5 @@
 use crate::component::event::{Event, Feedback};
+use crate::component::icon::Icon;
 use crate::component::{Component, ComponentCreator, Id, Widget};
 use crate::editor::{Editor, Report};
 
@@ -27,12 +28,15 @@ where
         ctx: &mut ComponentCreator,
     ) -> (Self, Component) {
         let component = editor.start(input, ctx);
-        let remove = ctx.create(Widget::Button {
-            text: "-".to_owned(),
+        let remove = ctx.create(Widget::IconButton {
+            icon: Icon::Minus,
             disabled: false,
         });
         let remove_id = remove.id();
-        let group = ctx.create(Widget::Group(vec![component, remove]));
+        let group = ctx.create(Widget::Group {
+            children: vec![component, remove],
+            horizontal: true,
+        });
         let entry = Entry {
             editor,
             remove_id,
@@ -73,16 +77,22 @@ where
 
         self.editors = editors;
 
-        let group = ctx.create(Widget::Group(components));
+        let group = ctx.create(Widget::Group {
+            children: components,
+            horizontal: false,
+        });
         self.group_id = group.id();
 
-        let button = ctx.create(Widget::Button {
-            text: "+".to_owned(),
+        let button = ctx.create(Widget::IconButton {
+            icon: Icon::Plus,
             disabled: false,
         });
         self.add_id = button.id();
 
-        ctx.create(Widget::Group(vec![group, button]))
+        ctx.create(Widget::Group {
+            children: vec![group, button],
+            horizontal: false,
+        })
     }
 
     fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
