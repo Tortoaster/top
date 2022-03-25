@@ -66,6 +66,9 @@ function onMessage(ev: MessageEvent) {
     const template = document.createElement('template');
     template.innerHTML = data.append.component;
     element.appendChild(template.content);
+  } else if(data.remove != null) {
+    const element = document.getElementById(data.remove.id) as HTMLDivElement;
+    element.parentElement.removeChild(element);
   } else if(data.valid != null) {
     const id = data.valid.id;
     const input = document.getElementById(id) as HTMLElement;

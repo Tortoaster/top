@@ -5,9 +5,41 @@ use crate::editor::{Editor, Report};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VecEditor<E> {
     group_id: Id,
-    button_id: Id,
+    add_id: Id,
     template: E,
-    editors: Vec<E>,
+    editors: Vec<Entry<E>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct Entry<E> {
+    editor: E,
+    remove_id: Id,
+    group_id: Id,
+}
+
+impl<E> Entry<E>
+where
+    E: Editor,
+{
+    fn new(
+        mut editor: E,
+        input: Option<E::Input>,
+        ctx: &mut ComponentCreator,
+    ) -> (Self, Component) {
+        let component = editor.start(input, ctx);
+        let remove = ctx.create(Widget::Button {
+            text: "-".to_owned(),
+            disabled: false,
+        });
+        let remove_id = remove.id();
+        let group = ctx.create(Widget::Group(vec![component, remove]));
+        let entry = Entry {
+            editor,
+            remove_id,
+            group_id: group.id(),
+        };
+        (entry, group)
+    }
 }
 
 impl<E> VecEditor<E>
@@ -17,7 +49,7 @@ where
     pub fn new(editor: E) -> Self {
         VecEditor {
             group_id: Id::default(),
-            button_id: Id::default(),
+            add_id: Id::default(),
             template: editor,
             editors: Vec::new(),
         }
@@ -36,11 +68,7 @@ where
         let (editors, components) = initial
             .unwrap_or_default()
             .into_iter()
-            .map(|input| {
-                let mut editor = self.template.clone();
-                let component = editor.start(Some(input), ctx);
-                (editor, component)
-            })
+            .map(|input| Entry::new(self.template.clone(), Some(input), ctx))
             .unzip();
 
         self.editors = editors;
@@ -52,27 +80,43 @@ where
             text: "+".to_owned(),
             disabled: false,
         });
-        self.button_id = button.id();
+        self.add_id = button.id();
 
         ctx.create(Widget::Group(vec![group, button]))
     }
 
     fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
-            Event::Press { id } if id == self.button_id => {
-                let mut editor = self.template.clone();
-                let component = editor.start(None, ctx);
-                self.editors.push(editor);
+            Event::Press { id } if id == self.add_id => {
+                let (entry, component) = Entry::new(self.template.clone(), None, ctx);
+                self.editors.push(entry);
 
                 Some(Feedback::Append {
                     id: self.group_id,
                     component,
                 })
             }
-            _ => self
+            Event::Press { id } => {
+                match self
+                    .editors
+                    .iter()
+                    .enumerate()
+                    .find_map(|(index, entry)| (id == entry.remove_id).then(|| index))
+                {
+                    None => self
+                        .editors
+                        .iter_mut()
+                        .find_map(|entry| entry.editor.on_event(event.clone(), ctx)),
+                    Some(index) => {
+                        let entry = self.editors.remove(index);
+                        Some(Feedback::Remove { id: entry.group_id })
+                    }
+                }
+            }
+            Event::Update { .. } => self
                 .editors
                 .iter_mut()
-                .find_map(|editor| editor.on_event(event.clone(), ctx)),
+                .find_map(|entry| entry.editor.on_event(event.clone(), ctx)),
         }
     }
 
@@ -80,7 +124,7 @@ where
         Ok(self
             .editors
             .iter()
-            .map(Editor::value)
+            .map(|entry| entry.editor.value())
             .collect::<Result<Vec<_>, _>>()?)
     }
 }

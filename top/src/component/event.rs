@@ -28,6 +28,8 @@ pub enum Feedback {
     Replace { id: Id, component: Component },
     /// Add a component to this component.
     Append { id: Id, component: Component },
+    /// Remove this component.
+    Remove { id: Id },
     /// The value of this component is valid.
     Valid { id: Id },
     /// The value of this component is invalid.
