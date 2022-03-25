@@ -1,11 +1,12 @@
-const socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}`);
+let socket!: WebSocket;
 
 document.addEventListener('DOMContentLoaded', connect);
 
 /**
  * Connect to the server.
  */
-function connect(ev: Event) {
+function connect() {
+  socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}`);
   socket.onopen = onOpen;
   socket.onmessage = onMessage;
   socket.onerror = onError;
@@ -68,7 +69,7 @@ function onMessage(ev: MessageEvent) {
     element.appendChild(template.content);
   } else if(data.remove != null) {
     const element = document.getElementById(data.remove.id) as HTMLDivElement;
-    element.parentElement.removeChild(element);
+    element.parentElement?.removeChild(element);
   } else if(data.valid != null) {
     const id = data.valid.id;
     const input = document.getElementById(id) as HTMLElement;
@@ -86,14 +87,13 @@ function onMessage(ev: MessageEvent) {
  * @param {Event} ev The event.
  */
 function onError(ev: Event) {
-  console.error(`error: ${ev}`);
-  alert(`Error: ${ev}`);
+  setTimeout(connect, 5000);
 }
 
 /**
  * @param {CloseEvent} ev The event.
  */
 function onClose(ev: CloseEvent) {
-  console.log('disconnected');
-  alert('Disconnected');
+  console.log(`lost connection: ${ev.reason}`);
+  setTimeout(connect, 1000);
 }
