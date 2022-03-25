@@ -31,8 +31,9 @@ impl Editor for TextEditor {
     type Output = String;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
+        self.value = initial.unwrap_or_default();
         let widget = Widget::TextField {
-            value: initial.unwrap_or_default(),
+            value: self.value.clone(),
             label: None,
             disabled: false,
         };
@@ -84,8 +85,10 @@ where
     type Output = N;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
+        let value = initial.unwrap_or_default();
+        self.value = Ok(value.clone());
         let widget = Widget::NumberField {
-            value: initial.unwrap_or_default().to_string(),
+            value: value.to_string(),
             label: None,
             disabled: false,
         };
@@ -143,8 +146,10 @@ impl Editor for BooleanEditor {
     type Output = bool;
 
     fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
+        let value = initial.unwrap_or_default();
+        self.value = Ok(value);
         let widget = Widget::Checkbox {
-            checked: initial.unwrap_or_default(),
+            checked: value,
             label: None,
             disabled: false,
         };

@@ -5,18 +5,11 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    enter::<(String, u8, bool)>()
+    enter::<Vec<i32>>()
         .steps()
-        .on_value(if_value(
-            |(name, code, enable)| name == "Bob" && *code == 123 && *enable,
-            |(name, _, _)| update(format!("Hi, {name}!")),
-        ))
         .on_action(
             Action::OK,
-            if_value(
-                |(name, code, enable): &(String, _, _)| !name.is_empty() && *code == 123 && *enable,
-                |(name, _, _)| update(format!("Hello, {name}!")),
-            ),
+            has_value(|nums: Vec<i32>| update(nums.into_iter().sum::<i32>().to_string())),
         )
         .confirm()
 }

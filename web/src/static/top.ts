@@ -63,7 +63,9 @@ function onMessage(ev: MessageEvent) {
     element.innerHTML = data.replace.component;
   } else if(data.append != null) {
     const element = document.getElementById(data.append.id) as HTMLDivElement;
-    element.innerHTML += data.append.component;
+    const template = document.createElement('template');
+    template.innerHTML = data.append.component;
+    element.appendChild(template.content);
   } else if(data.valid != null) {
     const id = data.valid.id;
     const input = document.getElementById(id) as HTMLElement;

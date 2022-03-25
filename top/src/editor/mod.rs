@@ -5,6 +5,7 @@ use thiserror::Error;
 use crate::component::event::{Event, Feedback};
 use crate::component::{Component, ComponentCreator};
 
+pub mod container;
 pub mod generic;
 pub mod primitive;
 pub mod tuple;

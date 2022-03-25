@@ -1,5 +1,6 @@
 pub use top_derive::DefaultEditor;
 
+use crate::editor::container::VecEditor;
 use crate::editor::primitive::{BooleanEditor, NumberEditor, TextEditor};
 use crate::editor::tuple::*;
 use crate::editor::Editor;
@@ -80,3 +81,15 @@ impl_default_editor_for_tuple!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
 impl_default_editor_for_tuple!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
 impl_default_editor_for_tuple!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
 impl_default_editor_for_tuple!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
+
+impl<T> DefaultEditor for Vec<T>
+where
+    T: DefaultEditor,
+    <T as DefaultEditor>::Editor: Clone,
+{
+    type Editor = VecEditor<T::Editor>;
+
+    fn default_editor() -> Self::Editor {
+        VecEditor::new(T::default_editor())
+    }
+}
