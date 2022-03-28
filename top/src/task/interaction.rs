@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::component::event::{Event, Feedback, FeedbackHandler};
 use crate::component::Id;
-use crate::editor::generic::DefaultEditor;
+use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::task::value::TaskValue;
 use crate::task::{Context, Error, Task};
@@ -18,7 +18,7 @@ pub struct Interact<T, E> {
 #[async_trait]
 impl<T, E> Task for Interact<T, E>
 where
-    T: Clone + Send + Sync,
+    T: Send + Sync,
     E: Editor<Input = T, Output = T> + Send,
 {
     type Value = T;
@@ -66,7 +66,7 @@ where
 #[inline]
 pub fn enter<T>() -> Interact<T, T::Editor>
 where
-    T: Default + DefaultEditor,
+    T: Default + Edit,
 {
     enter_with(T::default_editor())
 }
@@ -85,7 +85,7 @@ where
 #[inline]
 pub fn update<T>(value: T) -> Interact<T, T::Editor>
 where
-    T: DefaultEditor,
+    T: Edit,
 {
     update_with(value, T::default_editor())
 }

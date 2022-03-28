@@ -1,3 +1,4 @@
+pub use crate::editor::generic::Edit;
 pub use crate::task::combinator::step::{
     dsl::{has_value, if_value, TaskStepExt},
     Action,

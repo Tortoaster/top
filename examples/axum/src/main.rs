@@ -1,16 +1,25 @@
 use axum::Router;
 use log::info;
 
+use top::component::event::{Event, Feedback};
+use top::component::{Component, ComponentCreator, Widget};
+use top::editor::{Editor, Report};
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
+#[derive(Clone, Debug, Default, Edit)]
+pub struct Person {
+    name: String,
+    title: Option<String>,
+    age: u8,
+    cool: bool,
+    quotes: Vec<String>,
+}
+
 async fn name() -> impl Task {
-    enter::<Vec<i32>>()
+    enter::<Person>()
         .steps()
-        .on_action(
-            Action::OK,
-            has_value(|nums: Vec<i32>| update(nums.into_iter().sum::<i32>().to_string())),
-        )
+        .on_action(Action::OK, has_value(|person: Person| update(person)))
         .confirm()
 }
 
