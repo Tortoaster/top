@@ -1,6 +1,6 @@
 pub use top_derive::DefaultEditor;
 
-use crate::editor::container::VecEditor;
+use crate::editor::container::{OptionEditor, VecEditor};
 use crate::editor::primitive::{BooleanEditor, NumberEditor, TextEditor};
 use crate::editor::tuple::*;
 use crate::editor::Editor;
@@ -91,5 +91,16 @@ where
 
     fn default_editor() -> Self::Editor {
         VecEditor::new(T::default_editor())
+    }
+}
+
+impl<T> DefaultEditor for Option<T>
+where
+    T: DefaultEditor,
+{
+    type Editor = OptionEditor<T::Editor>;
+
+    fn default_editor() -> Self::Editor {
+        OptionEditor::new(T::default_editor())
     }
 }
