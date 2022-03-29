@@ -69,23 +69,14 @@ pub enum Widget {
 // TODO: Allow identifying containing form, and disable any buttons while syncing or invalid
 /// Unique component identifier.
 #[derive(
-    Copy,
-    Clone,
-    Debug,
-    Default,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    Hash,
-    SerializeDisplay,
-    DeserializeFromStr,
+    Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, SerializeDisplay, DeserializeFromStr,
 )]
 pub struct Id(u32);
 
 impl Id {
     /// Identity of the wrapper containing the entire application.
     pub const ROOT: Id = Id(0);
+    pub const INVALID: Id = Id(u32::MAX);
 }
 
 impl Display for Id {
@@ -104,7 +95,7 @@ impl FromStr for Id {
 }
 
 /// A creator used to generate components with unique identifiers.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ComponentCreator {
     current_id: Id,
 }

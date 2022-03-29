@@ -41,7 +41,7 @@ pub enum Error<H: HandlerError> {
 pub trait HandlerError {}
 
 /// A context for [`Task`]s to interact with their environment.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Context<E> {
     feedback: E,
     components: ComponentCreator,

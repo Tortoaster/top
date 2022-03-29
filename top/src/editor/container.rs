@@ -20,8 +20,8 @@ where
 {
     pub fn new(editor: E) -> Self {
         VecEditor {
-            id: Id::default(),
-            add_id: Id::default(),
+            id: Id::INVALID,
+            add_id: Id::INVALID,
             rows: Vec::new(),
             template: editor,
             editors: Vec::new(),
@@ -123,7 +123,7 @@ where
 {
     pub fn new(editor: E) -> Self {
         OptionEditor {
-            id: Either::Left(Id::default()),
+            id: Either::Left(Id::INVALID),
             editor,
             enabled: false,
         }

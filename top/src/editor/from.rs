@@ -16,7 +16,7 @@ where
 {
     pub fn new() -> Self {
         ParseEditor {
-            id: Id::default(),
+            id: Id::INVALID,
             value: "".parse().map_err(|_| EditorError::Invalid),
         }
     }

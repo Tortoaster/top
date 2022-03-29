@@ -18,7 +18,7 @@ pub struct TextEditor {
 impl TextEditor {
     pub fn new() -> Self {
         TextEditor {
-            id: Id::default(),
+            id: Id::INVALID,
             value: String::new(),
         }
     }
@@ -72,7 +72,7 @@ where
 {
     pub fn new() -> Self {
         IntegerEditor {
-            id: Id::default(),
+            id: Id::INVALID,
             value: Ok(N::default()),
         }
     }
@@ -145,7 +145,7 @@ where
 {
     pub fn new() -> Self {
         FloatEditor {
-            id: Id::default(),
+            id: Id::INVALID,
             value: Ok(N::default()),
         }
     }
@@ -215,7 +215,7 @@ pub struct BooleanEditor {
 impl BooleanEditor {
     pub fn new() -> Self {
         BooleanEditor {
-            id: Id::default(),
+            id: Id::INVALID,
             value: Ok(false),
         }
     }
@@ -278,7 +278,7 @@ pub struct CharEditor {
 impl CharEditor {
     pub fn new() -> Self {
         CharEditor {
-            id: Id::default(),
+            id: Id::INVALID,
             value: Err(EditorError::Invalid),
         }
     }
