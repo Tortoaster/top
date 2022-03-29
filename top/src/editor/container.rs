@@ -1,3 +1,5 @@
+use either::Either;
+
 use crate::component::event::{Event, Feedback};
 use crate::component::icon::Icon;
 use crate::component::{Component, ComponentCreator, Id, Widget};
@@ -5,10 +7,11 @@ use crate::editor::{Editor, Report};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VecEditor<E> {
-    group_id: Id,
+    id: Id,
     add_id: Id,
+    rows: Vec<Row>,
     template: E,
-    editors: Vec<Entry<E>>,
+    editors: Vec<E>,
 }
 
 impl<E> VecEditor<E>
@@ -17,8 +20,9 @@ where
 {
     pub fn new(editor: E) -> Self {
         VecEditor {
-            group_id: Id::default(),
+            id: Id::default(),
             add_id: Id::default(),
+            rows: Vec::new(),
             template: editor,
             editors: Vec::new(),
         }
@@ -33,29 +37,26 @@ where
     type Input = Vec<E::Input>;
     type Output = Vec<E::Output>;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        let (editors, components) = initial
-            .unwrap_or_default()
-            .into_iter()
-            .map(|input| Entry::new(self.template.clone(), Some(input), ctx))
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+        let (children, rows) = self
+            .editors
+            .iter_mut()
+            .map(|editor| row(editor, ctx))
             .unzip();
 
-        self.editors = editors;
+        self.rows = rows;
 
-        let group = ctx.create(Widget::Group {
-            children: components,
+        let component = ctx.create(Widget::Group {
+            children,
             horizontal: false,
         });
-        self.group_id = group.id();
+        self.id = component.id();
 
-        let button = ctx.create(Widget::IconButton {
-            icon: Icon::Plus,
-            disabled: false,
-        });
+        let button = add_button(ctx);
         self.add_id = button.id();
 
         ctx.create(Widget::Group {
-            children: vec![group, button],
+            children: vec![component, button],
             horizontal: false,
         })
     }
@@ -63,53 +64,57 @@ where
     fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Press { id } if id == self.add_id => {
-                let (entry, component) = Entry::new(self.template.clone(), None, ctx);
-                self.editors.push(entry);
+                // Add a new row
+                let mut editor = self.template.clone();
+                let (component, row) = row(&mut editor, ctx);
+                self.editors.push(editor);
+                self.rows.push(row);
 
                 Some(Feedback::Append {
-                    id: self.group_id,
+                    id: self.id,
                     component,
                 })
             }
-            Event::Press { id } => {
-                match self
-                    .editors
-                    .iter()
-                    .enumerate()
-                    .find_map(|(index, entry)| (id == entry.remove_id).then(|| index))
-                {
-                    None => self
-                        .editors
-                        .iter_mut()
-                        .find_map(|entry| entry.editor.on_event(event.clone(), ctx)),
-                    Some(index) => {
-                        let entry = self.editors.remove(index);
-                        Some(Feedback::Remove { id: entry.group_id })
-                    }
-                }
+            Event::Press { id } if self.rows.iter().any(|row| row.sub_id == id) => {
+                // Remove an existing row
+                let index = self.rows.iter().position(|row| row.sub_id == id).unwrap();
+                let row = self.rows.remove(index);
+                self.editors.remove(index);
+
+                Some(Feedback::Remove { id: row.id })
             }
-            Event::Update { .. } => self
+            _ => self
                 .editors
                 .iter_mut()
-                .find_map(|entry| entry.editor.on_event(event.clone(), ctx)),
+                .find_map(|editor| editor.on_event(event.clone(), ctx)),
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         // TODO: Return all errors
-        Ok(self
-            .editors
+        self.editors
             .iter()
-            .map(|entry| entry.editor.value())
-            .collect::<Result<Vec<_>, _>>()?)
+            .map(|editor| editor.read())
+            .collect::<Result<Vec<_>, _>>()
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        self.editors = value
+            .into_iter()
+            .map(|input| {
+                let mut editor = self.template.clone();
+                editor.write(input);
+                editor
+            })
+            .collect();
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionEditor<E> {
-    id: Id,
-    template: Option<E>,
-    editor: Option<Entry<E>>,
+    id: Either<Id, Row>,
+    editor: E,
+    enabled: bool,
 }
 
 impl<E> OptionEditor<E>
@@ -118,17 +123,10 @@ where
 {
     pub fn new(editor: E) -> Self {
         OptionEditor {
-            id: Id::default(),
-            template: Some(editor),
-            editor: None,
+            id: Either::Left(Id::default()),
+            editor,
+            enabled: false,
         }
-    }
-
-    fn add_button(ctx: &mut ComponentCreator) -> Component {
-        ctx.create(Widget::IconButton {
-            icon: Icon::Plus,
-            disabled: false,
-        })
     }
 }
 
@@ -139,111 +137,113 @@ where
     type Input = Option<E::Input>;
     type Output = Option<E::Output>;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        // TODO: Use Option::unzip when stable
-        let (editor, component) = match initial
-            .flatten()
-            .map(|input| Entry::new(self.template.take().unwrap(), Some(input), ctx))
-        {
-            None => (None, None),
-            Some((a, b)) => (Some(a), Some(b)),
-        };
-
-        self.editor = editor;
-
-        match component {
-            None => {
-                let button = Self::add_button(ctx);
-                self.id = button.id();
-                button
-            }
-            Some(component) => {
-                self.id = component.id();
-                component
-            }
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+        if self.enabled {
+            let (component, row) = row(&mut self.editor, ctx);
+            self.id = Either::Right(row);
+            component
+        } else {
+            let component = add_button(ctx);
+            self.id = Either::Left(component.id());
+            component
         }
     }
 
     fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
-            Event::Press { id } if id == self.id && self.editor.is_none() => {
-                let (entry, component) = Entry::new(self.template.take().unwrap(), None, ctx);
-                self.editor = Some(entry);
+            Event::Press { id }
+                if self
+                    .id
+                    .as_ref()
+                    .map_left(|add_id| *add_id == id)
+                    .left_or_default()
+                    && !self.enabled =>
+            {
+                // Add value
+                let id = *self.id.as_ref().unwrap_left();
 
-                let old_id = self.id;
-                self.id = component.id();
+                let (component, row) = row(&mut self.editor, ctx);
+                self.id = Either::Right(row);
+                self.enabled = true;
 
-                Some(Feedback::Replace {
-                    id: old_id,
-                    component,
-                })
+                Some(Feedback::Replace { id, component })
             }
             Event::Press { id }
                 if self
-                    .editor
+                    .id
                     .as_ref()
-                    .map(|entry| entry.remove_id == id)
-                    .unwrap_or_default() =>
+                    .map_right(|row| row.sub_id == id)
+                    .right_or_default()
+                    && self.enabled =>
             {
-                let entry = self.editor.take().unwrap();
-                self.template = Some(entry.editor);
+                // Remove value
+                let id = self.id.as_ref().unwrap_right().id;
 
-                let button = Self::add_button(ctx);
+                let component = add_button(ctx);
+                self.id = Either::Left(component.id());
+                self.enabled = false;
 
-                let old_id = self.id;
-                self.id = button.id();
-
-                Some(Feedback::Replace {
-                    id: old_id,
-                    component: button,
-                })
+                Some(Feedback::Replace { id, component })
             }
-            event => self
-                .editor
-                .iter_mut()
-                .find_map(|entry| entry.editor.on_event(event.clone(), ctx)),
+            _ => self
+                .enabled
+                .then(|| self.editor.on_event(event, ctx))
+                .flatten(),
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
-        self.editor
-            .as_ref()
-            .map(|entry| entry.editor.value())
-            .map_or(Ok(None), |value| value.map(Some))
+    fn read(&self) -> Report<Self::Output> {
+        if self.enabled {
+            Ok(Some(self.editor.read()?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        match value {
+            None => self.enabled = false,
+            Some(value) => {
+                self.enabled = true;
+                self.editor.write(value);
+            }
+        }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct Entry<E> {
-    editor: E,
-    remove_id: Id,
-    group_id: Id,
+struct Row {
+    id: Id,
+    sub_id: Id,
 }
 
-impl<E> Entry<E>
+/// Creates a row consisting of the editor and a button to remove it.
+fn row<E>(editor: &mut E, ctx: &mut ComponentCreator) -> (Component, Row)
 where
     E: Editor,
 {
-    fn new(
-        mut editor: E,
-        input: Option<E::Input>,
-        ctx: &mut ComponentCreator,
-    ) -> (Self, Component) {
-        let component = editor.start(input, ctx);
-        let remove = ctx.create(Widget::IconButton {
-            icon: Icon::Minus,
-            disabled: false,
-        });
-        let remove_id = remove.id();
-        let group = ctx.create(Widget::Group {
-            children: vec![component, remove],
-            horizontal: true,
-        });
-        let entry = Entry {
-            editor,
-            remove_id,
-            group_id: group.id(),
-        };
-        (entry, group)
-    }
+    let child = editor.component(ctx);
+
+    let sub = ctx.create(Widget::IconButton {
+        icon: Icon::Minus,
+        disabled: false,
+    });
+    let sub_id = sub.id();
+
+    let component = ctx.create(Widget::Group {
+        children: vec![child, sub],
+        horizontal: true,
+    });
+    let id = component.id();
+
+    let row = Row { id, sub_id };
+
+    (component, row)
+}
+
+fn add_button(ctx: &mut ComponentCreator) -> Component {
+    ctx.create(Widget::IconButton {
+        icon: Icon::Plus,
+        disabled: false,
+    })
 }

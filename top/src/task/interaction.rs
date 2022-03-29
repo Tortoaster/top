@@ -27,9 +27,10 @@ where
         &mut self,
         ctx: &mut Context<H>,
     ) -> Result<(), Error<H::Error>> {
-        let component = self
-            .editor
-            .start(self.initial_value.take(), &mut ctx.components);
+        if let Some(value) = self.initial_value.take() {
+            self.editor.write(value);
+        }
+        let component = self.editor.component(&mut ctx.components);
 
         let initial = Feedback::Replace {
             id: Id::ROOT,
@@ -48,14 +49,14 @@ where
         if let Some(feedback) = self.editor.on_event(event, &mut ctx.components) {
             ctx.feedback.send(feedback).await?;
         }
-        match self.editor.value() {
+        match self.editor.read() {
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }
     }
 
     async fn finish(self) -> TaskValue<Self::Value> {
-        match self.editor.value() {
+        match self.editor.read() {
             Ok(value) => TaskValue::Stable(value),
             Err(_) => TaskValue::Empty,
         }

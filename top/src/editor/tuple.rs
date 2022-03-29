@@ -11,7 +11,7 @@ impl Editor for UnitEditor {
     type Input = ();
     type Output = ();
 
-    fn start(&mut self, _initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
         ctx.create(Widget::Group {
             children: Vec::new(),
             horizontal: false,
@@ -22,15 +22,11 @@ impl Editor for UnitEditor {
         None
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         Ok(())
     }
-}
 
-macro_rules! none {
-    ($_:ident) => {
-        None
-    };
+    fn write(&mut self, _value: Self::Input) {}
 }
 
 macro_rules! tuple_editor {
@@ -63,13 +59,9 @@ macro_rules! tuple_editor {
             type Output = ($($editor::Output,)*);
 
             paste! {
-                fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-                    let ($([<initial_ $editor:snake>],)*) = match initial {
-                        Some(($([<value_ $editor:snake>],)*)) => ($(Some([<value_ $editor:snake>]),)*),
-                        None => ($(none!($editor),)*),
-                    };
+                fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
                     let children = vec![
-                        $(self.[<$editor:snake>].start([<initial_ $editor:snake>], ctx)),*
+                        $(self.[<$editor:snake>].component(ctx)),*
                     ];
                     ctx.create(Widget::Group { children, horizontal: false })
                 }
@@ -83,24 +75,30 @@ macro_rules! tuple_editor {
             }
 
             paste! {
-                fn value(&self) -> Report<Self::Output> {
-                    Ok(($(self.[<$editor:snake>].value()?,)*))
+                fn read(&self) -> Report<Self::Output> {
+                    Ok(($(self.[<$editor:snake>].read()?,)*))
+                }
+            }
+
+            paste! {
+                fn write(&mut self, value: Self::Input) {
+                    ($(self.[<$editor:snake>].write(value.0),)*)
                 }
             }
         }
     }
 }
 
-// Beautiful, don't touch
-tuple_editor!(MonupleEditor<A>);
-tuple_editor!(CoupleEditor<A, B>);
-tuple_editor!(TripleEditor<A, B, C>);
-tuple_editor!(QuadrupleEditor<A, B, C, D>);
-tuple_editor!(QuintupleEditor<A, B, C, D, E>);
-tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
-tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
-tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
-tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
-tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
-tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
-tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
+// // Beautiful, don't touch
+// tuple_editor!(MonupleEditor<A>);
+// tuple_editor!(CoupleEditor<A, B>);
+// tuple_editor!(TripleEditor<A, B, C>);
+// tuple_editor!(QuadrupleEditor<A, B, C, D>);
+// tuple_editor!(QuintupleEditor<A, B, C, D, E>);
+// tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
+// tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
+// tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
+// tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
+// tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
+// tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
+// tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);

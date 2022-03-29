@@ -50,23 +50,12 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
             type Input = #ident;
             type Output = #ident;
 
-            fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-                match initial {
-                    None => {
-                        let children = vec![
-                            #(self.#field_idents.start(None, ctx)),*
-                        ];
+            fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+                let children = vec![
+                    #(self.#field_idents.component(ctx)),*
+                ];
 
-                        ctx.create(Widget::Group { children, horizontal: false })
-                    }
-                    Some(value) => {
-                        let children = vec![
-                            #(self.#field_idents.start(Some(value.#field_idents), ctx)),*
-                        ];
-
-                        ctx.create(Widget::Group { children, horizontal: false })
-                    }
-                }
+                ctx.create(Widget::Group { children, horizontal: false })
             }
 
             fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
@@ -75,12 +64,16 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
                 None
             }
 
-            fn value(&self) -> Report<Self::Output> {
+            fn read(&self) -> Report<Self::Output> {
                 let value = #ident {
-                    #(#field_idents: self.#field_idents.value()?),*
+                    #(#field_idents: self.#field_idents.read()?),*
                 };
 
                 Ok(value)
+            }
+
+            fn write(&mut self, value: Self::Input) {
+                #(self.#field_idents.write(value.#field_idents);)*
             }
         }
     };
@@ -116,34 +109,24 @@ fn impl_edit_unnamed_struct(
         .enumerate()
         .map(|(index, field)| (Index::from(index), &field.ty))
         .unzip();
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
     let editor_struct = quote! {
         #[derive(Clone, Debug, Eq, PartialEq)]
-        pub struct #editor_ident(#(<#field_types as Edit>::Editor),*)
+        pub struct #editor_ident #impl_generics (#(<#field_types as Edit>::Editor),*) #where_clause;
     };
 
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let editor_impl = quote! {
         impl #impl_generics Editor for #editor_ident #ty_generics #where_clause {
             type Input = #ident;
             type Output = #ident;
 
-            fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-                match initial {
-                    None => {
-                        let children = vec![
-                            #(self.#field_indices.start(None, ctx)),*
-                        ];
+            fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+                let children = vec![
+                    #(self.#field_indices.component(ctx)),*
+                ];
 
-                        ctx.create(Widget::Group { children, horizontal: false })
-                    }
-                    Some(value) => {
-                        let children = vec![
-                            #(self.#field_indices.start(Some(value.#field_indices), ctx)),*
-                        ];
-
-                        ctx.create(Widget::Group { children, horizontal: false })
-                    }
-                }
+                ctx.create(Widget::Group { children, horizontal: false })
             }
 
             fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
@@ -152,10 +135,14 @@ fn impl_edit_unnamed_struct(
                 None
             }
 
-            fn value(&self) -> Report<Self::Output> {
-                let value = #ident(#(self.#field_indices.value()?),*);
+            fn read(&self) -> Report<Self::Output> {
+                let value = #ident(#(self.#field_indices.read()?),*);
 
                 Ok(value)
+            }
+
+            fn write(&mut self, value: Self::Input) {
+                #(self.#field_indices.write(value.#field_indices);)*
             }
         }
     };
@@ -190,7 +177,7 @@ fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
             type Input = #ident;
             type Output = #ident;
 
-            fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
+            fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
                 ctx.create(Widget::Group {
                     children: Vec::new(),
                     horizontal: false,
@@ -201,9 +188,11 @@ fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
                 None
             }
 
-            fn value(&self) -> Report<Self::Output> {
+            fn read(&self) -> Report<Self::Output> {
                 Ok(#ident)
             }
+
+            fn write(&mut self, _value: Self::Input) {}
         }
     };
 

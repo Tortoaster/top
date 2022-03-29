@@ -20,7 +20,7 @@ pub trait Editor {
     type Output;
 
     /// Create the initial user interface for this editor.
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component;
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component;
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
@@ -28,7 +28,10 @@ pub trait Editor {
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.
-    fn value(&self) -> Report<Self::Output>;
+    fn read(&self) -> Report<Self::Output>;
+
+    /// Change the value of this editor directly.
+    fn write(&mut self, value: Self::Input);
 }
 
 /// Common output type for [`Editor`]s.

@@ -28,8 +28,7 @@ impl Editor for TextEditor {
     type Input = String;
     type Output = String;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        self.value = initial.unwrap_or_default();
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::TextField {
             value: self.value.clone(),
             label: None,
@@ -51,8 +50,12 @@ impl Editor for TextEditor {
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         Ok(self.value.clone())
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        self.value = value;
     }
 }
 
@@ -77,16 +80,18 @@ where
 
 impl<N> Editor for IntegerEditor<N>
 where
-    N: Copy + Default + Display + FromStr<Err = ParseIntError>,
+    N: Copy + Display + FromStr<Err = ParseIntError>,
 {
     type Input = N;
     type Output = N;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        let value = initial.unwrap_or_default();
-        self.value = Ok(value);
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::NumberField {
-            value: value.to_string(),
+            value: self
+                .value
+                .as_ref()
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
             label: None,
             disabled: false,
         };
@@ -118,8 +123,12 @@ where
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         self.value.clone()
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        self.value = Ok(value);
     }
 }
 
@@ -144,16 +153,18 @@ where
 
 impl<N> Editor for FloatEditor<N>
 where
-    N: Copy + Default + Display + FromStr<Err = ParseFloatError>,
+    N: Copy + Display + FromStr<Err = ParseFloatError>,
 {
     type Input = N;
     type Output = N;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        let value = initial.unwrap_or_default();
-        self.value = Ok(value);
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::NumberField {
-            value: value.to_string(),
+            value: self
+                .value
+                .as_ref()
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
             label: None,
             disabled: false,
         };
@@ -185,8 +196,12 @@ where
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         self.value.clone()
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        self.value = Ok(value);
     }
 }
 
@@ -210,11 +225,9 @@ impl Editor for BooleanEditor {
     type Input = bool;
     type Output = bool;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        let value = initial.unwrap_or_default();
-        self.value = Ok(value);
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
         let widget = Widget::Checkbox {
-            checked: value,
+            checked: *self.value.as_ref().unwrap_or(&false),
             label: None,
             disabled: false,
         };
@@ -246,8 +259,12 @@ impl Editor for BooleanEditor {
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         self.value.clone()
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        self.value = Ok(value);
     }
 }
 
@@ -271,18 +288,16 @@ impl Editor for CharEditor {
     type Input = char;
     type Output = char;
 
-    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
-        let widget = match initial {
-            None => Widget::TextField {
-                value: String::new(),
-                label: None,
-                disabled: false,
-            },
-            Some(value) => Widget::TextField {
-                value: value.to_string(),
-                label: None,
-                disabled: false,
-            },
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+        // TODO: Limit length to 1
+        let widget = Widget::TextField {
+            value: self
+                .value
+                .as_ref()
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            label: None,
+            disabled: false,
         };
         let component = ctx.create(widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
@@ -312,7 +327,11 @@ impl Editor for CharEditor {
         }
     }
 
-    fn value(&self) -> Report<Self::Output> {
+    fn read(&self) -> Report<Self::Output> {
         self.value.clone()
+    }
+
+    fn write(&mut self, value: Self::Input) {
+        self.value = Ok(value)
     }
 }
