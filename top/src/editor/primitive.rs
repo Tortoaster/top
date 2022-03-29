@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use crate::component::event::{Event, Feedback};
 use crate::component::{ComponentCreator, Id, Widget};
-use crate::editor::{Component, Editor, Report};
+use crate::editor::{Component, Editor, EditorError, Report};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -190,7 +190,7 @@ where
     }
 }
 
-/// Basic editor for numbers.
+/// Basic editor for booleans.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BooleanEditor {
     id: Id,
@@ -217,6 +217,72 @@ impl Editor for BooleanEditor {
             checked: value,
             label: None,
             disabled: false,
+        };
+        let component = ctx.create(widget);
+        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
+        self.id = component.id();
+        component
+    }
+
+    fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
+        match event {
+            Event::Update { id, value } => {
+                if id == self.id {
+                    match value.parse() {
+                        Ok(value) => {
+                            self.value = Ok(value);
+                            Some(Feedback::Valid { id })
+                        }
+                        Err(error) => {
+                            self.value = Err(error.into());
+                            Some(Feedback::Invalid { id })
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn value(&self) -> Report<Self::Output> {
+        self.value.clone()
+    }
+}
+
+/// Basic editor for characters.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CharEditor {
+    id: Id,
+    value: Report<char>,
+}
+
+impl CharEditor {
+    pub fn new() -> Self {
+        Self {
+            id: Id::default(),
+            value: Err(EditorError::Empty),
+        }
+    }
+}
+
+impl Editor for CharEditor {
+    type Input = char;
+    type Output = char;
+
+    fn start(&mut self, initial: Option<Self::Input>, ctx: &mut ComponentCreator) -> Component {
+        let widget = match initial {
+            None => Widget::TextField {
+                value: String::new(),
+                label: None,
+                disabled: false,
+            },
+            Some(value) => Widget::TextField {
+                value: value.to_string(),
+                label: None,
+                disabled: false,
+            },
         };
         let component = ctx.create(widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.

@@ -43,4 +43,8 @@ pub enum EditorError {
     ParseFloat(#[from] std::num::ParseFloatError),
     #[error("failed to parse boolean")]
     ParseBool(#[from] std::str::ParseBoolError),
+    #[error("failed to parse character")]
+    ParseChar(#[from] std::char::ParseCharError),
+    #[error("no value")]
+    Empty,
 }

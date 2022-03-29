@@ -1,7 +1,7 @@
 pub use top_derive::Edit;
 
 use crate::editor::container::{OptionEditor, VecEditor};
-use crate::editor::primitive::{BooleanEditor, FloatEditor, IntegerEditor, TextEditor};
+use crate::editor::primitive::{BooleanEditor, CharEditor, FloatEditor, IntegerEditor, TextEditor};
 use crate::editor::tuple::*;
 use crate::editor::Editor;
 
@@ -59,6 +59,14 @@ impl Edit for bool {
 
     fn default_editor() -> Self::Editor {
         BooleanEditor::new()
+    }
+}
+
+impl Edit for char {
+    type Editor = CharEditor;
+
+    fn default_editor() -> Self::Editor {
+        CharEditor::new()
     }
 }
 
