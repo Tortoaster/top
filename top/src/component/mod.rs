@@ -63,6 +63,7 @@ pub enum Widget {
         children: Vec<Component>,
         horizontal: bool,
     },
+    Text(String),
 }
 
 // TODO: Allow identifying containing form, and disable any buttons while syncing or invalid

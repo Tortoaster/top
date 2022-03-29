@@ -6,7 +6,8 @@ use crate::component::ComponentCreator;
 use crate::task::value::TaskValue;
 
 pub mod combinator;
-pub mod interaction;
+pub mod inspect;
+pub mod interact;
 pub mod value;
 
 #[async_trait]

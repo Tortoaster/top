@@ -7,6 +7,7 @@ use top::editor::from::ParseEditor;
 use top::editor::{Editor, Report};
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
+use top::task::inspect::view;
 
 #[derive(Clone, Debug, Default, Edit)]
 pub struct Person {
@@ -17,10 +18,10 @@ pub struct Person {
     quotes: Vec<String>,
 }
 
-async fn name() -> impl Task<Value = bool> {
+async fn name() -> impl Task {
     enter_with(ParseEditor::new())
         .steps()
-        .on_action(Action::OK, has_value(|b: bool| update(b)))
+        .on_action(Action::OK, has_value(|b: bool| view(b.to_string())))
         .confirm()
 }
 

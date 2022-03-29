@@ -128,6 +128,7 @@ impl Component {
                     }),
                 )
                 .unwrap(),
+            Widget::Text(text) => format!("<span>{text}</span>"),
         }
     }
 
