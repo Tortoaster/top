@@ -1,5 +1,6 @@
 use crate::component::{Component, ComponentCreator};
 
+pub mod convert;
 pub mod generic;
 pub mod primitive;
 

@@ -5,24 +5,24 @@ use crate::component::{Component, ComponentCreator, Id, Widget};
 use crate::editor::{Editor, EditorError, Report};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ParseEditor<T> {
+pub struct FromStrEditor<T> {
     id: Id,
     value: Report<T>,
 }
 
-impl<T> ParseEditor<T>
+impl<T> FromStrEditor<T>
 where
     T: FromStr,
 {
     pub fn new() -> Self {
-        ParseEditor {
+        FromStrEditor {
             id: Id::INVALID,
             value: "".parse().map_err(|_| EditorError::Invalid),
         }
     }
 }
 
-impl<T> Editor for ParseEditor<T>
+impl<T> Editor for FromStrEditor<T>
 where
     T: Clone + FromStr,
 {
@@ -72,11 +72,11 @@ where
     }
 }
 
-impl<T> Default for ParseEditor<T>
+impl<T> Default for FromStrEditor<T>
 where
     T: FromStr,
 {
     fn default() -> Self {
-        ParseEditor::new()
+        FromStrEditor::new()
     }
 }

@@ -3,11 +3,12 @@ use log::info;
 
 use top::component::event::{Event, Feedback};
 use top::component::{Component, ComponentCreator, Widget};
-use top::editor::from::ParseEditor;
+use top::editor::convert::FromStrEditor;
 use top::editor::{Editor, Report};
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::task::inspect::view;
+use top::task::inspect::{view, view_with};
+use top::viewer::convert::DisplayViewer;
 
 #[derive(Clone, Debug, Default, Edit)]
 pub struct Person {
@@ -19,9 +20,9 @@ pub struct Person {
 }
 
 async fn name() -> impl Task {
-    enter_with(ParseEditor::new())
+    enter_with(FromStrEditor::new())
         .steps()
-        .on_action(Action::OK, has_value(|b: bool| view(b.to_string())))
+        .on_action(Action::OK, has_value(view_with::<bool, DisplayViewer<_>>))
         .confirm()
 }
 
