@@ -40,7 +40,7 @@ impl Editor for TextEditor {
         component
     }
 
-    fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } if id == self.id => {
                 self.value = value;
@@ -71,7 +71,7 @@ where
     N: Default,
 {
     pub fn new() -> Self {
-        Self {
+        IntegerEditor {
             id: Id::default(),
             value: Ok(N::default()),
         }
@@ -101,7 +101,7 @@ where
         component
     }
 
-    fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -144,7 +144,7 @@ where
     N: Default,
 {
     pub fn new() -> Self {
-        Self {
+        FloatEditor {
             id: Id::default(),
             value: Ok(N::default()),
         }
@@ -174,7 +174,7 @@ where
         component
     }
 
-    fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -214,7 +214,7 @@ pub struct BooleanEditor {
 
 impl BooleanEditor {
     pub fn new() -> Self {
-        Self {
+        BooleanEditor {
             id: Id::default(),
             value: Ok(false),
         }
@@ -237,7 +237,7 @@ impl Editor for BooleanEditor {
         component
     }
 
-    fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -277,9 +277,9 @@ pub struct CharEditor {
 
 impl CharEditor {
     pub fn new() -> Self {
-        Self {
+        CharEditor {
             id: Id::default(),
-            value: Err(EditorError::Empty),
+            value: Err(EditorError::Invalid),
         }
     }
 }
@@ -305,7 +305,7 @@ impl Editor for CharEditor {
         component
     }
 
-    fn on_event(&mut self, event: Event, _: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -332,6 +332,6 @@ impl Editor for CharEditor {
     }
 
     fn write(&mut self, value: Self::Input) {
-        self.value = Ok(value)
+        self.value = Ok(value);
     }
 }

@@ -10,18 +10,19 @@ use crate::task::{Context, Error, Task};
 /// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`update`] to
 /// construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Interact<T, E> {
-    initial_value: Option<T>,
+pub struct Interact<I, E> {
+    initial_value: Option<I>,
     editor: E,
 }
 
 #[async_trait]
-impl<T, E> Task for Interact<T, E>
+impl<I, O, E> Task for Interact<I, E>
 where
-    T: Send + Sync,
-    E: Editor<Input = T, Output = T> + Send,
+    I: Send,
+    O: Send + Sync,
+    E: Editor<Input = I, Output = O> + Send,
 {
-    type Value = T;
+    type Value = O;
 
     async fn start<H: FeedbackHandler + Send>(
         &mut self,
@@ -65,37 +66,37 @@ where
 
 /// Have the user enter a value. To use a custom editor, see [`enter_with`].
 #[inline]
-pub fn enter<T>() -> Interact<T, T::Editor>
+pub fn enter<I>() -> Interact<I, I::Editor>
 where
-    T: Default + Edit,
+    I: Default + Edit,
 {
-    enter_with(T::default_editor())
+    enter_with(I::default_editor())
 }
 
 /// Have the user enter a value, through a custom editor.
 #[inline]
-pub fn enter_with<T, E>(editor: E) -> Interact<T, E>
+pub fn enter_with<I, E>(editor: E) -> Interact<I, E>
 where
-    T: Default,
-    E: Editor<Output = T>,
+    I: Default,
+    E: Editor<Input = I>,
 {
-    update_with(T::default(), editor)
+    update_with(I::default(), editor)
 }
 
 /// Have the user update a value. To use a custom editor, see [`update_with`].
 #[inline]
-pub fn update<T>(value: T) -> Interact<T, T::Editor>
+pub fn update<I>(value: I) -> Interact<I, I::Editor>
 where
-    T: Edit,
+    I: Edit,
 {
-    update_with(value, T::default_editor())
+    update_with(value, I::default_editor())
 }
 
 /// Have the user update a value, through a custom editor.
 #[inline]
-pub fn update_with<T, E>(value: T, editor: E) -> Interact<T, E>
+pub fn update_with<I, E>(value: I, editor: E) -> Interact<I, E>
 where
-    E: Editor<Output = T>,
+    E: Editor<Input = I>,
 {
     Interact {
         initial_value: Some(value),

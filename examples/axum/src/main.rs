@@ -3,6 +3,7 @@ use log::info;
 
 use top::component::event::{Event, Feedback};
 use top::component::{Component, ComponentCreator, Widget};
+use top::editor::from::ParseEditor;
 use top::editor::{Editor, Report};
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
@@ -16,10 +17,10 @@ pub struct Person {
     quotes: Vec<String>,
 }
 
-async fn name() -> impl Task {
-    enter::<Person>()
+async fn name() -> impl Task<Value = bool> {
+    enter_with(ParseEditor::new())
         .steps()
-        .on_action(Action::OK, has_value(|person: Person| update(person)))
+        .on_action(Action::OK, has_value(|b: bool| update(b)))
         .confirm()
 }
 

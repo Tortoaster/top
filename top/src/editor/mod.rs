@@ -6,6 +6,7 @@ use crate::component::event::{Event, Feedback};
 use crate::component::{Component, ComponentCreator};
 
 pub mod container;
+pub mod from;
 pub mod generic;
 pub mod primitive;
 pub mod tuple;
@@ -48,6 +49,6 @@ pub enum EditorError {
     ParseBool(#[from] std::str::ParseBoolError),
     #[error("failed to parse character")]
     ParseChar(#[from] std::char::ParseCharError),
-    #[error("no value")]
-    Empty,
+    #[error("something is wrong with the value")]
+    Invalid,
 }
