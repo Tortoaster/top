@@ -39,6 +39,8 @@ pub type Report<T> = Result<T, EditorError>;
 pub enum EditorError {
     #[error("failed to parse integer")]
     ParseInt(#[from] std::num::ParseIntError),
+    #[error("failed to parse float")]
+    ParseFloat(#[from] std::num::ParseFloatError),
     #[error("failed to parse boolean")]
     ParseBool(#[from] std::str::ParseBoolError),
 }

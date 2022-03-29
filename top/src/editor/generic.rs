@@ -1,7 +1,7 @@
 pub use top_derive::Edit;
 
 use crate::editor::container::{OptionEditor, VecEditor};
-use crate::editor::primitive::{BooleanEditor, NumberEditor, TextEditor};
+use crate::editor::primitive::{BooleanEditor, FloatEditor, IntegerEditor, TextEditor};
 use crate::editor::tuple::*;
 use crate::editor::Editor;
 
@@ -26,10 +26,10 @@ macro_rules! impl_default_editor_for_integer {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Editor = NumberEditor<$ty>;
+                type Editor = IntegerEditor<$ty>;
 
                 fn default_editor() -> Self::Editor {
-                    NumberEditor::new()
+                    IntegerEditor::new()
                 }
             }
         )*
@@ -37,6 +37,22 @@ macro_rules! impl_default_editor_for_integer {
 }
 
 impl_default_editor_for_integer!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+
+macro_rules! impl_default_editor_for_float {
+    ($($ty:ty),*) => {
+        $(
+            impl Edit for $ty {
+                type Editor = FloatEditor<$ty>;
+
+                fn default_editor() -> Self::Editor {
+                    FloatEditor::new()
+                }
+            }
+        )*
+    };
+}
+
+impl_default_editor_for_float!(f32, f64);
 
 impl Edit for bool {
     type Editor = BooleanEditor;
