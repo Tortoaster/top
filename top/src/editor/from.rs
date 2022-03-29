@@ -71,3 +71,12 @@ where
         self.value = value.parse().map_err(|_| EditorError::Invalid);
     }
 }
+
+impl<T> Default for ParseEditor<T>
+where
+    T: FromStr,
+{
+    fn default() -> Self {
+        ParseEditor::new()
+    }
+}

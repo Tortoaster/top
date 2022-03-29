@@ -115,3 +115,9 @@ impl ComponentCreator {
         }
     }
 }
+
+impl Default for ComponentCreator {
+    fn default() -> Self {
+        ComponentCreator::new()
+    }
+}

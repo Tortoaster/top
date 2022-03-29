@@ -46,6 +46,12 @@ impl Service<Request<Body>> for TopService {
     }
 }
 
+impl Default for TopService {
+    fn default() -> Self {
+        TopService::new()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct TaskRouter {
     wrapper: MethodRouter<Body, Infallible>,
@@ -99,17 +105,15 @@ where
         task.start(&mut ctx).await.expect("task start failed");
 
         while let Some(result) = receiver.next().await {
-            if let Ok(message) = result {
-                if let Message::Text(text) = message {
-                    if let Ok(event) = serde_json::from_str(&text) {
-                        info!("received event: {:?}", event);
-                        task.on_event(event, &mut ctx)
-                            .await
-                            .expect("event handling failed");
-                    } else {
-                        // TODO: Send feedback
-                    }
-                };
+            if let Ok(Message::Text(text)) = result {
+                if let Ok(event) = serde_json::from_str(&text) {
+                    info!("received event: {:?}", event);
+                    task.on_event(event, &mut ctx)
+                        .await
+                        .expect("event handling failed");
+                } else {
+                    // TODO: Send feedback
+                }
             } else {
                 // TODO: Send feedback
             }

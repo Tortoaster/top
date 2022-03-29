@@ -59,6 +59,12 @@ impl Editor for TextEditor {
     }
 }
 
+impl Default for TextEditor {
+    fn default() -> Self {
+        TextEditor::new()
+    }
+}
+
 /// Basic editor for integers.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntegerEditor<N> {
@@ -129,6 +135,15 @@ where
 
     fn write(&mut self, value: Self::Input) {
         self.value = Ok(value);
+    }
+}
+
+impl<N> Default for IntegerEditor<N>
+where
+    N: Default,
+{
+    fn default() -> Self {
+        IntegerEditor::new()
     }
 }
 
@@ -205,6 +220,15 @@ where
     }
 }
 
+impl<N> Default for FloatEditor<N>
+where
+    N: Default,
+{
+    fn default() -> Self {
+        FloatEditor::new()
+    }
+}
+
 /// Basic editor for booleans.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BooleanEditor {
@@ -265,6 +289,12 @@ impl Editor for BooleanEditor {
 
     fn write(&mut self, value: Self::Input) {
         self.value = Ok(value);
+    }
+}
+
+impl Default for BooleanEditor {
+    fn default() -> Self {
+        BooleanEditor::new()
     }
 }
 
@@ -333,5 +363,11 @@ impl Editor for CharEditor {
 
     fn write(&mut self, value: Self::Input) {
         self.value = Ok(value);
+    }
+}
+
+impl Default for CharEditor {
+    fn default() -> Self {
+        CharEditor::new()
     }
 }
