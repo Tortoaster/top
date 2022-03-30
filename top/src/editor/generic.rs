@@ -70,6 +70,14 @@ impl Edit for char {
     }
 }
 
+impl Edit for () {
+    type Editor = UnitEditor;
+
+    fn default_editor() -> Self::Editor {
+        UnitEditor
+    }
+}
+
 macro_rules! impl_edit_for_tuple {
     ($name:ident<$($editor:ident),*>) => {
         impl<$($editor),*> Edit for ($($editor,)*)
@@ -85,7 +93,6 @@ macro_rules! impl_edit_for_tuple {
     }
 }
 
-impl_edit_for_tuple!(UnitEditor);
 impl_edit_for_tuple!(MonupleEditor<A>);
 impl_edit_for_tuple!(CoupleEditor<A, B>);
 impl_edit_for_tuple!(TripleEditor<A, B, C>);

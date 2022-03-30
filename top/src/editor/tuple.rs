@@ -5,6 +5,31 @@ use crate::component::id::ComponentCreator;
 use crate::component::Widget;
 use crate::editor::{Component, Editor, Report};
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UnitEditor;
+
+impl Editor for UnitEditor {
+    type Input = ();
+    type Output = ();
+
+    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+        ctx.create(Widget::Group {
+            children: Vec::new(),
+            horizontal: false,
+        })
+    }
+
+    fn on_event(&mut self, _event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+        None
+    }
+
+    fn read(&self) -> Report<Self::Output> {
+        Ok(())
+    }
+
+    fn write(&mut self, _value: Self::Input) {}
+}
+
 macro_rules! tuple_editor {
     ($name:ident<$($editor:ident),*>) => {
         paste! {
@@ -44,7 +69,6 @@ macro_rules! tuple_editor {
             }
 
             paste! {
-                #[allow(unused_variables)]
                 fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
                     None
                         $(.or_else(|| self.[<$editor:snake>].on_event(event.clone(), ctx)))*
@@ -58,7 +82,6 @@ macro_rules! tuple_editor {
             }
 
             paste! {
-                #[allow(unused_variables)]
                 fn write(&mut self, value: Self::Input) {
                     $(self.[<$editor:snake>].write(value.${index()});)*
                 }
@@ -67,8 +90,6 @@ macro_rules! tuple_editor {
     }
 }
 
-// // Beautiful, don't touch
-tuple_editor!(UnitEditor);
 tuple_editor!(MonupleEditor<A>);
 tuple_editor!(CoupleEditor<A, B>);
 tuple_editor!(TripleEditor<A, B, C>);
