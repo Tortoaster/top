@@ -20,7 +20,7 @@ pub use crate::task::interact::{
 pub use crate::task::sequential::{
     has_value, if_value, Action, Continuation, Step, Steps, TaskStepExt,
 };
-pub use crate::task::{Context, Error, HandlerError, OptionExt, Task, TaskValue};
+pub use crate::task::{Context, Error, HandlerError, Task, TaskValue};
 
 pub use crate::viewer::convert::DisplayViewer;
 pub use crate::viewer::generic::View;
