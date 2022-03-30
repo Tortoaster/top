@@ -5,31 +5,6 @@ use crate::component::id::ComponentCreator;
 use crate::component::Widget;
 use crate::editor::{Component, Editor, Report};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UnitEditor;
-
-impl Editor for UnitEditor {
-    type Input = ();
-    type Output = ();
-
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
-        ctx.create(Widget::Group {
-            children: Vec::new(),
-            horizontal: false,
-        })
-    }
-
-    fn on_event(&mut self, _event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
-        None
-    }
-
-    fn read(&self) -> Report<Self::Output> {
-        Ok(())
-    }
-
-    fn write(&mut self, _value: Self::Input) {}
-}
-
 macro_rules! tuple_editor {
     ($name:ident<$($editor:ident),*>) => {
         paste! {
@@ -69,6 +44,7 @@ macro_rules! tuple_editor {
             }
 
             paste! {
+                #[allow(unused_variables)]
                 fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
                     None
                         $(.or_else(|| self.[<$editor:snake>].on_event(event.clone(), ctx)))*
@@ -82,8 +58,9 @@ macro_rules! tuple_editor {
             }
 
             paste! {
+                #[allow(unused_variables)]
                 fn write(&mut self, value: Self::Input) {
-                    ($(self.[<$editor:snake>].write(value.0),)*)
+                    $(self.[<$editor:snake>].write(value.${index()});)*
                 }
             }
         }
@@ -91,15 +68,16 @@ macro_rules! tuple_editor {
 }
 
 // // Beautiful, don't touch
-// tuple_editor!(MonupleEditor<A>);
-// tuple_editor!(CoupleEditor<A, B>);
-// tuple_editor!(TripleEditor<A, B, C>);
-// tuple_editor!(QuadrupleEditor<A, B, C, D>);
-// tuple_editor!(QuintupleEditor<A, B, C, D, E>);
-// tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
-// tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
-// tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
-// tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
-// tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
-// tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
-// tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
+tuple_editor!(UnitEditor);
+tuple_editor!(MonupleEditor<A>);
+tuple_editor!(CoupleEditor<A, B>);
+tuple_editor!(TripleEditor<A, B, C>);
+tuple_editor!(QuadrupleEditor<A, B, C, D>);
+tuple_editor!(QuintupleEditor<A, B, C, D, E>);
+tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
+tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
+tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
+tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
+tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
+tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
+tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);

@@ -70,14 +70,6 @@ impl Edit for char {
     }
 }
 
-impl Edit for () {
-    type Editor = UnitEditor;
-
-    fn default_editor() -> Self::Editor {
-        UnitEditor
-    }
-}
-
 macro_rules! impl_edit_for_tuple {
     ($name:ident<$($editor:ident),*>) => {
         impl<$($editor),*> Edit for ($($editor,)*)
@@ -93,18 +85,19 @@ macro_rules! impl_edit_for_tuple {
     }
 }
 
-// impl_edit_for_tuple!(MonupleEditor<A>);
-// impl_edit_for_tuple!(CoupleEditor<A, B>);
-// impl_edit_for_tuple!(TripleEditor<A, B, C>);
-// impl_edit_for_tuple!(QuadrupleEditor<A, B, C, D>);
-// impl_edit_for_tuple!(QuintupleEditor<A, B, C, D, E>);
-// impl_edit_for_tuple!(SextupleEditor<A, B, C, D, E, F>);
-// impl_edit_for_tuple!(SeptupleEditor<A, B, C, D, E, F, G>);
-// impl_edit_for_tuple!(OctupleEditor<A, B, C, D, E, F, G, H>);
-// impl_edit_for_tuple!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
-// impl_edit_for_tuple!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
-// impl_edit_for_tuple!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
-// impl_edit_for_tuple!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
+impl_edit_for_tuple!(UnitEditor);
+impl_edit_for_tuple!(MonupleEditor<A>);
+impl_edit_for_tuple!(CoupleEditor<A, B>);
+impl_edit_for_tuple!(TripleEditor<A, B, C>);
+impl_edit_for_tuple!(QuadrupleEditor<A, B, C, D>);
+impl_edit_for_tuple!(QuintupleEditor<A, B, C, D, E>);
+impl_edit_for_tuple!(SextupleEditor<A, B, C, D, E, F>);
+impl_edit_for_tuple!(SeptupleEditor<A, B, C, D, E, F, G>);
+impl_edit_for_tuple!(OctupleEditor<A, B, C, D, E, F, G, H>);
+impl_edit_for_tuple!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
+impl_edit_for_tuple!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
+impl_edit_for_tuple!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
+impl_edit_for_tuple!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
 
 impl<T> Edit for Vec<T>
 where

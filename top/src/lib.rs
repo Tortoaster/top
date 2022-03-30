@@ -1,3 +1,5 @@
+#![feature(macro_metavar_expr)]
+
 pub mod component;
 pub mod editor;
 pub mod integration;
