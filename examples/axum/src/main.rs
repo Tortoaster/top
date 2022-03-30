@@ -21,11 +21,11 @@ pub struct Person {
 }
 
 async fn name() -> impl Task {
-    choose_with::<DisplayViewer<_>>(vec!["1", "2", "3"])
+    choose_with::<DisplayViewer<_>>(vec![3, 5, 2])
         .steps()
         .on_action(
             Action::OK,
-            has_value(|choice: &str| view(choice.to_owned())),
+            has_value(|choice: u32| view_with::<DisplayViewer<_>>(choice)),
         )
         .confirm()
 }

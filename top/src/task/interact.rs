@@ -22,19 +22,19 @@ pub struct Interact<I, E> {
 #[inline]
 pub fn enter<I>() -> Interact<I, I::Editor>
 where
-    I: Default + Edit,
+    I: Edit + Default,
 {
     enter_with(I::default_editor())
 }
 
 /// Have the user enter a value, through a custom editor.
 #[inline]
-pub fn enter_with<I, E>(editor: E) -> Interact<I, E>
+pub fn enter_with<E>(editor: E) -> Interact<E::Input, E>
 where
-    I: Default,
-    E: Editor<Input = I>,
+    E: Editor,
+    E::Input: Default,
 {
-    update_with(I::default(), editor)
+    update_with(E::Input::default(), editor)
 }
 
 /// Have the user update a value. To use a custom editor, see [`update_with`].
@@ -48,9 +48,9 @@ where
 
 /// Have the user update a value, through a custom editor.
 #[inline]
-pub fn update_with<I, E>(value: I, editor: E) -> Interact<I, E>
+pub fn update_with<E>(value: E::Input, editor: E) -> Interact<E::Input, E>
 where
-    E: Editor<Input = I>,
+    E: Editor,
 {
     Interact {
         input: Some(value),
@@ -107,15 +107,11 @@ where
     }
 }
 
-pub fn choose<V, F>(options: Vec<F>) -> Interact<usize, ChoiceEditor<V>>
+pub fn choose<T>(options: Vec<T>) -> Interact<usize, ChoiceEditor<T::Viewer>>
 where
-    V: Viewer<Input = F>,
-    F: View<Viewer = V>,
+    T: View,
 {
-    Interact {
-        input: None,
-        editor: ChoiceEditor::new(options),
-    }
+    choose_with(options)
 }
 
 pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<usize, ChoiceEditor<V>>

@@ -27,9 +27,9 @@ where
 
 /// Show a value to the user, through a custom editor.
 #[inline]
-pub fn view_with<I, V>(value: I) -> Inspect<I, V>
+pub fn view_with<V>(value: V::Input) -> Inspect<V::Input, V>
 where
-    V: Viewer<Input = I>,
+    V: Viewer,
 {
     Inspect {
         viewer: Either::Left(value),
