@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use crate::component::event::{Event, Feedback};
-use crate::component::{Component, ComponentCreator, Id, Widget};
+use crate::component::id::{ComponentCreator, Id};
+use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError, Report};
 
 #[derive(Clone, Debug, Eq, PartialEq)]

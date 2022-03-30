@@ -1,7 +1,7 @@
 use crate::component::event::{Event, Feedback};
-use crate::component::{Component, ComponentCreator, Id, Widget};
+use crate::component::id::{ComponentCreator, Id};
+use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError, Report};
-use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -44,7 +44,7 @@ where
         component
     }
 
-    fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } if self.id == id => match value.parse() {
                 Ok(usize) => {

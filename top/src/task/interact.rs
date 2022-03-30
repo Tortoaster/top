@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 
 use crate::component::event::{Event, Feedback, FeedbackHandler};
-use crate::component::Id;
+use crate::component::id::Id;
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
-use crate::task::value::TaskValue;
-use crate::task::{Context, Error, Task};
+use crate::task::{Context, Error, Task, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 

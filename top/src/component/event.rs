@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::component::{Component, Id};
+use crate::component::id::Id;
+use crate::component::Component;
 use crate::task::{Error, HandlerError};
 
 #[async_trait]

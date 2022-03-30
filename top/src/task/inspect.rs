@@ -4,9 +4,8 @@ use async_trait::async_trait;
 use either::Either;
 
 use crate::component::event::{Event, Feedback, FeedbackHandler};
-use crate::component::Id;
-use crate::task::value::TaskValue;
-use crate::task::{Context, Error, Task};
+use crate::component::id::Id;
+use crate::task::{Context, Error, Task, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 

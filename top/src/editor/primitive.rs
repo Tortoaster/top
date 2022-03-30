@@ -5,7 +5,8 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
 use crate::component::event::{Event, Feedback};
-use crate::component::{ComponentCreator, Id, Widget};
+use crate::component::id::{ComponentCreator, Id};
+use crate::component::Widget;
 use crate::editor::{Component, Editor, EditorError, Report};
 
 /// Basic editor for strings.

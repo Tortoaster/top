@@ -1,7 +1,8 @@
 use paste::paste;
 
 use crate::component::event::{Event, Feedback};
-use crate::component::{ComponentCreator, Widget};
+use crate::component::id::ComponentCreator;
+use crate::component::Widget;
 use crate::editor::{Component, Editor, Report};
 
 #[derive(Clone, Debug, Eq, PartialEq)]

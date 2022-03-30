@@ -1,15 +1,8 @@
 use axum::Router;
 use log::info;
 
-use top::component::event::{Event, Feedback};
-use top::component::{Component, ComponentCreator, Widget};
-use top::editor::convert::FromStrEditor;
-use top::editor::{Editor, Report};
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::task::inspect::{view, view_with};
-use top::task::interact::{choose, choose_with};
-use top::viewer::convert::DisplayViewer;
 
 #[derive(Clone, Debug, Default, Edit)]
 pub struct Person {

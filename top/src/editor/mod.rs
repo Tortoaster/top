@@ -3,7 +3,8 @@
 use thiserror::Error;
 
 use crate::component::event::{Event, Feedback};
-use crate::component::{Component, ComponentCreator};
+use crate::component::id::ComponentCreator;
+use crate::component::Component;
 
 pub mod choice;
 pub mod container;

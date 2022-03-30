@@ -1,4 +1,5 @@
-use crate::component::{Component, ComponentCreator, Widget};
+use crate::component::id::ComponentCreator;
+use crate::component::{Component, Widget};
 use crate::viewer::Viewer;
 
 /// Basic viewer for strings.

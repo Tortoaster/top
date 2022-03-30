@@ -1,4 +1,5 @@
-use crate::component::{Component, ComponentCreator};
+use crate::component::id::ComponentCreator;
+use crate::component::Component;
 
 pub mod convert;
 pub mod generic;

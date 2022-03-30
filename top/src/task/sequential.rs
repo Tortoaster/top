@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use either::Either;
 
 use crate::component::event::{Event, Feedback, FeedbackHandler};
-use crate::component::{Id, Widget};
-use crate::task::value::TaskValue;
-use crate::task::{Context, Error, Task};
+use crate::component::id::Id;
+use crate::component::Widget;
+use crate::task::{Context, Error, Task, TaskValue};
 
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
 /// construct the next task.
@@ -145,85 +145,75 @@ where
     }
 }
 
-/// Contains functionality that makes it easy to construct sequential tasks.
-pub mod dsl {
-    use either::Either;
-
-    use crate::prelude::Action;
-    use crate::task::combinator::step::{Continuation, Step};
-    use crate::task::value::TaskValue;
-    use crate::task::Task;
-
-    /// Adds the [`steps`] method to any task, allowing it to become a sequential task through the
-    /// [`Steps`] builder.
-    pub trait TaskStepExt: Task {
-        fn steps<T2>(self) -> Steps<Self, T2>
-        where
-            Self: Sized,
-        {
-            Steps {
-                current: self,
-                continuations: Vec::new(),
-            }
-        }
-    }
-
-    impl<T> TaskStepExt for T where T: Task {}
-
-    /// Builder for the step combinator.
-    pub struct Steps<T1: Task, T2> {
-        current: T1,
-        continuations: Vec<Continuation<T1::Value, T2>>,
-    }
-
-    impl<T1, T2> Steps<T1, T2>
+/// Adds the [`steps`] method to any task, allowing it to become a sequential task through the
+/// [`Steps`] builder.
+pub trait TaskStepExt: Task {
+    fn steps<T2>(self) -> Steps<Self, T2>
     where
-        T1: Task,
+        Self: Sized,
     {
-        /// Consume the current task value and use it to construct the next task as soon as `f`
-        /// returns [`Some`] task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
-        pub fn on_value(
-            mut self,
-            f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
-        ) -> Self {
-            self.continuations.push(Continuation::OnValue(Box::new(f)));
-            self
-        }
-
-        /// Adds a button to the user interface; consumes the current task value and uses it to
-        /// construct the next task when the button is pressed, but only if `f` returns [`Some`]
-        /// task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
-        pub fn on_action(
-            mut self,
-            action: Action,
-            f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
-        ) -> Self {
-            self.continuations
-                .push(Continuation::OnAction(action, Box::new(f)));
-            self
-        }
-
-        /// Turn this builder into a sequential task.
-        pub fn confirm(self) -> Step<T1, T2> {
-            Step {
-                current: Either::Left(self.current),
-                continuations: self.continuations,
-            }
+        Steps {
+            current: self,
+            continuations: Vec::new(),
         }
     }
+}
 
-    /// Utility function to turn a simple mapping function into the type of closure a
-    /// [`Continuation`] requires.
-    pub fn has_value<A, B>(f: impl Fn(A) -> B) -> impl Fn(TaskValue<A>) -> Option<B> {
-        move |value| value.into_option().map(|x| f(x))
+impl<T> TaskStepExt for T where T: Task {}
+
+/// Builder for the step combinator.
+pub struct Steps<T1: Task, T2> {
+    current: T1,
+    continuations: Vec<Continuation<T1::Value, T2>>,
+}
+
+impl<T1, T2> Steps<T1, T2>
+where
+    T1: Task,
+{
+    /// Consume the current task value and use it to construct the next task as soon as `f`
+    /// returns [`Some`] task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
+    pub fn on_value(
+        mut self,
+        f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
+    ) -> Self {
+        self.continuations.push(Continuation::OnValue(Box::new(f)));
+        self
     }
 
-    /// Utility function to turn a simple mapping function into the type of closure a
-    /// [`Continuation`] requires, but only if its value satisfies the predicate `f`.
-    pub fn if_value<A, B>(
-        f: impl Fn(&A) -> bool,
-        g: impl Fn(A) -> B,
-    ) -> impl Fn(TaskValue<A>) -> Option<B> {
-        move |value| value.into_option().and_then(|x| f(&x).then(|| g(x)))
+    /// Adds a button to the user interface; consumes the current task value and uses it to
+    /// construct the next task when the button is pressed, but only if `f` returns [`Some`]
+    /// task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
+    pub fn on_action(
+        mut self,
+        action: Action,
+        f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
+    ) -> Self {
+        self.continuations
+            .push(Continuation::OnAction(action, Box::new(f)));
+        self
     }
+
+    /// Turn this builder into a sequential task.
+    pub fn confirm(self) -> Step<T1, T2> {
+        Step {
+            current: Either::Left(self.current),
+            continuations: self.continuations,
+        }
+    }
+}
+
+/// Utility function to turn a simple mapping function into the type of closure a
+/// [`Continuation`] requires.
+pub fn has_value<A, B>(f: impl Fn(A) -> B) -> impl Fn(TaskValue<A>) -> Option<B> {
+    move |value| value.into_option().map(|x| f(x))
+}
+
+/// Utility function to turn a simple mapping function into the type of closure a
+/// [`Continuation`] requires, but only if its value satisfies the predicate `f`.
+pub fn if_value<A, B>(
+    f: impl Fn(&A) -> bool,
+    g: impl Fn(A) -> B,
+) -> impl Fn(TaskValue<A>) -> Option<B> {
+    move |value| value.into_option().and_then(|x| f(&x).then(|| g(x)))
 }
