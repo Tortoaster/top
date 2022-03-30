@@ -117,3 +117,13 @@ where
         editor: ChoiceEditor::new(options),
     }
 }
+
+pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<usize, ChoiceEditor<V>>
+where
+    V: Viewer,
+{
+    Interact {
+        input: None,
+        editor: ChoiceEditor::new(options),
+    }
+}

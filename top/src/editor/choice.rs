@@ -1,5 +1,3 @@
-use std::num::ParseIntError;
-
 use crate::component::event::{Event, Feedback};
 use crate::component::{Component, ComponentCreator, Id, Widget};
 use crate::editor::{Editor, EditorError, Report};
@@ -13,14 +11,11 @@ pub struct ChoiceEditor<V> {
     choice: Option<usize>,
 }
 
-impl<V, F> ChoiceEditor<V>
+impl<V> ChoiceEditor<V>
 where
-    V: Viewer<Input = F>,
+    V: Viewer,
 {
-    pub fn new(options: Vec<F>) -> Self
-    where
-        F: View<Viewer = V>,
-    {
+    pub fn new(options: Vec<V::Input>) -> Self {
         let options = options.into_iter().map(|option| V::start(option)).collect();
 
         ChoiceEditor {
@@ -33,7 +28,7 @@ where
 
 impl<V> Editor for ChoiceEditor<V>
 where
-    V: Viewer + Clone,
+    V: Viewer,
 {
     type Input = usize;
     type Output = V::Output;
