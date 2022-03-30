@@ -63,6 +63,10 @@ pub enum Widget {
         children: Vec<Component>,
         horizontal: bool,
     },
+    RadioGroup {
+        options: Vec<Component>,
+    },
+
     Text(String),
 }
 

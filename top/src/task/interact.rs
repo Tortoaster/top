@@ -2,10 +2,13 @@ use async_trait::async_trait;
 
 use crate::component::event::{Event, Feedback, FeedbackHandler};
 use crate::component::Id;
+use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::task::value::TaskValue;
 use crate::task::{Context, Error, Task};
+use crate::viewer::generic::View;
+use crate::viewer::Viewer;
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`update`] to
 /// construct one.
@@ -101,5 +104,16 @@ where
             Ok(value) => TaskValue::Stable(value),
             Err(_) => TaskValue::Empty,
         }
+    }
+}
+
+pub fn choose<V, F>(options: Vec<F>) -> Interact<usize, ChoiceEditor<V>>
+where
+    V: Viewer<Input = F>,
+    F: View<Viewer = V>,
+{
+    Interact {
+        input: None,
+        editor: ChoiceEditor::new(options),
     }
 }

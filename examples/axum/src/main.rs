@@ -8,6 +8,7 @@ use top::editor::{Editor, Report};
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
 use top::task::inspect::{view, view_with};
+use top::task::interact::choose;
 use top::viewer::convert::DisplayViewer;
 
 #[derive(Clone, Debug, Default, Edit)]
@@ -20,10 +21,14 @@ pub struct Person {
 }
 
 async fn name() -> impl Task {
-    enter_with(FromStrEditor::new())
-        .steps()
-        .on_action(Action::OK, has_value(view_with::<bool, DisplayViewer<_>>))
-        .confirm()
+    choose(vec![
+        "This one".to_owned(),
+        "That one".to_owned(),
+        ":)".to_owned(),
+    ])
+    .steps()
+    .on_action(Action::OK, has_value(|choice: String| view(choice)))
+    .confirm()
 }
 
 const HOST: &str = "0.0.0.0:3000";

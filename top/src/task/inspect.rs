@@ -75,7 +75,7 @@ where
     ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
         match &self.viewer {
             Either::Left(_) => Ok(TaskValue::Empty),
-            Either::Right(viewer) => Ok(TaskValue::Unstable(viewer.read())),
+            Either::Right(viewer) => Ok(TaskValue::Stable(viewer.read())),
         }
     }
 

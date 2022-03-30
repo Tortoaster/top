@@ -7,11 +7,12 @@ use crate::component::{Component, Widget};
 
 const INDEX: &str = "index";
 
-const GROUP: &str = "group";
 const INPUT: &str = "input";
 const CHECKBOX: &str = "checkbox";
 const BUTTON: &str = "button";
 const ICON_BUTTON: &str = "icon_button";
+const GROUP: &str = "group";
+const RADIO_GROUP: &str = "radio_group";
 
 const PLUS: &str = "plus";
 const MINUS: &str = "minus";
@@ -26,11 +27,12 @@ lazy_static! {
         // TODO: Improve paths
         reg.register_template_file(INDEX, "../../web/dist/index.hbs").unwrap();
 
-        reg.register_template_file(GROUP, "../../web/dist/component/group.hbs").unwrap();
         reg.register_template_file(INPUT, "../../web/dist/component/input.hbs").unwrap();
         reg.register_template_file(CHECKBOX, "../../web/dist/component/checkbox.hbs").unwrap();
         reg.register_template_file(BUTTON, "../../web/dist/component/button.hbs").unwrap();
         reg.register_template_file(ICON_BUTTON, "../../web/dist/component/icon_button.hbs").unwrap();
+        reg.register_template_file(GROUP, "../../web/dist/component/group.hbs").unwrap();
+        reg.register_template_file(RADIO_GROUP, "../../web/dist/component/radio_group.hbs").unwrap();
 
         reg.register_template_file(PLUS, "../../web/dist/icon/plus.hbs").unwrap();
         reg.register_template_file(MINUS, "../../web/dist/icon/minus.hbs").unwrap();
@@ -128,6 +130,16 @@ impl Component {
                     }),
                 )
                 .unwrap(),
+            Widget::RadioGroup { options } => REGISTRY
+                .render(
+                    RADIO_GROUP,
+                    &json!({
+                        "id": self.id(),
+                        "options": options.iter().map(|option| option.html()).collect::<Vec<_>>()
+                    }),
+                )
+                .unwrap(),
+
             Widget::Text(text) => format!("<span>{text}</span>"),
         }
     }
