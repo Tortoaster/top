@@ -1,12 +1,8 @@
 use axum::Router;
 use log::info;
 
-use top::component::{Component, Widget};
-use top::editor::generic::Edit;
-use top::editor::{Editor, Report};
-use top::event::{Event, Feedback};
-use top::id::Generator;
 use top::integration::axum::{task, TopService};
+use top::prelude::derive::*;
 use top::prelude::*;
 
 #[derive(Default, Edit)]
