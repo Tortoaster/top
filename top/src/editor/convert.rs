@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::str::FromStr;
 
 use crate::component::{Component, Widget};
@@ -25,14 +26,18 @@ where
 
 impl<T> Editor for FromStrEditor<T>
 where
-    T: Clone + FromStr,
+    T: Clone + Display + FromStr,
 {
-    type Input = String;
+    type Input = T;
     type Output = T;
 
     fn component(&mut self, gen: &mut Generator) -> Component {
         let widget = Widget::TextField {
-            value: String::new(),
+            value: self
+                .value
+                .as_ref()
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
             label: None,
             disabled: false,
         };
@@ -69,7 +74,7 @@ where
     }
 
     fn write(&mut self, value: Self::Input) {
-        self.value = value.parse().map_err(|_| EditorError::Invalid);
+        self.value = Ok(value);
     }
 }
 

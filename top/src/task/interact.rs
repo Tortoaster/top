@@ -21,7 +21,7 @@ pub struct Interact<I, E> {
 #[inline]
 pub fn enter<I>() -> Interact<I, I::Editor>
 where
-    I: Edit + Default,
+    I: Edit,
 {
     enter_with(I::default_editor())
 }
@@ -31,9 +31,11 @@ where
 pub fn enter_with<E>(editor: E) -> Interact<E::Input, E>
 where
     E: Editor,
-    E::Input: Default,
 {
-    edit_with(E::Input::default(), editor)
+    Interact {
+        input: None,
+        editor,
+    }
 }
 
 /// Have the user update a value. To use a custom editor, see [`edit_with`].

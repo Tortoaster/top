@@ -26,7 +26,7 @@ impl FromStr for Id {
     type Err = <u32 as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let id: u32 = s[4..].parse()?;
+        let id: u32 = s[4.min(s.len())..].parse()?;
         Ok(Id(id))
     }
 }
