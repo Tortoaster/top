@@ -1,9 +1,9 @@
 use paste::paste;
 
-use crate::component::event::{Event, Feedback};
-use crate::component::id::ComponentCreator;
 use crate::component::Widget;
 use crate::editor::{Component, Editor, Report};
+use crate::event::{Event, Feedback};
+use crate::id::Generator;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
@@ -12,14 +12,17 @@ impl Editor for UnitEditor {
     type Input = ();
     type Output = ();
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
-        ctx.create(Widget::Group {
-            children: Vec::new(),
-            horizontal: false,
-        })
+    fn component(&mut self, gen: &mut Generator) -> Component {
+        Component::new(
+            gen.next(),
+            Widget::Group {
+                children: Vec::new(),
+                horizontal: false,
+            },
+        )
     }
 
-    fn on_event(&mut self, _event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, _event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         None
     }
 
@@ -60,18 +63,18 @@ macro_rules! tuple_editor {
             type Output = ($($editor::Output,)*);
 
             paste! {
-                fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+                fn component(&mut self, gen: &mut Generator) -> Component {
                     let children = vec![
-                        $(self.[<$editor:snake>].component(ctx)),*
+                        $(self.[<$editor:snake>].component(gen)),*
                     ];
-                    ctx.create(Widget::Group { children, horizontal: false })
+                    Component::new(gen.next(), Widget::Group { children, horizontal: false })
                 }
             }
 
             paste! {
-                fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
+                fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
                     None
-                        $(.or_else(|| self.[<$editor:snake>].on_event(event.clone(), ctx)))*
+                        $(.or_else(|| self.[<$editor:snake>].on_event(event.clone(), gen)))*
                 }
             }
 

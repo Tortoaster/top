@@ -2,9 +2,9 @@
 
 use thiserror::Error;
 
-use crate::component::event::{Event, Feedback};
-use crate::component::id::ComponentCreator;
 use crate::component::Component;
+use crate::event::{Event, Feedback};
+use crate::id::Generator;
 
 pub mod choice;
 pub mod container;
@@ -23,11 +23,11 @@ pub trait Editor {
     type Output;
 
     /// Create the initial user interface for this editor.
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component;
+    fn component(&mut self, ctx: &mut Generator) -> Component;
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback>;
+    fn on_event(&mut self, event: Event, ctx: &mut Generator) -> Option<Feedback>;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.

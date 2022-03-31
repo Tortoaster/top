@@ -1,5 +1,3 @@
-pub use top_derive::Edit;
-
 use crate::editor::container::{OptionEditor, VecEditor};
 use crate::editor::primitive::{BooleanEditor, CharEditor, FloatEditor, IntegerEditor, TextEditor};
 use crate::editor::tuple::*;

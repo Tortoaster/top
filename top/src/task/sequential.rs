@@ -3,9 +3,9 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use either::Either;
 
-use crate::component::event::{Event, Feedback, FeedbackHandler};
-use crate::component::id::Id;
-use crate::component::Widget;
+use crate::component::{Component, Widget};
+use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
@@ -73,7 +73,7 @@ where
                             text: action.0.to_owned(),
                             disabled: false,
                         };
-                        let button = ctx.components.create(widget);
+                        let button = Component::new(ctx.gen.next(), widget);
                         // TODO: Type-safe way?
                         action.1 = Some(button.id());
                         let feedback = Feedback::Append {

@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 
-use crate::component::event::{Event, Feedback, FeedbackHandler};
-use crate::component::id::Id;
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
+use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
@@ -73,7 +73,7 @@ where
         if let Some(value) = self.input.take() {
             self.editor.write(value);
         }
-        let component = self.editor.component(&mut ctx.components);
+        let component = self.editor.component(&mut ctx.gen);
 
         let initial = Feedback::Replace {
             id: Id::ROOT,
@@ -88,7 +88,7 @@ where
     where
         H: FeedbackHandler + Send,
     {
-        if let Some(feedback) = self.editor.on_event(event, &mut ctx.components) {
+        if let Some(feedback) = self.editor.on_event(event, &mut ctx.gen) {
             ctx.feedback.send(feedback).await?;
         }
         match self.editor.read() {

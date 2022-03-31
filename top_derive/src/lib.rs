@@ -37,6 +37,8 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
         .iter()
         .map(|field| (&field.ident, &field.ty))
         .unzip();
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
     let editor_struct = quote! {
         #[derive(Clone, Debug, Eq, PartialEq)]
         pub struct #editor_ident {
@@ -44,22 +46,21 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
         }
     };
 
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let editor_impl = quote! {
         impl #impl_generics Editor for #editor_ident #ty_generics #where_clause {
             type Input = #ident;
             type Output = #ident;
 
-            fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+            fn component(&mut self, gen: &mut Generator) -> Component {
                 let children = vec![
-                    #(self.#field_idents.component(ctx)),*
+                    #(self.#field_idents.component(gen)),*
                 ];
 
-                ctx.create(Widget::Group { children, horizontal: false })
+                Component::new(gen.next(), Widget::Group { children, horizontal: false })
             }
 
-            fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
-                #(if let Some(feedback) = self.#field_idents.on_event(event.clone(), ctx) { return Some(feedback) })*
+            fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
+                #(if let Some(feedback) = self.#field_idents.on_event(event.clone(), gen) { return Some(feedback) })*
 
                 None
             }
@@ -121,16 +122,16 @@ fn impl_edit_unnamed_struct(
             type Input = #ident;
             type Output = #ident;
 
-            fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+            fn component(&mut self, gen: &mut Generator) -> Component {
                 let children = vec![
-                    #(self.#field_indices.component(ctx)),*
+                    #(self.#field_indices.component(gen)),*
                 ];
 
-                ctx.create(Widget::Group { children, horizontal: false })
+                Component::new(gen.next(), Widget::Group { children, horizontal: false })
             }
 
-            fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
-                #(if let Some(feedback) = self.#field_indices.on_event(event.clone(), ctx) { return Some(feedback) })*
+            fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
+                #(if let Some(feedback) = self.#field_indices.on_event(event.clone(), gen) { return Some(feedback) })*
 
                 None
             }
@@ -166,25 +167,26 @@ fn impl_edit_unnamed_struct(
 
 fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
     let editor_ident = format_ident!("{ident}Editor");
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
     let editor_struct = quote! {
         #[derive(Clone, Debug, Eq, PartialEq)]
         pub struct #editor_ident;
     };
 
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let editor_impl = quote! {
         impl #impl_generics Editor for #editor_ident #ty_generics #where_clause {
             type Input = #ident;
             type Output = #ident;
 
-            fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
-                ctx.create(Widget::Group {
+            fn component(&mut self, gen: &mut Generator) -> Component {
+                Component::new(gen.next(), Widget::Group {
                     children: Vec::new(),
                     horizontal: false,
                 })
             }
 
-            fn on_event(&mut self, event: Event, ctx: &mut ComponentCreator) -> Option<Feedback> {
+            fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
                 None
             }
 

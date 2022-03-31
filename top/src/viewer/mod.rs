@@ -1,5 +1,5 @@
-use crate::component::id::ComponentCreator;
 use crate::component::Component;
+use crate::id::Generator;
 
 pub mod convert;
 pub mod generic;
@@ -15,7 +15,7 @@ pub trait Viewer {
     fn start(value: Self::Input) -> Self;
 
     /// Create the user interface for this viewer.
-    fn component(&self, ctx: &mut ComponentCreator) -> Component;
+    fn component(&self, ctx: &mut Generator) -> Component;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this viewer.

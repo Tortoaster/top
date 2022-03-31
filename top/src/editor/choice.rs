@@ -1,7 +1,7 @@
-use crate::component::event::{Event, Feedback};
-use crate::component::id::{ComponentCreator, Id};
 use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError, Report};
+use crate::event::{Event, Feedback};
+use crate::id::{Generator, Id};
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,18 +33,18 @@ where
     type Input = usize;
     type Output = V::Output;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         let options = self
             .options
             .iter()
-            .map(|option| option.component(ctx))
+            .map(|option| option.component(gen))
             .collect();
-        let component = ctx.create(Widget::RadioGroup { options });
+        let component = Component::new(gen.next(), Widget::RadioGroup { options });
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } if self.id == id => match value.parse() {
                 Ok(usize) => {

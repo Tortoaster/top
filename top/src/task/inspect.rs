@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use either::Either;
 
-use crate::component::event::{Event, Feedback, FeedbackHandler};
-use crate::component::id::Id;
+use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
@@ -52,11 +52,7 @@ where
             self.viewer = Either::Right(V::start(input.clone()))
         };
 
-        let component = self
-            .viewer
-            .as_ref()
-            .unwrap_right()
-            .component(&mut ctx.components);
+        let component = self.viewer.as_ref().unwrap_right().component(&mut ctx.gen);
 
         let initial = Feedback::Replace {
             id: Id::ROOT,

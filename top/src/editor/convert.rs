@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
-use crate::component::event::{Event, Feedback};
-use crate::component::id::{ComponentCreator, Id};
 use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError, Report};
+use crate::event::{Event, Feedback};
+use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FromStrEditor<T> {
@@ -30,19 +30,19 @@ where
     type Input = String;
     type Output = T;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         let widget = Widget::TextField {
             value: String::new(),
             label: None,
             disabled: false,
         };
-        let component = ctx.create(widget);
+        let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {

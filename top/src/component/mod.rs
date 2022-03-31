@@ -5,12 +5,10 @@ use std::fmt::{Display, Formatter};
 use serde_with::SerializeDisplay;
 
 use crate::component::icon::Icon;
-use crate::component::id::Id;
+use crate::id::Id;
 
-pub mod event;
 mod html;
 pub mod icon;
-pub mod id;
 
 /// Assigns a unique identifier to a [`Widget`], allowing the library to synchronize their values
 /// with the server.
@@ -21,6 +19,10 @@ pub struct Component {
 }
 
 impl Component {
+    pub fn new(id: Id, widget: Widget) -> Self {
+        Component { id, widget }
+    }
+
     /// Retrieve this component's unique identifier.
     pub fn id(&self) -> Id {
         self.id

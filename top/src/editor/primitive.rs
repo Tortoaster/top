@@ -4,10 +4,10 @@ use std::fmt::Display;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
-use crate::component::event::{Event, Feedback};
-use crate::component::id::{ComponentCreator, Id};
 use crate::component::Widget;
 use crate::editor::{Component, Editor, EditorError, Report};
+use crate::event::{Event, Feedback};
+use crate::id::{Generator, Id};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,19 +29,19 @@ impl Editor for TextEditor {
     type Input = String;
     type Output = String;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         let widget = Widget::TextField {
             value: self.value.clone(),
             label: None,
             disabled: false,
         };
-        let component = ctx.create(widget);
+        let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } if id == self.id => {
                 self.value = value;
@@ -92,7 +92,7 @@ where
     type Input = N;
     type Output = N;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         let widget = Widget::NumberField {
             value: self
                 .value
@@ -102,13 +102,13 @@ where
             label: None,
             disabled: false,
         };
-        let component = ctx.create(widget);
+        let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -174,7 +174,7 @@ where
     type Input = N;
     type Output = N;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         let widget = Widget::NumberField {
             value: self
                 .value
@@ -184,13 +184,13 @@ where
             label: None,
             disabled: false,
         };
-        let component = ctx.create(widget);
+        let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -250,19 +250,19 @@ impl Editor for BooleanEditor {
     type Input = bool;
     type Output = bool;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         let widget = Widget::Checkbox {
             checked: *self.value.as_ref().unwrap_or(&false),
             label: None,
             disabled: false,
         };
-        let component = ctx.create(widget);
+        let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -319,7 +319,7 @@ impl Editor for CharEditor {
     type Input = char;
     type Output = char;
 
-    fn component(&mut self, ctx: &mut ComponentCreator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         // TODO: Limit length to 1
         let widget = Widget::TextField {
             value: self
@@ -330,13 +330,13 @@ impl Editor for CharEditor {
             label: None,
             disabled: false,
         };
-        let component = ctx.create(widget);
+        let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut ComponentCreator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {

@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::component::event::{Event, FeedbackError, FeedbackHandler};
-use crate::component::id::ComponentCreator;
+use crate::event::{Event, FeedbackError, FeedbackHandler};
+use crate::id::Generator;
 
 pub mod inspect;
 pub mod interact;
@@ -28,7 +28,7 @@ pub trait Task: Send {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Context<E> {
     feedback: E,
-    components: ComponentCreator,
+    gen: Generator,
 }
 
 impl<E> Context<E>
@@ -38,7 +38,7 @@ where
     pub fn new(handler: E) -> Self {
         Context {
             feedback: handler,
-            components: ComponentCreator::new(),
+            gen: Generator::new(),
         }
     }
 }

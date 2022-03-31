@@ -3,8 +3,6 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::component::{Component, Widget};
-
 // TODO: Allow identifying containing form, and disable any buttons while syncing or invalid
 /// Unique component identifier.
 #[derive(
@@ -35,28 +33,21 @@ impl FromStr for Id {
 
 /// A creator used to generate components with unique identifiers.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct ComponentCreator {
-    current_id: Id,
-}
+pub struct Generator(Id);
 
-impl ComponentCreator {
-    /// Construct a new context for generating components with unique identifiers.
+impl Generator {
     pub fn new() -> Self {
-        ComponentCreator { current_id: Id(0) }
+        Generator(Id(0))
     }
 
-    /// Generate a new, uniquely-identifiable component.
-    pub fn create(&mut self, widget: Widget) -> Component {
-        self.current_id = Id(self.current_id.0 + 1);
-        Component {
-            id: self.current_id,
-            widget,
-        }
+    pub fn next(&mut self) -> Id {
+        self.0 = Id(self.0 .0 + 1);
+        self.0
     }
 }
 
-impl Default for ComponentCreator {
+impl Default for Generator {
     fn default() -> Self {
-        ComponentCreator::new()
+        Generator::new()
     }
 }

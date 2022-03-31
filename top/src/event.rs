@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::component::id::Id;
 use crate::component::Component;
+use crate::id::Id;
 
 /// Interaction event from the user, such as checking a checkbox or pressing a button.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize)]

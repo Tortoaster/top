@@ -1,10 +1,15 @@
 use axum::Router;
 use log::info;
 
+use top::component::{Component, Widget};
+use top::editor::generic::Edit;
+use top::editor::{Editor, Report};
+use top::event::{Event, Feedback};
+use top::id::Generator;
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
-#[derive(Clone, Debug, Default, Edit)]
+#[derive(Default, Edit)]
 pub struct Person {
     name: String,
     title: Option<String>,
@@ -12,6 +17,12 @@ pub struct Person {
     cool: bool,
     quotes: Vec<String>,
 }
+
+#[derive(Default, Edit)]
+pub struct PersonTuple(String, Option<String>, u8, bool, Vec<String>);
+
+#[derive(Default, Edit)]
+pub struct PersonUnit;
 
 async fn name() -> impl Task {
     choose_with::<DisplayViewer<_>>(vec![3, 5, 2])
