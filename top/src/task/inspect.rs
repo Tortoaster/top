@@ -5,7 +5,7 @@ use either::Either;
 
 use crate::component::event::{Event, Feedback, FeedbackHandler};
 use crate::component::id::Id;
-use crate::task::{Context, Error, Task, TaskValue};
+use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
@@ -36,18 +36,18 @@ where
 }
 
 #[async_trait]
-impl<I, O, V> Task for Inspect<I, V>
+impl<V> Task for Inspect<V::Input, V>
 where
-    I: Clone + Debug + Send,
-    O: Send + Sync,
-    V: Viewer<Input = I, Output = O> + Send,
+    V: Viewer + Send,
+    V::Input: Clone + Debug + Send,
+    V::Output: Send + Sync,
 {
-    type Value = O;
+    type Value = V::Output;
 
-    async fn start<H: FeedbackHandler + Send>(
-        &mut self,
-        ctx: &mut Context<H>,
-    ) -> Result<(), Error<H::Error>> {
+    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
+    where
+        H: FeedbackHandler + Send,
+    {
         if let Either::Left(input) = &self.viewer {
             self.viewer = Either::Right(V::start(input.clone()))
         };
@@ -67,21 +67,13 @@ where
         Ok(())
     }
 
-    async fn on_event<H: FeedbackHandler + Send>(
-        &mut self,
-        _event: Event,
-        _ctx: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
+    async fn on_event<H>(&mut self, _event: Event, _ctx: &mut Context<H>) -> TaskResult<Self::Value>
+    where
+        H: FeedbackHandler + Send,
+    {
         match &self.viewer {
             Either::Left(_) => Ok(TaskValue::Empty),
             Either::Right(viewer) => Ok(TaskValue::Stable(viewer.read())),
-        }
-    }
-
-    async fn finish(self) -> TaskValue<Self::Value> {
-        match self.viewer {
-            Either::Left(_) => TaskValue::Empty,
-            Either::Right(viewer) => TaskValue::Stable(viewer.read()),
         }
     }
 }

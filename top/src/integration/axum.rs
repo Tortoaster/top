@@ -9,15 +9,17 @@ use axum::extract::WebSocketUpgrade;
 use axum::http::{Request, StatusCode};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, MethodRouter};
-use futures::stream::SplitSink;
+use futures::stream::{SplitSink, SplitStream};
 use futures::{SinkExt, StreamExt};
-use log::info;
+use log::{error, trace, warn};
 use tower_http::services::ServeDir;
 use tower_service::Service;
 
-use crate::component::event::{Feedback, FeedbackHandler};
+use crate::component::event::{
+    Event, EventError, EventHandler, Feedback, FeedbackError, FeedbackHandler,
+};
 use crate::component::Component;
-use crate::task::{Context, Error, HandlerError, Task};
+use crate::task::{Context, Task};
 
 #[derive(Clone, Debug)]
 pub struct TopService(MethodRouter);
@@ -98,49 +100,59 @@ where
     T: Task + Send + 'static,
 {
     ws.on_upgrade(|socket| async move {
-        let (sender, mut receiver) = socket.split();
         let mut task = handler().await;
-        let mut ctx = Context::new(AxumFeedbackHandler::new(sender));
+        let (sender, mut receiver) = socket.split();
 
-        task.start(&mut ctx).await.expect("task start failed");
+        let mut ctx = Context::new(sender);
 
-        while let Some(result) = receiver.next().await {
-            if let Ok(Message::Text(text)) = result {
-                if let Ok(event) = serde_json::from_str(&text) {
-                    info!("received event: {:?}", event);
-                    task.on_event(event, &mut ctx)
-                        .await
-                        .expect("event handling failed");
-                } else {
-                    // TODO: Send feedback
+        if let Err(error) = task.start(&mut ctx).await {
+            error!("failed to start task: {error}")
+        }
+
+        while let Some(result) = receiver.receive().await {
+            match result {
+                Ok(event) => {
+                    if let Err(error) = task.on_event(event, &mut ctx).await {
+                        error!("failed to update task: {error}");
+                    }
                 }
-            } else {
-                // TODO: Send feedback
+                Err(error) => error!("failed to handle event: {error}"),
             }
         }
     })
 }
 
-pub struct AxumFeedbackHandler {
-    sender: SplitSink<WebSocket, Message>,
-}
-
-impl AxumFeedbackHandler {
-    pub fn new(sender: SplitSink<WebSocket, Message>) -> Self {
-        AxumFeedbackHandler { sender }
+#[async_trait]
+impl EventHandler for SplitStream<WebSocket> {
+    async fn receive(&mut self) -> Option<Result<Event, EventError>> {
+        match self.next().await {
+            None => None,
+            Some(result) => match result {
+                Ok(Message::Text(text)) => match serde_json::from_str(&text) {
+                    Ok(event) => {
+                        trace!("received event: {:?}", event);
+                        Some(Ok(event))
+                    }
+                    Err(error) => Some(Err(error.into())),
+                },
+                Ok(_) => {
+                    warn!("non-text message");
+                    self.receive().await
+                }
+                Err(_) => Some(Err(EventError::Receive)),
+            },
+        }
     }
 }
 
 #[async_trait]
-impl FeedbackHandler for AxumFeedbackHandler {
-    type Error = axum::Error;
-
-    async fn send(&mut self, feedback: Feedback) -> Result<(), Error<Self::Error>> {
+impl FeedbackHandler for SplitSink<WebSocket, Message> {
+    async fn send(&mut self, feedback: Feedback) -> Result<(), FeedbackError> {
         let serialized = serde_json::to_string(&feedback)?;
-        self.sender.send(Message::Text(serialized)).await?;
-        info!("sent feedback: {:?}", feedback);
+        SinkExt::send(&mut self, Message::Text(serialized))
+            .await
+            .map_err(|_| FeedbackError::Send)?;
+        trace!("sent feedback: {:?}", feedback);
         Ok(())
     }
 }
-
-impl HandlerError for axum::Error {}

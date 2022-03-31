@@ -1,42 +1,28 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::component::event::{Event, FeedbackHandler};
+use crate::component::event::{Event, FeedbackError, FeedbackHandler};
 use crate::component::id::ComponentCreator;
 
 pub mod inspect;
 pub mod interact;
 pub mod sequential;
 
+pub type TaskResult<T> = std::result::Result<TaskValue<T>, TaskError>;
+
+// TODO: Merge methods into one executor (requires keeping event queue)
 #[async_trait]
 pub trait Task: Send {
     type Value;
 
-    async fn start<H: FeedbackHandler + Send>(
-        &mut self,
-        executor: &mut Context<H>,
-    ) -> Result<(), Error<H::Error>>;
+    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
+    where
+        H: FeedbackHandler + Send;
 
-    async fn on_event<H: FeedbackHandler + Send>(
-        &mut self,
-        event: Event,
-        executor: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>>;
-
-    async fn finish(self) -> TaskValue<Self::Value>;
+    async fn on_event<H>(&mut self, event: Event, ctx: &mut Context<H>) -> TaskResult<Self::Value>
+    where
+        H: FeedbackHandler + Send;
 }
-
-#[derive(Debug, Error)]
-pub enum Error<H: HandlerError> {
-    #[error("event handler failure: {0}")]
-    Handler(#[from] H),
-    #[error("error during serialization")]
-    Serialize(#[from] serde_json::Error),
-    #[error("failed to parse integer")]
-    ParseInt(#[from] std::num::ParseIntError),
-}
-
-pub trait HandlerError {}
 
 /// A context for [`Task`]s to interact with their environment.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -55,6 +41,16 @@ where
             components: ComponentCreator::new(),
         }
     }
+}
+
+#[derive(Debug, Error)]
+pub enum TaskError {
+    #[error("event handler failure: {0}")]
+    Handler(#[from] FeedbackError),
+    #[error("error during serialization: {0}")]
+    Serialize(#[from] serde_json::Error),
+    #[error("failed to parse integer: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

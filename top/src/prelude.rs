@@ -15,12 +15,12 @@ pub use crate::editor::{Editor, EditorError, Report};
 
 pub use crate::task::inspect::{view, view_with, Inspect};
 pub use crate::task::interact::{
-    choose, choose_with, enter, enter_with, update, update_with, Interact,
+    choose, choose_with, edit, edit_with, enter, enter_with, Interact,
 };
 pub use crate::task::sequential::{
     has_value, if_value, Action, Continuation, Step, Steps, TaskStepExt,
 };
-pub use crate::task::{Context, Error, HandlerError, Task, TaskValue};
+pub use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
 pub use crate::viewer::convert::DisplayViewer;
 pub use crate::viewer::generic::View;

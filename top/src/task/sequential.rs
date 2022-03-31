@@ -6,7 +6,7 @@ use either::Either;
 use crate::component::event::{Event, Feedback, FeedbackHandler};
 use crate::component::id::Id;
 use crate::component::Widget;
-use crate::task::{Context, Error, Task, TaskValue};
+use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
 /// construct the next task.
@@ -60,10 +60,10 @@ where
 {
     type Value = T2::Value;
 
-    async fn start<H: FeedbackHandler + Send>(
-        &mut self,
-        ctx: &mut Context<H>,
-    ) -> Result<(), Error<H::Error>> {
+    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
+    where
+        H: FeedbackHandler + Send,
+    {
         match &mut self.current {
             Either::Left(task) => {
                 task.start(ctx).await?;
@@ -89,11 +89,10 @@ where
         }
     }
 
-    async fn on_event<H: FeedbackHandler + Send>(
-        &mut self,
-        event: Event,
-        ctx: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
+    async fn on_event<H>(&mut self, event: Event, ctx: &mut Context<H>) -> TaskResult<Self::Value>
+    where
+        H: FeedbackHandler + Send,
+    {
         if self.current.is_left() {
             let value = self
                 .current
@@ -134,13 +133,6 @@ where
                 .unwrap_right()
                 .on_event(event, ctx)
                 .await
-        }
-    }
-
-    async fn finish(self) -> TaskValue<Self::Value> {
-        match self.current {
-            Either::Left(_) => TaskValue::Empty,
-            Either::Right(then) => then.finish().await,
         }
     }
 }

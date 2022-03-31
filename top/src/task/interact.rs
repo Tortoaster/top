@@ -5,11 +5,11 @@ use crate::component::id::Id;
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
-use crate::task::{Context, Error, Task, TaskValue};
+use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
-/// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`update`] to
+/// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`edit`] to
 /// construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Interact<I, E> {
@@ -33,21 +33,21 @@ where
     E: Editor,
     E::Input: Default,
 {
-    update_with(E::Input::default(), editor)
+    edit_with(E::Input::default(), editor)
 }
 
-/// Have the user update a value. To use a custom editor, see [`update_with`].
+/// Have the user update a value. To use a custom editor, see [`edit_with`].
 #[inline]
-pub fn update<I>(value: I) -> Interact<I, I::Editor>
+pub fn edit<I>(value: I) -> Interact<I, I::Editor>
 where
     I: Edit,
 {
-    update_with(value, I::default_editor())
+    edit_with(value, I::default_editor())
 }
 
 /// Have the user update a value, through a custom editor.
 #[inline]
-pub fn update_with<E>(value: E::Input, editor: E) -> Interact<E::Input, E>
+pub fn edit_with<E>(value: E::Input, editor: E) -> Interact<E::Input, E>
 where
     E: Editor,
 {
@@ -58,18 +58,18 @@ where
 }
 
 #[async_trait]
-impl<I, O, E> Task for Interact<I, E>
+impl<E> Task for Interact<E::Input, E>
 where
-    I: Send,
-    O: Send + Sync,
-    E: Editor<Input = I, Output = O> + Send,
+    E: Editor + Send,
+    E::Input: Send,
+    E::Output: Send + Sync,
 {
-    type Value = O;
+    type Value = E::Output;
 
-    async fn start<H: FeedbackHandler + Send>(
-        &mut self,
-        ctx: &mut Context<H>,
-    ) -> Result<(), Error<H::Error>> {
+    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
+    where
+        H: FeedbackHandler + Send,
+    {
         if let Some(value) = self.input.take() {
             self.editor.write(value);
         }
@@ -84,24 +84,16 @@ where
         Ok(())
     }
 
-    async fn on_event<H: FeedbackHandler + Send>(
-        &mut self,
-        event: Event,
-        ctx: &mut Context<H>,
-    ) -> Result<TaskValue<Self::Value>, Error<H::Error>> {
+    async fn on_event<H>(&mut self, event: Event, ctx: &mut Context<H>) -> TaskResult<Self::Value>
+    where
+        H: FeedbackHandler + Send,
+    {
         if let Some(feedback) = self.editor.on_event(event, &mut ctx.components) {
             ctx.feedback.send(feedback).await?;
         }
         match self.editor.read() {
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
-        }
-    }
-
-    async fn finish(self) -> TaskValue<Self::Value> {
-        match self.editor.read() {
-            Ok(value) => TaskValue::Stable(value),
-            Err(_) => TaskValue::Empty,
         }
     }
 }
