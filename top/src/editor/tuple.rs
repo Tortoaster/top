@@ -1,7 +1,7 @@
 use paste::paste;
 
 use crate::component::Widget;
-use crate::editor::{Component, Editor, Report};
+use crate::editor::{Component, Editor, EditorError};
 use crate::event::{Event, Feedback};
 use crate::id::Generator;
 
@@ -26,7 +26,7 @@ impl Editor for UnitEditor {
         None
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         Ok(())
     }
 
@@ -79,7 +79,7 @@ macro_rules! tuple_editor {
             }
 
             paste! {
-                fn read(&self) -> Report<Self::Output> {
+                fn read(&self) -> Result<Self::Output, EditorError> {
                     Ok(($(self.[<$editor:snake>].read()?,)*))
                 }
             }

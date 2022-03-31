@@ -31,14 +31,11 @@ pub trait Editor {
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.
-    fn read(&self) -> Report<Self::Output>;
+    fn read(&self) -> Result<Self::Output, EditorError>;
 
     /// Change the value of this editor directly.
     fn write(&mut self, value: Self::Input);
 }
-
-/// Common output type for [`Editor`]s.
-pub type Report<T> = Result<T, EditorError>;
 
 /// Common error type for [`Editor`]s.
 #[derive(Clone, Debug, Eq, PartialEq, Error)]

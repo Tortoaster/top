@@ -2,7 +2,7 @@ use either::Either;
 
 use crate::component::icon::Icon;
 use crate::component::{Component, Widget};
-use crate::editor::{Editor, Report};
+use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
 use crate::id::{Generator, Id};
 
@@ -97,7 +97,7 @@ where
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         // TODO: Return all errors
         self.editors
             .iter()
@@ -199,7 +199,7 @@ where
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         if self.enabled {
             Ok(Some(self.editor.read()?))
         } else {

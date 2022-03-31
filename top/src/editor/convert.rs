@@ -1,14 +1,14 @@
 use std::str::FromStr;
 
 use crate::component::{Component, Widget};
-use crate::editor::{Editor, EditorError, Report};
+use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
 use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FromStrEditor<T> {
     id: Id,
-    value: Report<T>,
+    value: Result<T, EditorError>,
 }
 
 impl<T> FromStrEditor<T>
@@ -64,7 +64,7 @@ where
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 

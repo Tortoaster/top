@@ -1,5 +1,5 @@
 use crate::component::{Component, Widget};
-use crate::editor::{Editor, EditorError, Report};
+use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
 use crate::id::{Generator, Id};
 use crate::viewer::Viewer;
@@ -57,7 +57,7 @@ where
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         match self.choice {
             None => Err(EditorError::Invalid),
             Some(index) => self

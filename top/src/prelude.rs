@@ -11,7 +11,7 @@ pub mod derive {
 
     pub use crate::component::{Component, Widget};
     pub use crate::editor::generic::Edit;
-    pub use crate::editor::{Editor, Report};
+    pub use crate::editor::{Editor, EditorError};
     pub use crate::event::{Event, Feedback};
     pub use crate::id::Generator;
 }

@@ -65,7 +65,7 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
                 None
             }
 
-            fn read(&self) -> Report<Self::Output> {
+            fn read(&self) -> Result<Self::Output, EditorError> {
                 let value = #ident {
                     #(#field_idents: self.#field_idents.read()?),*
                 };
@@ -136,7 +136,7 @@ fn impl_edit_unnamed_struct(
                 None
             }
 
-            fn read(&self) -> Report<Self::Output> {
+            fn read(&self) -> Result<Self::Output, EditorError> {
                 let value = #ident(#(self.#field_indices.read()?),*);
 
                 Ok(value)
@@ -190,7 +190,7 @@ fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
                 None
             }
 
-            fn read(&self) -> Report<Self::Output> {
+            fn read(&self) -> Result<Self::Output, EditorError> {
                 Ok(#ident)
             }
 

@@ -5,7 +5,7 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
 use crate::component::Widget;
-use crate::editor::{Component, Editor, EditorError, Report};
+use crate::editor::{Component, Editor, EditorError};
 use crate::event::{Event, Feedback};
 use crate::id::{Generator, Id};
 
@@ -51,7 +51,7 @@ impl Editor for TextEditor {
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         Ok(self.value.clone())
     }
 
@@ -70,7 +70,7 @@ impl Default for TextEditor {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntegerEditor<N> {
     id: Id,
-    value: Report<N>,
+    value: Result<N, EditorError>,
 }
 
 impl<N> IntegerEditor<N>
@@ -130,7 +130,7 @@ where
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 
@@ -152,7 +152,7 @@ where
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FloatEditor<N> {
     id: Id,
-    value: Report<N>,
+    value: Result<N, EditorError>,
 }
 
 impl<N> FloatEditor<N>
@@ -212,7 +212,7 @@ where
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 
@@ -234,7 +234,7 @@ where
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BooleanEditor {
     id: Id,
-    value: Report<bool>,
+    value: Result<bool, EditorError>,
 }
 
 impl BooleanEditor {
@@ -284,7 +284,7 @@ impl Editor for BooleanEditor {
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 
@@ -303,7 +303,7 @@ impl Default for BooleanEditor {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CharEditor {
     id: Id,
-    value: Report<char>,
+    value: Result<char, EditorError>,
 }
 
 impl CharEditor {
@@ -358,7 +358,7 @@ impl Editor for CharEditor {
         }
     }
 
-    fn read(&self) -> Report<Self::Output> {
+    fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 
