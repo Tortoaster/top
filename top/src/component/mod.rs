@@ -16,59 +16,70 @@ pub mod icon;
 pub struct Component {
     id: Id,
     widget: Widget,
+    attrs: Attributes,
 }
 
 impl Component {
     pub fn new(id: Id, widget: Widget) -> Self {
-        Component { id, widget }
+        Component {
+            id,
+            widget,
+            attrs: Attributes::default(),
+        }
     }
 
     /// Retrieve this component's unique identifier.
     pub fn id(&self) -> Id {
         self.id
     }
+
+    pub fn tune(self) -> Tuner {
+        Tuner(self)
+    }
 }
 
 impl Display for Component {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.html())
+        write!(f, "{}", self.html().unwrap_or("render error".to_string()))
     }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Attributes {
+    label: Option<String>,
+    disabled: bool,
+    horizontal: bool,
 }
 
 /// Represents the visual aspect of tasks. In the context of webpages, these are usually translated
 /// into (groups of) input elements.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum Widget {
-    TextField {
-        value: String,
-        label: Option<String>,
-        disabled: bool,
-    },
-    NumberField {
-        value: String,
-        label: Option<String>,
-        disabled: bool,
-    },
-    Checkbox {
-        checked: bool,
-        label: Option<String>,
-        disabled: bool,
-    },
-    Button {
-        text: String,
-        disabled: bool,
-    },
-    IconButton {
-        icon: Icon,
-        disabled: bool,
-    },
-    Group {
-        children: Vec<Component>,
-        horizontal: bool,
-    },
-    RadioGroup {
-        options: Vec<Component>,
-    },
+    TextField(String),
+    NumberField(String),
+    Checkbox(bool),
+    Button(String),
+    IconButton(Icon),
+    Group(Vec<Component>),
+    RadioGroup(Vec<Component>),
 
     Text(String),
+}
+
+pub struct Tuner(Component);
+
+impl Tuner {
+    pub fn add_label(mut self, label: String) -> Self {
+        self.0.attrs.label = Some(label);
+        self
+    }
+
+    pub fn set_direction(mut self, horizontal: bool) -> Self {
+        self.0.attrs.horizontal = horizontal;
+        self
+    }
+
+    pub fn finish(self) -> Component {
+        self.0
+    }
 }

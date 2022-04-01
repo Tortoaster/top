@@ -1,3 +1,5 @@
 <div id="{{id}}" class="flex {{#if horizontal}}flex-row{{else}}flex-col{{/if}}">
-    {{{content}}}
+    {{#each children}}
+        {{{this}}}
+    {{/each}}
 </div>

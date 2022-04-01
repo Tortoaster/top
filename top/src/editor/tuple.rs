@@ -13,13 +13,7 @@ impl Editor for UnitEditor {
     type Output = ();
 
     fn component(&mut self, gen: &mut Generator) -> Component {
-        Component::new(
-            gen.next(),
-            Widget::Group {
-                children: Vec::new(),
-                horizontal: false,
-            },
-        )
+        Component::new(gen.next(), Widget::Group(Vec::new()))
     }
 
     fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -67,7 +61,7 @@ macro_rules! tuple_editor {
                     let children = vec![
                         $(self.[<$editor:snake>].component(gen)),*
                     ];
-                    Component::new(gen.next(), Widget::Group { children, horizontal: false })
+                    Component::new(gen.next(), Widget::Group(children))
                 }
             }
 

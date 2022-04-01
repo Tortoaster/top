@@ -1,7 +1,6 @@
 use axum::Router;
 use log::info;
 
-use top::id::Id;
 use top::integration::axum::{task, TopService};
 use top::prelude::derive::*;
 use top::prelude::*;
@@ -22,13 +21,7 @@ pub struct PersonTuple(String, Option<String>, u8, bool, Vec<String>);
 pub struct PersonUnit;
 
 async fn name() -> impl Task {
-    edit_with(Generator::new().next(), FromStrEditor::new())
-        .steps()
-        .on_action(
-            Action::OK,
-            has_value(|choice: Id| view_with::<DisplayViewer<_>>(choice)),
-        )
-        .confirm()
+    enter::<Vec<u8>>()
 }
 
 const HOST: &str = "0.0.0.0:3000";

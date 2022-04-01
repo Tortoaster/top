@@ -39,7 +39,7 @@ where
             .iter()
             .map(|option| option.component(gen))
             .collect();
-        let component = Component::new(gen.next(), Widget::RadioGroup { options });
+        let component = Component::new(gen.next(), Widget::RadioGroup(options));
         self.id = component.id();
         component
     }

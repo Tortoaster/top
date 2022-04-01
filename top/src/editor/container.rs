@@ -47,25 +47,13 @@ where
 
         self.rows = rows;
 
-        let component = Component::new(
-            gen.next(),
-            Widget::Group {
-                children,
-                horizontal: false,
-            },
-        );
+        let component = Component::new(gen.next(), Widget::Group(children));
         self.id = component.id();
 
         let button = add_button(gen);
         self.add_id = button.id();
 
-        Component::new(
-            gen.next(),
-            Widget::Group {
-                children: vec![component, button],
-                horizontal: false,
-            },
-        )
+        Component::new(gen.next(), Widget::Group(vec![component, button]))
     }
 
     fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -231,22 +219,13 @@ where
 {
     let child = editor.component(gen);
 
-    let sub = Component::new(
-        gen.next(),
-        Widget::IconButton {
-            icon: Icon::Minus,
-            disabled: false,
-        },
-    );
+    let sub = Component::new(gen.next(), Widget::IconButton(Icon::Minus));
     let sub_id = sub.id();
 
-    let component = Component::new(
-        gen.next(),
-        Widget::Group {
-            children: vec![child, sub],
-            horizontal: true,
-        },
-    );
+    let component = Component::new(gen.next(), Widget::Group(vec![child, sub]))
+        .tune()
+        .set_direction(true)
+        .finish();
     let id = component.id();
 
     let row = Row { id, sub_id };
@@ -255,11 +234,5 @@ where
 }
 
 fn add_button(gen: &mut Generator) -> Component {
-    Component::new(
-        gen.next(),
-        Widget::IconButton {
-            icon: Icon::Plus,
-            disabled: false,
-        },
-    )
+    Component::new(gen.next(), Widget::IconButton(Icon::Plus))
 }

@@ -1,4 +1,4 @@
-use handlebars::Handlebars;
+use handlebars::{Handlebars, RenderError};
 use lazy_static::lazy_static;
 use serde_json::json;
 
@@ -42,105 +42,77 @@ lazy_static! {
 }
 
 impl Component {
-    fn value(&self) -> Option<String> {
-        match &self.widget {
-            Widget::TextField { value, .. } => Some(value.clone()),
-            Widget::NumberField { value, .. } => Some(value.to_string()),
-            _ => None,
-        }
-    }
-
-    fn input_type(&self) -> Option<&'static str> {
-        match &self.widget {
-            Widget::TextField { .. } => Some("text"),
-            Widget::NumberField { .. } => Some("number"),
-            _ => None,
-        }
-    }
-
     /// Generate an HTML representation of this component.
-    pub fn html(&self) -> String {
+    pub fn html(&self) -> Result<String, RenderError> {
         match &self.widget {
-            Widget::TextField {
-                label, disabled, ..
-            }
-            | Widget::NumberField {
-                label, disabled, ..
-            } => REGISTRY
+            Widget::TextField(value) => REGISTRY.render(
+                INPUT,
+                &json!({
+                    "id": self.id(),
+                    "type": "text",
+                    "value": value,
+                    "label": self.attrs.label.as_ref().unwrap_or(&String::new()),
+                    "disabled": self.attrs.disabled,
+                }),
+            ),
+            Widget::NumberField(value) => REGISTRY
                 .render(
                     INPUT,
                     &json!({
                         "id": self.id(),
-                        "type": self.input_type().expect("no input type"),
-                        "value": self.value().expect("no value"),
-                        "label": label.as_ref().unwrap_or(&String::new()),
-                        "disabled": *disabled,
+                        "type": "number",
+                        "value": value,
+                        "label": self.attrs.label.as_ref().unwrap_or(&String::new()),
+                        "disabled": self.attrs.disabled,
                     }),
-                )
-                .unwrap(),
-            Widget::Checkbox {
-                checked,
-                label,
-                disabled,
-            } => REGISTRY
+                ),
+            Widget::Checkbox(checked) => REGISTRY
                 .render(
                     CHECKBOX,
                     &json!({
                         "id": self.id(),
                         "checked": *checked,
-                        "label": label.as_ref().unwrap_or(&String::new()),
-                        "disabled": *disabled,
+                        "label": self.attrs.label.as_ref().unwrap_or(&String::new()),
+                        "disabled": self.attrs.disabled,
                     }),
-                )
-                .unwrap(),
-            Widget::Button { text, disabled } => REGISTRY
+                ),
+            Widget::Button(text) => REGISTRY
                 .render(
                     BUTTON,
                     &json!({
                         "id": self.id(),
                         "text": text,
-                        "disabled": *disabled,
+                        "disabled": self.attrs.disabled,
                     }),
-                )
-                .unwrap(),
-            Widget::IconButton { icon, disabled } => REGISTRY
+                ),
+            Widget::IconButton(icon) => REGISTRY
                 .render(
                     ICON_BUTTON,
                     &json!({
                         "id": self.id(),
-                        "icon": icon.html(),
-                        "disabled": *disabled,
+                        "icon": icon.html()?,
+                        "disabled": self.attrs.disabled,
                     }),
-                )
-                .unwrap(),
-            Widget::Group {
-                children,
-                horizontal,
-            } => REGISTRY
+                ),
+            Widget::Group(children) => REGISTRY
                 .render(
                     GROUP,
                     &json!({
                         "id": self.id(),
-                        "horizontal": *horizontal,
-                        "content": children
-                            .iter()
-                            .map(|child| child.html())
-                            .collect::<Vec<_>>()
-                            .join("<br/>"),
+                        "horizontal": self.attrs.horizontal,
+                        "children": children.iter().map(|child| child.html()).collect::<Result<Vec<_>, _>>()?,
                     }),
-                )
-                .unwrap(),
-            Widget::RadioGroup { options } => REGISTRY
+                ),
+            Widget::RadioGroup(options) => REGISTRY
                 .render(
                     RADIO_GROUP,
                     &json!({
                         "id": self.id(),
-                        "options": options.iter().map(|option| option.html()).collect::<Vec<_>>()
+                        "options": options.iter().map(|option| option.html()).collect::<Result<Vec<_>, _>>()?,
                     }),
-                )
-                .unwrap(),
+                ),
 
-            Widget::Text(text) => format!("<span>{text}</span>"),
+            Widget::Text(text) => Ok(format!("<span>{text}</span>")),
         }
     }
 
@@ -153,10 +125,10 @@ impl Component {
 }
 
 impl Icon {
-    pub fn html(&self) -> String {
+    pub fn html(&self) -> Result<String, RenderError> {
         match self {
-            Icon::Plus => REGISTRY.render(PLUS, &()).unwrap(),
-            Icon::Minus => REGISTRY.render(MINUS, &()).unwrap(),
+            Icon::Plus => REGISTRY.render(PLUS, &()),
+            Icon::Minus => REGISTRY.render(MINUS, &()),
         }
     }
 }

@@ -56,7 +56,7 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
                     #(self.#field_idents.component(gen)),*
                 ];
 
-                Component::new(gen.next(), Widget::Group { children, horizontal: false })
+                Component::new(gen.next(), Widget::Group(children))
             }
 
             fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -127,7 +127,7 @@ fn impl_edit_unnamed_struct(
                     #(self.#field_indices.component(gen)),*
                 ];
 
-                Component::new(gen.next(), Widget::Group { children, horizontal: false })
+                Component::new(gen.next(), Widget::Group(children))
             }
 
             fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -180,10 +180,7 @@ fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
             type Output = #ident;
 
             fn component(&mut self, gen: &mut Generator) -> Component {
-                Component::new(gen.next(), Widget::Group {
-                    children: Vec::new(),
-                    horizontal: false,
-                })
+                Component::new(gen.next(), Widget::Group(Vec::new()))
             }
 
             fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {

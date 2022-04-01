@@ -30,11 +30,7 @@ impl Editor for TextEditor {
     type Output = String;
 
     fn component(&mut self, gen: &mut Generator) -> Component {
-        let widget = Widget::TextField {
-            value: self.value.clone(),
-            label: None,
-            disabled: false,
-        };
+        let widget = Widget::TextField(self.value.clone());
         let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
@@ -93,15 +89,12 @@ where
     type Output = N;
 
     fn component(&mut self, gen: &mut Generator) -> Component {
-        let widget = Widget::NumberField {
-            value: self
-                .value
+        let widget = Widget::NumberField(
+            self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
-            label: None,
-            disabled: false,
-        };
+        );
         let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
@@ -175,15 +168,12 @@ where
     type Output = N;
 
     fn component(&mut self, gen: &mut Generator) -> Component {
-        let widget = Widget::NumberField {
-            value: self
-                .value
+        let widget = Widget::NumberField(
+            self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
-            label: None,
-            disabled: false,
-        };
+        );
         let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
@@ -251,11 +241,7 @@ impl Editor for BooleanEditor {
     type Output = bool;
 
     fn component(&mut self, gen: &mut Generator) -> Component {
-        let widget = Widget::Checkbox {
-            checked: *self.value.as_ref().unwrap_or(&false),
-            label: None,
-            disabled: false,
-        };
+        let widget = Widget::Checkbox(*self.value.as_ref().unwrap_or(&false));
         let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();
@@ -321,15 +307,12 @@ impl Editor for CharEditor {
 
     fn component(&mut self, gen: &mut Generator) -> Component {
         // TODO: Limit length to 1
-        let widget = Widget::TextField {
-            value: self
-                .value
+        let widget = Widget::TextField(
+            self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
-            label: None,
-            disabled: false,
-        };
+        );
         let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();

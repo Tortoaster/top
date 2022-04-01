@@ -32,15 +32,12 @@ where
     type Output = T;
 
     fn component(&mut self, gen: &mut Generator) -> Component {
-        let widget = Widget::TextField {
-            value: self
-                .value
+        let widget = Widget::TextField(
+            self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
-            label: None,
-            disabled: false,
-        };
+        );
         let component = Component::new(gen.next(), widget);
         // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
         self.id = component.id();

@@ -69,10 +69,7 @@ where
                 task.start(ctx).await?;
                 for cont in &mut self.continuations {
                     if let Continuation::OnAction(action, _) = cont {
-                        let widget = Widget::Button {
-                            text: action.0.to_owned(),
-                            disabled: false,
-                        };
+                        let widget = Widget::Button(action.0.to_owned());
                         let button = Component::new(ctx.gen.next(), widget);
                         // TODO: Type-safe way?
                         action.1 = Some(button.id());
