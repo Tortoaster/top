@@ -15,7 +15,7 @@ pub trait Viewer {
     fn start(value: Self::Input) -> Self;
 
     /// Create the user interface for this viewer.
-    fn component(&self, ctx: &mut Generator) -> Component;
+    fn component(&self, gen: &mut Generator) -> Component;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this viewer.

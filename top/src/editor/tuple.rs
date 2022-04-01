@@ -22,7 +22,7 @@ impl Editor for UnitEditor {
         )
     }
 
-    fn on_event(&mut self, _event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Option<Feedback> {
         None
     }
 

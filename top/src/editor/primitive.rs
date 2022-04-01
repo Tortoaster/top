@@ -41,7 +41,7 @@ impl Editor for TextEditor {
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } if id == self.id => {
                 self.value = value;
@@ -108,7 +108,7 @@ where
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -190,7 +190,7 @@ where
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -262,7 +262,7 @@ impl Editor for BooleanEditor {
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
@@ -336,7 +336,7 @@ impl Editor for CharEditor {
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {

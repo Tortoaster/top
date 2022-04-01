@@ -68,12 +68,12 @@ where
         )
     }
 
-    fn on_event(&mut self, event: Event, ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Press { id } if id == self.add_id => {
                 // Add a new row
                 let mut editor = self.template.clone();
-                let (component, row) = row(&mut editor, ctx);
+                let (component, row) = row(&mut editor, gen);
                 self.editors.push(editor);
                 self.rows.push(row);
 
@@ -93,7 +93,7 @@ where
             _ => self
                 .editors
                 .iter_mut()
-                .find_map(|editor| editor.on_event(event.clone(), ctx)),
+                .find_map(|editor| editor.on_event(event.clone(), gen)),
         }
     }
 
@@ -144,19 +144,19 @@ where
     type Input = Option<E::Input>;
     type Output = Option<E::Output>;
 
-    fn component(&mut self, ctx: &mut Generator) -> Component {
+    fn component(&mut self, gen: &mut Generator) -> Component {
         if self.enabled {
-            let (component, row) = row(&mut self.editor, ctx);
+            let (component, row) = row(&mut self.editor, gen);
             self.id = Either::Right(row);
             component
         } else {
-            let component = add_button(ctx);
+            let component = add_button(gen);
             self.id = Either::Left(component.id());
             component
         }
     }
 
-    fn on_event(&mut self, event: Event, ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Press { id }
                 if self
@@ -169,7 +169,7 @@ where
                 // Add value
                 let id = *self.id.as_ref().unwrap_left();
 
-                let (component, row) = row(&mut self.editor, ctx);
+                let (component, row) = row(&mut self.editor, gen);
                 self.id = Either::Right(row);
                 self.enabled = true;
 
@@ -186,7 +186,7 @@ where
                 // Remove value
                 let id = self.id.as_ref().unwrap_right().id;
 
-                let component = add_button(ctx);
+                let component = add_button(gen);
                 self.id = Either::Left(component.id());
                 self.enabled = false;
 
@@ -194,7 +194,7 @@ where
             }
             _ => self
                 .enabled
-                .then(|| self.editor.on_event(event, ctx))
+                .then(|| self.editor.on_event(event, gen))
                 .flatten(),
         }
     }

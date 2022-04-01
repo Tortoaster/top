@@ -47,7 +47,7 @@ where
         component
     }
 
-    fn on_event(&mut self, event: Event, _ctx: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
                 if id == self.id {
