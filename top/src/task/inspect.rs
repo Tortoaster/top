@@ -11,22 +11,25 @@ use crate::viewer::Viewer;
 
 /// Basic inspect (read-only interaction) task. Supports both reading. Use [`view`] to construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Inspect<I, V> {
-    viewer: Either<I, V>,
+pub struct Inspect<V>
+where
+    V: Viewer,
+{
+    viewer: Either<V::Input, V>,
 }
 
 /// Show a value to the user. To use a custom editor, see [`view_with`].
 #[inline]
-pub fn view<I>(value: I) -> Inspect<I, I::Viewer>
+pub fn view<T>(value: T) -> Inspect<T::Viewer>
 where
-    I: View,
+    T: View,
 {
     view_with(value)
 }
 
 /// Show a value to the user, through a custom editor.
 #[inline]
-pub fn view_with<V>(value: V::Input) -> Inspect<V::Input, V>
+pub fn view_with<V>(value: V::Input) -> Inspect<V>
 where
     V: Viewer,
 {
@@ -36,7 +39,7 @@ where
 }
 
 #[async_trait]
-impl<V> Task for Inspect<V::Input, V>
+impl<V> Task for Inspect<V>
 where
     V: Viewer + Send,
     V::Input: Clone + Debug + Send,

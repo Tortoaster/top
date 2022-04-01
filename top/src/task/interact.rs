@@ -12,23 +12,26 @@ use crate::viewer::Viewer;
 /// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`edit`] to
 /// construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Interact<I, E> {
-    input: Option<I>,
+pub struct Interact<E>
+where
+    E: Editor,
+{
+    input: Option<E::Input>,
     editor: E,
 }
 
 /// Have the user enter a value. To use a custom editor, see [`enter_with`].
 #[inline]
-pub fn enter<I>() -> Interact<I, I::Editor>
+pub fn enter<T>() -> Interact<T::Editor>
 where
-    I: Edit,
+    T: Edit,
 {
-    enter_with(I::default_editor())
+    enter_with(T::default_editor())
 }
 
 /// Have the user enter a value, through a custom editor.
 #[inline]
-pub fn enter_with<E>(editor: E) -> Interact<E::Input, E>
+pub fn enter_with<E>(editor: E) -> Interact<E>
 where
     E: Editor,
 {
@@ -40,16 +43,16 @@ where
 
 /// Have the user update a value. To use a custom editor, see [`edit_with`].
 #[inline]
-pub fn edit<I>(value: I) -> Interact<I, I::Editor>
+pub fn edit<T>(value: T) -> Interact<T::Editor>
 where
-    I: Edit,
+    T: Edit,
 {
-    edit_with(value, I::default_editor())
+    edit_with(value, T::default_editor())
 }
 
 /// Have the user update a value, through a custom editor.
 #[inline]
-pub fn edit_with<E>(value: E::Input, editor: E) -> Interact<E::Input, E>
+pub fn edit_with<E>(value: E::Input, editor: E) -> Interact<E>
 where
     E: Editor,
 {
@@ -60,7 +63,7 @@ where
 }
 
 #[async_trait]
-impl<E> Task for Interact<E::Input, E>
+impl<E> Task for Interact<E>
 where
     E: Editor + Send,
     E::Input: Send,
@@ -100,14 +103,14 @@ where
     }
 }
 
-pub fn choose<T>(options: Vec<T>) -> Interact<usize, ChoiceEditor<T::Viewer>>
+pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
 where
     T: View,
 {
     choose_with(options)
 }
 
-pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<usize, ChoiceEditor<V>>
+pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<ChoiceEditor<V>>
 where
     V: Viewer,
 {
