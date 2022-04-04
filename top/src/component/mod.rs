@@ -20,6 +20,7 @@ pub struct Component {
 }
 
 impl Component {
+    // TODO: Make id optional
     pub fn new(id: Id, widget: Widget) -> Self {
         Component {
             id,

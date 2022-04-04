@@ -22,8 +22,11 @@ pub trait Editor {
     /// example, a number field produces a number, but the value may not always be valid.
     type Output;
 
+    // TODO: Turn into constructor?
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator);
+
     /// Create the initial user interface for this editor.
-    fn component(&mut self, gen: &mut Generator) -> Component;
+    fn component(&self) -> Component;
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
@@ -32,9 +35,6 @@ pub trait Editor {
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.
     fn read(&self) -> Result<Self::Output, EditorError>;
-
-    /// Change the value of this editor directly.
-    fn write(&mut self, value: Self::Input);
 }
 
 /// Common error type for [`Editor`]s.

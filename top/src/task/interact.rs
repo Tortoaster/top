@@ -75,10 +75,8 @@ where
     where
         H: FeedbackHandler + Send,
     {
-        if let Some(value) = self.input.take() {
-            self.editor.write(value);
-        }
-        let component = self.editor.component(&mut ctx.gen);
+        self.editor.start(self.input.take(), &mut ctx.gen);
+        let component = self.editor.component();
 
         let initial = Feedback::Replace {
             id: Id::ROOT,

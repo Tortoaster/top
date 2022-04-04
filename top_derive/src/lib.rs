@@ -51,12 +51,23 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
             type Input = #ident;
             type Output = #ident;
 
-            fn component(&mut self, gen: &mut Generator) -> Component {
+            fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+                match value {
+                    None => {
+                        #(self.#field_idents.start(None, gen);)*
+                    }
+                    Some(value) => {
+                        #(self.#field_idents.start(Some(value.#field_idents), gen);)*
+                    }
+                }
+            }
+
+            fn component(&self) -> Component {
                 let children = vec![
-                    #(self.#field_idents.component(gen)),*
+                    #(self.#field_idents.component()),*
                 ];
 
-                Component::new(gen.next(), Widget::Group(children))
+                Component::new(Id::INVALID, Widget::Group(children))
             }
 
             fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -71,10 +82,6 @@ fn impl_edit_named_struct(ident: Ident, fields: FieldsNamed, generics: Generics)
                 };
 
                 Ok(value)
-            }
-
-            fn write(&mut self, value: Self::Input) {
-                #(self.#field_idents.write(value.#field_idents);)*
             }
         }
     };
@@ -122,12 +129,23 @@ fn impl_edit_unnamed_struct(
             type Input = #ident;
             type Output = #ident;
 
-            fn component(&mut self, gen: &mut Generator) -> Component {
+            fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+                match value {
+                    None => {
+                        #(self.#field_indices.start(None, gen);)*
+                    }
+                    Some(value) => {
+                        #(self.#field_indices.start(Some(value.#field_indices), gen);)*
+                    }
+                }
+            }
+
+            fn component(&self) -> Component {
                 let children = vec![
-                    #(self.#field_indices.component(gen)),*
+                    #(self.#field_indices.component()),*
                 ];
 
-                Component::new(gen.next(), Widget::Group(children))
+                Component::new(Id::INVALID, Widget::Group(children))
             }
 
             fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -140,10 +158,6 @@ fn impl_edit_unnamed_struct(
                 let value = #ident(#(self.#field_indices.read()?),*);
 
                 Ok(value)
-            }
-
-            fn write(&mut self, value: Self::Input) {
-                #(self.#field_indices.write(value.#field_indices);)*
             }
         }
     };
@@ -179,8 +193,10 @@ fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
             type Input = #ident;
             type Output = #ident;
 
-            fn component(&mut self, gen: &mut Generator) -> Component {
-                Component::new(gen.next(), Widget::Group(Vec::new()))
+            fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {}
+
+            fn component(&self) -> Component {
+                Component::new(Id::INVALID, Widget::Group(Vec::new()))
             }
 
             fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -190,8 +206,6 @@ fn impl_edit_unit_struct(ident: Ident, generics: Generics) -> TokenStream2 {
             fn read(&self) -> Result<Self::Output, EditorError> {
                 Ok(#ident)
             }
-
-            fn write(&mut self, _value: Self::Input) {}
         }
     };
 

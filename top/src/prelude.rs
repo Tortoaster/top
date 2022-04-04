@@ -13,5 +13,5 @@ pub mod derive {
     pub use crate::editor::generic::Edit;
     pub use crate::editor::{Editor, EditorError};
     pub use crate::event::{Event, Feedback};
-    pub use crate::id::Generator;
+    pub use crate::id::{Generator, Id};
 }

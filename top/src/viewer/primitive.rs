@@ -1,5 +1,5 @@
 use crate::component::{Component, Widget};
-use crate::id::Generator;
+use crate::id::Id;
 use crate::viewer::Viewer;
 
 /// Basic viewer for strings.
@@ -14,8 +14,8 @@ impl Viewer for TextViewer {
         TextViewer(value)
     }
 
-    fn component(&self, gen: &mut Generator) -> Component {
-        Component::new(gen.next(), Widget::Text(self.0.clone()))
+    fn component(&self) -> Component {
+        Component::new(Id::INVALID, Widget::Text(self.0.clone()))
     }
 
     fn read(&self) -> Self::Output {

@@ -3,7 +3,7 @@ use paste::paste;
 use crate::component::Widget;
 use crate::editor::{Component, Editor, EditorError};
 use crate::event::{Event, Feedback};
-use crate::id::Generator;
+use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
@@ -12,8 +12,10 @@ impl Editor for UnitEditor {
     type Input = ();
     type Output = ();
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
-        Component::new(gen.next(), Widget::Group(Vec::new()))
+    fn start(&mut self, _value: Option<Self::Input>, _gen: &mut Generator) {}
+
+    fn component(&self) -> Component {
+        Component::new(Id::INVALID, Widget::Group(Vec::new()))
     }
 
     fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -23,8 +25,6 @@ impl Editor for UnitEditor {
     fn read(&self) -> Result<Self::Output, EditorError> {
         Ok(())
     }
-
-    fn write(&mut self, _value: Self::Input) {}
 }
 
 macro_rules! tuple_editor {
@@ -57,11 +57,24 @@ macro_rules! tuple_editor {
             type Output = ($($editor::Output,)*);
 
             paste! {
-                fn component(&mut self, gen: &mut Generator) -> Component {
+                fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+                    match value {
+                        None => {
+                            $(self.[<$editor:snake>].start(None, gen);)*
+                        }
+                        Some(value) => {
+                            $(self.[<$editor:snake>].start(Some(value.${index()}), gen);)*
+                        }
+                    }
+                }
+            }
+
+            paste! {
+                fn component(&self) -> Component {
                     let children = vec![
-                        $(self.[<$editor:snake>].component(gen)),*
+                        $(self.[<$editor:snake>].component()),*
                     ];
-                    Component::new(gen.next(), Widget::Group(children))
+                    Component::new(Id::INVALID, Widget::Group(children))
                 }
             }
 
@@ -75,12 +88,6 @@ macro_rules! tuple_editor {
             paste! {
                 fn read(&self) -> Result<Self::Output, EditorError> {
                     Ok(($(self.[<$editor:snake>].read()?,)*))
-                }
-            }
-
-            paste! {
-                fn write(&mut self, value: Self::Input) {
-                    $(self.[<$editor:snake>].write(value.${index()});)*
                 }
             }
         }

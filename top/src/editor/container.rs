@@ -1,5 +1,3 @@
-use either::Either;
-
 use crate::component::icon::Icon;
 use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError};
@@ -8,24 +6,24 @@ use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VecEditor<E> {
-    id: Id,
+    /// Represents the list containing all choices.
+    group_id: Id,
+    /// Represents the plus button.
     add_id: Id,
-    rows: Vec<Row>,
-    template: E,
+    /// Represents of each of the choices with their respective identifiers.
+    choices: Vec<Row>,
     editors: Vec<E>,
+    template: E,
 }
 
-impl<E> VecEditor<E>
-where
-    E: Editor,
-{
+impl<E> VecEditor<E> {
     pub fn new(editor: E) -> Self {
         VecEditor {
-            id: Id::INVALID,
+            group_id: Id::INVALID,
             add_id: Id::INVALID,
-            rows: Vec::new(),
-            template: editor,
+            choices: Vec::new(),
             editors: Vec::new(),
+            template: editor,
         }
     }
 }
@@ -34,26 +32,36 @@ impl<E> Editor for VecEditor<E>
 where
     E: Editor + Clone,
 {
-    // TODO: Other input?
     type Input = Vec<E::Input>;
     type Output = Vec<E::Output>;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
-        let (children, rows) = self
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.group_id = gen.next();
+        self.add_id = gen.next();
+        self.editors = value
+            .into_iter()
+            .flatten()
+            .map(|input| {
+                let mut editor = self.template.clone();
+                editor.start(Some(input), gen);
+                editor
+            })
+            .collect();
+        self.choices = self.editors.iter().map(|_| Row::new(gen)).collect();
+    }
+
+    fn component(&self) -> Component {
+        let choices = self
             .editors
-            .iter_mut()
-            .map(|editor| row(editor, gen))
-            .unzip();
+            .iter()
+            .zip(&self.choices)
+            .map(|(editor, row)| row.component(editor))
+            .collect();
 
-        self.rows = rows;
+        let group = Component::new(self.group_id, Widget::Group(choices));
+        let button = Row::add_button(self.add_id);
 
-        let component = Component::new(gen.next(), Widget::Group(children));
-        self.id = component.id();
-
-        let button = add_button(gen);
-        self.add_id = button.id();
-
-        Component::new(gen.next(), Widget::Group(vec![component, button]))
+        Component::new(Id::INVALID, Widget::Group(vec![group, button]))
     }
 
     fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
@@ -61,22 +69,29 @@ where
             Event::Press { id } if id == self.add_id => {
                 // Add a new row
                 let mut editor = self.template.clone();
-                let (component, row) = row(&mut editor, gen);
+                editor.start(None, gen);
+                let row = Row::new(gen);
+                let component = row.component(&editor);
+
                 self.editors.push(editor);
-                self.rows.push(row);
+                self.choices.push(row);
 
                 Some(Feedback::Append {
-                    id: self.id,
+                    id: self.group_id,
                     component,
                 })
             }
-            Event::Press { id } if self.rows.iter().any(|row| row.sub_id == id) => {
+            Event::Press { id } if self.choices.iter().any(|row| row.sub_id == id) => {
                 // Remove an existing row
-                let index = self.rows.iter().position(|row| row.sub_id == id).unwrap();
-                let row = self.rows.remove(index);
+                let index = self
+                    .choices
+                    .iter()
+                    .position(|row| row.sub_id == id)
+                    .unwrap();
+                let Row { id, .. } = self.choices.remove(index);
                 self.editors.remove(index);
 
-                Some(Feedback::Remove { id: row.id })
+                Some(Feedback::Remove { id })
             }
             _ => self
                 .editors
@@ -92,23 +107,16 @@ where
             .map(|editor| editor.read())
             .collect::<Result<Vec<_>, _>>()
     }
-
-    fn write(&mut self, value: Self::Input) {
-        self.editors = value
-            .into_iter()
-            .map(|input| {
-                let mut editor = self.template.clone();
-                editor.write(input);
-                editor
-            })
-            .collect();
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionEditor<E> {
-    id: Either<Id, Row>,
+    /// Represents the row containing the editor and the minus button if a value is present.
+    row: Row,
+    /// Represents the plus button if there is no value present.
+    add_id: Id,
     editor: E,
+    /// True if this editor contains a value, false otherwise.
     enabled: bool,
 }
 
@@ -118,7 +126,11 @@ where
 {
     pub fn new(editor: E) -> Self {
         OptionEditor {
-            id: Either::Left(Id::INVALID),
+            row: Row {
+                id: Id::INVALID,
+                sub_id: Id::INVALID,
+            },
+            add_id: Id::INVALID,
             editor,
             enabled: false,
         }
@@ -132,50 +144,36 @@ where
     type Input = Option<E::Input>;
     type Output = Option<E::Output>;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.row = Row::new(gen);
+        self.add_id = gen.next();
+        self.enabled = value.is_some();
+
+        self.editor.start(value.flatten(), gen);
+    }
+
+    fn component(&self) -> Component {
         if self.enabled {
-            let (component, row) = row(&mut self.editor, gen);
-            self.id = Either::Right(row);
-            component
+            self.row.component(&self.editor)
         } else {
-            let component = add_button(gen);
-            self.id = Either::Left(component.id());
-            component
+            Row::add_button(self.add_id)
         }
     }
 
     fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
         match event {
-            Event::Press { id }
-                if self
-                    .id
-                    .as_ref()
-                    .map_left(|add_id| *add_id == id)
-                    .left_or_default()
-                    && !self.enabled =>
-            {
+            Event::Press { id } if id == self.add_id && !self.enabled => {
                 // Add value
-                let id = *self.id.as_ref().unwrap_left();
-
-                let (component, row) = row(&mut self.editor, gen);
-                self.id = Either::Right(row);
+                let id = self.add_id;
+                let component = self.row.component(&mut self.editor);
                 self.enabled = true;
 
                 Some(Feedback::Replace { id, component })
             }
-            Event::Press { id }
-                if self
-                    .id
-                    .as_ref()
-                    .map_right(|row| row.sub_id == id)
-                    .right_or_default()
-                    && self.enabled =>
-            {
+            Event::Press { id } if id == self.row.sub_id && self.enabled => {
                 // Remove value
-                let id = self.id.as_ref().unwrap_right().id;
-
-                let component = add_button(gen);
-                self.id = Either::Left(component.id());
+                let id = self.row.id;
+                let component = Row::add_button(self.add_id);
                 self.enabled = false;
 
                 Some(Feedback::Replace { id, component })
@@ -194,16 +192,6 @@ where
             Ok(None)
         }
     }
-
-    fn write(&mut self, value: Self::Input) {
-        match value {
-            None => self.enabled = false,
-            Some(value) => {
-                self.enabled = true;
-                self.editor.write(value);
-            }
-        }
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -212,27 +200,29 @@ struct Row {
     sub_id: Id,
 }
 
-/// Creates a row consisting of the editor and a button to remove it.
-fn row<E>(editor: &mut E, gen: &mut Generator) -> (Component, Row)
-where
-    E: Editor,
-{
-    let child = editor.component(gen);
+impl Row {
+    fn new(gen: &mut Generator) -> Self {
+        Row {
+            id: gen.next(),
+            sub_id: gen.next(),
+        }
+    }
 
-    let sub = Component::new(gen.next(), Widget::IconButton(Icon::Minus));
-    let sub_id = sub.id();
+    /// Creates a row consisting of the editor and a button to remove it.
+    fn component<E>(&self, editor: &E) -> Component
+    where
+        E: Editor,
+    {
+        let child = editor.component();
+        let sub = Component::new(self.sub_id, Widget::IconButton(Icon::Minus));
 
-    let component = Component::new(gen.next(), Widget::Group(vec![child, sub]))
-        .tune()
-        .set_direction(true)
-        .finish();
-    let id = component.id();
+        Component::new(self.id, Widget::Group(vec![child, sub]))
+            .tune()
+            .set_direction(true)
+            .finish()
+    }
 
-    let row = Row { id, sub_id };
-
-    (component, row)
-}
-
-fn add_button(gen: &mut Generator) -> Component {
-    Component::new(gen.next(), Widget::IconButton(Icon::Plus))
+    fn add_button(id: Id) -> Component {
+        Component::new(id, Widget::IconButton(Icon::Plus))
+    }
 }

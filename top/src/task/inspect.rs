@@ -55,7 +55,7 @@ where
             self.viewer = Either::Right(V::start(input.clone()))
         };
 
-        let component = self.viewer.as_ref().unwrap_right().component(&mut ctx.gen);
+        let component = self.viewer.as_ref().unwrap_right().component();
 
         let initial = Feedback::Replace {
             id: Id::ROOT,

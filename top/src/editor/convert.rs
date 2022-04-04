@@ -31,17 +31,22 @@ where
     type Input = T;
     type Output = T;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.id = gen.next();
+        if let Some(value) = value {
+            self.value = Ok(value);
+        }
+    }
+
+    fn component(&self) -> Component {
         let widget = Widget::TextField(
             self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
         );
-        let component = Component::new(gen.next(), widget);
-        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
-        self.id = component.id();
-        component
+
+        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -68,10 +73,6 @@ where
 
     fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.value = Ok(value);
     }
 }
 

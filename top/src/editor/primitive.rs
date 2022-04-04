@@ -29,12 +29,17 @@ impl Editor for TextEditor {
     type Input = String;
     type Output = String;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.id = gen.next();
+        if let Some(value) = value {
+            self.value = value;
+        }
+    }
+
+    fn component(&self) -> Component {
         let widget = Widget::TextField(self.value.clone());
-        let component = Component::new(gen.next(), widget);
-        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
-        self.id = component.id();
-        component
+
+        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -49,10 +54,6 @@ impl Editor for TextEditor {
 
     fn read(&self) -> Result<Self::Output, EditorError> {
         Ok(self.value.clone())
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.value = value;
     }
 }
 
@@ -88,17 +89,22 @@ where
     type Input = N;
     type Output = N;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.id = gen.next();
+        if let Some(value) = value {
+            self.value = Ok(value);
+        }
+    }
+
+    fn component(&self) -> Component {
         let widget = Widget::NumberField(
             self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
         );
-        let component = Component::new(gen.next(), widget);
-        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
-        self.id = component.id();
-        component
+
+        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -125,10 +131,6 @@ where
 
     fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.value = Ok(value);
     }
 }
 
@@ -167,17 +169,22 @@ where
     type Input = N;
     type Output = N;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.id = gen.next();
+        if let Some(value) = value {
+            self.value = Ok(value);
+        }
+    }
+
+    fn component(&self) -> Component {
         let widget = Widget::NumberField(
             self.value
                 .as_ref()
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
         );
-        let component = Component::new(gen.next(), widget);
-        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
-        self.id = component.id();
-        component
+
+        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -204,10 +211,6 @@ where
 
     fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.value = Ok(value);
     }
 }
 
@@ -240,12 +243,17 @@ impl Editor for BooleanEditor {
     type Input = bool;
     type Output = bool;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.id = gen.next();
+        if let Some(value) = value {
+            self.value = Ok(value);
+        }
+    }
+
+    fn component(&self) -> Component {
         let widget = Widget::Checkbox(*self.value.as_ref().unwrap_or(&false));
-        let component = Component::new(gen.next(), widget);
-        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
-        self.id = component.id();
-        component
+
+        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -272,10 +280,6 @@ impl Editor for BooleanEditor {
 
     fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.value = Ok(value);
     }
 }
 
@@ -305,7 +309,14 @@ impl Editor for CharEditor {
     type Input = char;
     type Output = char;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.id = gen.next();
+        if let Some(value) = value {
+            self.value = Ok(value);
+        }
+    }
+
+    fn component(&self) -> Component {
         // TODO: Limit length to 1
         let widget = Widget::TextField(
             self.value
@@ -313,10 +324,8 @@ impl Editor for CharEditor {
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
         );
-        let component = Component::new(gen.next(), widget);
-        // TODO: Type-safe way of guaranteeing that editors have a proper identifier.
-        self.id = component.id();
-        component
+
+        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -343,10 +352,6 @@ impl Editor for CharEditor {
 
     fn read(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.value = Ok(value);
     }
 }
 

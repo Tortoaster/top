@@ -7,7 +7,7 @@ use crate::viewer::Viewer;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChoiceEditor<V> {
     id: Id,
-    options: Vec<V>,
+    choices: Vec<V>,
     choice: Option<usize>,
 }
 
@@ -20,7 +20,7 @@ where
 
         ChoiceEditor {
             id: Id::INVALID,
-            options,
+            choices: options,
             choice: None,
         }
     }
@@ -33,14 +33,14 @@ where
     type Input = usize;
     type Output = V::Output;
 
-    fn component(&mut self, gen: &mut Generator) -> Component {
-        let options = self
-            .options
-            .iter()
-            .map(|option| option.component(gen))
-            .collect();
-        let component = Component::new(gen.next(), Widget::RadioGroup(options));
-        self.id = component.id();
+    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+        self.choice = value;
+        self.id = gen.next();
+    }
+
+    fn component(&self) -> Component {
+        let options = self.choices.iter().map(Viewer::component).collect();
+        let component = Component::new(self.id, Widget::RadioGroup(options));
         component
     }
 
@@ -61,14 +61,10 @@ where
         match self.choice {
             None => Err(EditorError::Invalid),
             Some(index) => self
-                .options
+                .choices
                 .get(index)
                 .map(|viewer| viewer.read())
                 .ok_or(EditorError::Invalid),
         }
-    }
-
-    fn write(&mut self, value: Self::Input) {
-        self.choice = Some(value);
     }
 }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::component::{Component, Widget};
-use crate::id::Generator;
+use crate::id::Id;
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,8 +18,8 @@ where
         DisplayViewer(value)
     }
 
-    fn component(&self, gen: &mut Generator) -> Component {
-        Component::new(gen.next(), Widget::Text(self.0.to_string()))
+    fn component(&self) -> Component {
+        Component::new(Id::INVALID, Widget::Text(self.0.to_string()))
     }
 
     fn read(&self) -> Self::Output {
