@@ -2,26 +2,11 @@ use axum::Router;
 use log::info;
 
 use top::integration::axum::{task, TopService};
-use top::prelude::derive::*;
 use top::prelude::*;
-
-#[derive(Default, Edit)]
-pub struct Person {
-    name: String,
-    title: Option<String>,
-    age: u8,
-    cool: bool,
-    quotes: Vec<String>,
-}
-
-#[derive(Default, Edit)]
-pub struct PersonTuple(String, Option<String>, u8, bool, Vec<String>);
-
-#[derive(Default, Edit)]
-pub struct PersonUnit;
+use top::tune::FieldTuner;
 
 async fn name() -> impl Task {
-    enter::<Vec<u8>>()
+    enter::<bool>().tuned_with(FieldTuner::default().with_label("Name".to_string()))
 }
 
 const HOST: &str = "0.0.0.0:3000";

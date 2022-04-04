@@ -6,11 +6,12 @@ use crate::editor::Editor;
 use crate::event::{Event, Feedback, FeedbackHandler};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
+use crate::tune::Tune;
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
-/// Basic interaction task. Supports both reading and writing. Use [`enter`] or [`edit`] to
-/// construct one.
+/// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
+/// [`choose`] to construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Interact<E>
 where
@@ -62,6 +63,38 @@ where
     }
 }
 
+/// Have the user select a value out of a list of options. To use a custom viewer for the options,
+/// see [`choose_with`].
+#[inline]
+pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
+where
+    T: View,
+{
+    choose_with(options)
+}
+
+/// Have the user select a value out of a list of options, using a custom viewer.
+#[inline]
+pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<ChoiceEditor<V>>
+where
+    V: Viewer,
+{
+    Interact {
+        input: None,
+        editor: ChoiceEditor::new(options),
+    }
+}
+
+impl<E> Interact<E>
+where
+    E: Editor + Tune,
+{
+    pub fn tuned_with(mut self, tuner: E::Tuner) -> Self {
+        self.editor.tune_with(tuner);
+        self
+    }
+}
+
 #[async_trait]
 impl<E> Task for Interact<E>
 where
@@ -98,22 +131,5 @@ where
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }
-    }
-}
-
-pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
-where
-    T: View,
-{
-    choose_with(options)
-}
-
-pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<ChoiceEditor<V>>
-where
-    V: Viewer,
-{
-    Interact {
-        input: None,
-        editor: ChoiceEditor::new(options),
     }
 }

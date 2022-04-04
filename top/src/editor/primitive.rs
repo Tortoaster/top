@@ -8,12 +8,14 @@ use crate::component::Widget;
 use crate::editor::{Component, Editor, EditorError};
 use crate::event::{Event, Feedback};
 use crate::id::{Generator, Id};
+use crate::tune::{FieldTuner, Tune};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TextEditor {
     id: Id,
     value: String,
+    tuner: FieldTuner,
 }
 
 impl TextEditor {
@@ -21,6 +23,7 @@ impl TextEditor {
         TextEditor {
             id: Id::INVALID,
             value: String::new(),
+            tuner: FieldTuner::default(),
         }
     }
 }
@@ -39,7 +42,13 @@ impl Editor for TextEditor {
     fn component(&self) -> Component {
         let widget = Widget::TextField(self.value.clone());
 
-        Component::new(self.id, widget)
+        match &self.tuner.label {
+            None => Component::new(self.id, widget),
+            Some(label) => Component::new(self.id, widget)
+                .tune()
+                .add_label(label.clone())
+                .finish(),
+        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -57,6 +66,14 @@ impl Editor for TextEditor {
     }
 }
 
+impl Tune for TextEditor {
+    type Tuner = FieldTuner;
+
+    fn tune_with(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
+    }
+}
+
 impl Default for TextEditor {
     fn default() -> Self {
         TextEditor::new()
@@ -68,6 +85,7 @@ impl Default for TextEditor {
 pub struct IntegerEditor<N> {
     id: Id,
     value: Result<N, EditorError>,
+    tuner: FieldTuner,
 }
 
 impl<N> IntegerEditor<N>
@@ -78,6 +96,7 @@ where
         IntegerEditor {
             id: Id::INVALID,
             value: Ok(N::default()),
+            tuner: FieldTuner::default(),
         }
     }
 }
@@ -104,7 +123,13 @@ where
                 .unwrap_or_default(),
         );
 
-        Component::new(self.id, widget)
+        match &self.tuner.label {
+            None => Component::new(self.id, widget),
+            Some(label) => Component::new(self.id, widget)
+                .tune()
+                .add_label(label.clone())
+                .finish(),
+        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -134,6 +159,14 @@ where
     }
 }
 
+impl<N> Tune for IntegerEditor<N> {
+    type Tuner = FieldTuner;
+
+    fn tune_with(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
+    }
+}
+
 impl<N> Default for IntegerEditor<N>
 where
     N: Default,
@@ -148,6 +181,7 @@ where
 pub struct FloatEditor<N> {
     id: Id,
     value: Result<N, EditorError>,
+    tuner: FieldTuner,
 }
 
 impl<N> FloatEditor<N>
@@ -158,6 +192,7 @@ where
         FloatEditor {
             id: Id::INVALID,
             value: Ok(N::default()),
+            tuner: FieldTuner::default(),
         }
     }
 }
@@ -184,7 +219,13 @@ where
                 .unwrap_or_default(),
         );
 
-        Component::new(self.id, widget)
+        match &self.tuner.label {
+            None => Component::new(self.id, widget),
+            Some(label) => Component::new(self.id, widget)
+                .tune()
+                .add_label(label.clone())
+                .finish(),
+        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -214,6 +255,14 @@ where
     }
 }
 
+impl<N> Tune for FloatEditor<N> {
+    type Tuner = FieldTuner;
+
+    fn tune_with(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
+    }
+}
+
 impl<N> Default for FloatEditor<N>
 where
     N: Default,
@@ -228,6 +277,7 @@ where
 pub struct BooleanEditor {
     id: Id,
     value: Result<bool, EditorError>,
+    tuner: FieldTuner,
 }
 
 impl BooleanEditor {
@@ -235,6 +285,7 @@ impl BooleanEditor {
         BooleanEditor {
             id: Id::INVALID,
             value: Ok(false),
+            tuner: FieldTuner::default(),
         }
     }
 }
@@ -253,7 +304,13 @@ impl Editor for BooleanEditor {
     fn component(&self) -> Component {
         let widget = Widget::Checkbox(*self.value.as_ref().unwrap_or(&false));
 
-        Component::new(self.id, widget)
+        match &self.tuner.label {
+            None => Component::new(self.id, widget),
+            Some(label) => Component::new(self.id, widget)
+                .tune()
+                .add_label(label.clone())
+                .finish(),
+        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -289,11 +346,20 @@ impl Default for BooleanEditor {
     }
 }
 
+impl Tune for BooleanEditor {
+    type Tuner = FieldTuner;
+
+    fn tune_with(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
+    }
+}
+
 /// Basic editor for characters.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CharEditor {
     id: Id,
     value: Result<char, EditorError>,
+    tuner: FieldTuner,
 }
 
 impl CharEditor {
@@ -301,6 +367,7 @@ impl CharEditor {
         CharEditor {
             id: Id::INVALID,
             value: Err(EditorError::Invalid),
+            tuner: FieldTuner::default(),
         }
     }
 }
@@ -325,7 +392,13 @@ impl Editor for CharEditor {
                 .unwrap_or_default(),
         );
 
-        Component::new(self.id, widget)
+        match &self.tuner.label {
+            None => Component::new(self.id, widget),
+            Some(label) => Component::new(self.id, widget)
+                .tune()
+                .add_label(label.clone())
+                .finish(),
+        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -358,5 +431,13 @@ impl Editor for CharEditor {
 impl Default for CharEditor {
     fn default() -> Self {
         CharEditor::new()
+    }
+}
+
+impl Tune for CharEditor {
+    type Tuner = FieldTuner;
+
+    fn tune_with(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
     }
 }
