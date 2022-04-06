@@ -1,7 +1,6 @@
-use crate::component::icon::Icon;
-use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
+use crate::html::{AsHtml, Div, Html, Icon, IconButton, Layout};
 use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -28,6 +27,25 @@ impl<E> VecEditor<E> {
     }
 }
 
+impl<E> AsHtml for VecEditor<E>
+where
+    E: AsHtml,
+{
+    fn as_html(&self) -> Html {
+        let children = self
+            .editors
+            .iter()
+            .zip(&self.choices)
+            .map(|(editor, row)| row.as_html(editor))
+            .collect();
+
+        let group = Div::new(children).with_id(self.group_id).as_html();
+        let button = Row::add_button(self.add_id);
+
+        Div::new(vec![group, button]).as_html()
+    }
+}
+
 impl<E> Editor for VecEditor<E>
 where
     E: Editor + Clone,
@@ -50,20 +68,6 @@ where
         self.choices = self.editors.iter().map(|_| Row::new(gen)).collect();
     }
 
-    fn component(&self) -> Component {
-        let choices = self
-            .editors
-            .iter()
-            .zip(&self.choices)
-            .map(|(editor, row)| row.component(editor))
-            .collect();
-
-        let group = Component::new(self.group_id, Widget::Group(choices));
-        let button = Row::add_button(self.add_id);
-
-        Component::new(Id::INVALID, Widget::Group(vec![group, button]))
-    }
-
     fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Press { id } if id == self.add_id => {
@@ -71,14 +75,14 @@ where
                 let mut editor = self.template.clone();
                 editor.start(None, gen);
                 let row = Row::new(gen);
-                let component = row.component(&editor);
+                let html = row.as_html(&editor);
 
                 self.editors.push(editor);
                 self.choices.push(row);
 
                 Some(Feedback::Append {
                     id: self.group_id,
-                    component,
+                    html,
                 })
             }
             Event::Press { id } if self.choices.iter().any(|row| row.sub_id == id) => {
@@ -100,11 +104,11 @@ where
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         // TODO: Return all errors
         self.editors
             .iter()
-            .map(|editor| editor.read())
+            .map(|editor| editor.finish())
             .collect::<Result<Vec<_>, _>>()
     }
 }
@@ -137,6 +141,19 @@ where
     }
 }
 
+impl<E> AsHtml for OptionEditor<E>
+where
+    E: AsHtml,
+{
+    fn as_html(&self) -> Html {
+        if self.enabled {
+            self.row.as_html(&self.editor)
+        } else {
+            Row::add_button(self.add_id)
+        }
+    }
+}
+
 impl<E> Editor for OptionEditor<E>
 where
     E: Editor,
@@ -152,31 +169,23 @@ where
         self.editor.start(value.flatten(), gen);
     }
 
-    fn component(&self) -> Component {
-        if self.enabled {
-            self.row.component(&self.editor)
-        } else {
-            Row::add_button(self.add_id)
-        }
-    }
-
     fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Press { id } if id == self.add_id && !self.enabled => {
                 // Add value
                 let id = self.add_id;
-                let component = self.row.component(&mut self.editor);
+                let html = self.row.as_html(&mut self.editor);
                 self.enabled = true;
 
-                Some(Feedback::Replace { id, component })
+                Some(Feedback::Replace { id, html })
             }
             Event::Press { id } if id == self.row.sub_id && self.enabled => {
                 // Remove value
                 let id = self.row.id;
-                let component = Row::add_button(self.add_id);
+                let html = Row::add_button(self.add_id);
                 self.enabled = false;
 
-                Some(Feedback::Replace { id, component })
+                Some(Feedback::Replace { id, html })
             }
             _ => self
                 .enabled
@@ -185,9 +194,9 @@ where
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         if self.enabled {
-            Ok(Some(self.editor.read()?))
+            Ok(Some(self.editor.finish()?))
         } else {
             Ok(None)
         }
@@ -209,20 +218,18 @@ impl Row {
     }
 
     /// Creates a row consisting of the editor and a button to remove it.
-    fn component<E>(&self, editor: &E) -> Component
+    fn as_html<E>(&self, editor: &E) -> Html
     where
-        E: Editor,
+        E: AsHtml,
     {
-        let child = editor.component();
-        let sub = Component::new(self.sub_id, Widget::IconButton(Icon::Minus));
-
-        Component::new(self.id, Widget::Group(vec![child, sub]))
-            .tune()
-            .set_direction(true)
-            .finish()
+        let editor = editor.as_html();
+        let button = IconButton::new(self.sub_id, Icon::Minus).as_html();
+        Div::new(vec![editor, button])
+            .with_layout(Layout::Row)
+            .as_html()
     }
 
-    fn add_button(id: Id) -> Component {
-        Component::new(id, Widget::IconButton(Icon::Plus))
+    fn add_button(id: Id) -> Html {
+        IconButton::new(id, Icon::Plus).as_html()
     }
 }

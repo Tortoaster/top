@@ -9,7 +9,6 @@ pub use crate::viewer::convert::DisplayViewer;
 pub mod derive {
     pub use top_derive::Edit;
 
-    pub use crate::component::{Component, Widget};
     pub use crate::editor::generic::Edit;
     pub use crate::editor::{Editor, EditorError};
     pub use crate::event::{Event, Feedback};

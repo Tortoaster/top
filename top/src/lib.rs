@@ -1,8 +1,6 @@
-#![feature(macro_metavar_expr)]
-
-pub mod component;
 pub mod editor;
 pub mod event;
+pub mod html;
 pub mod id;
 pub mod integration;
 pub mod prelude;

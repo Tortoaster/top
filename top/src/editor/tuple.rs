@@ -1,12 +1,18 @@
 use paste::paste;
 
-use crate::component::Widget;
-use crate::editor::{Component, Editor, EditorError};
+use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
-use crate::id::{Generator, Id};
+use crate::html::{AsHtml, Html};
+use crate::id::Generator;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
+
+impl AsHtml for UnitEditor {
+    fn as_html(&self) -> Html {
+        Html::empty()
+    }
+}
 
 impl Editor for UnitEditor {
     type Input = ();
@@ -14,15 +20,11 @@ impl Editor for UnitEditor {
 
     fn start(&mut self, _value: Option<Self::Input>, _gen: &mut Generator) {}
 
-    fn component(&self) -> Component {
-        Component::new(Id::INVALID, Widget::Group(Vec::new()))
-    }
-
     fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Option<Feedback> {
         None
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         Ok(())
     }
 }
@@ -63,7 +65,7 @@ macro_rules! tuple_editor {
                             $(self.[<$editor:snake>].start(None, gen);)*
                         }
                         Some(value) => {
-                            $(self.[<$editor:snake>].start(Some(value.${index()}), gen);)*
+                            $(self.[<$editor:snake>].start(Some(value.0), gen);)*
                         }
                     }
                 }

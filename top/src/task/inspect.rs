@@ -9,7 +9,7 @@ use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
-/// Basic inspect (read-only interaction) task. Supports both reading. Use [`view`] to construct one.
+/// Basic inspect (read-only interaction) task. Use [`view`] to construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Inspect<V>
 where
@@ -55,12 +55,9 @@ where
             self.viewer = Either::Right(V::start(input.clone()))
         };
 
-        let component = self.viewer.as_ref().unwrap_right().component();
+        let html = self.viewer.as_ref().unwrap_right().as_html();
 
-        let initial = Feedback::Replace {
-            id: Id::ROOT,
-            component,
-        };
+        let initial = Feedback::Replace { id: Id::ROOT, html };
 
         ctx.feedback.send(initial).await?;
         Ok(())
@@ -72,7 +69,7 @@ where
     {
         match &self.viewer {
             Either::Left(_) => Ok(TaskValue::Empty),
-            Either::Right(viewer) => Ok(TaskValue::Stable(viewer.read())),
+            Either::Right(viewer) => Ok(TaskValue::Stable(viewer.finish())),
         }
     }
 }

@@ -1,9 +1,9 @@
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct FieldTuner {
+pub struct InputTuner {
     pub label: Option<String>,
 }
 
-impl FieldTuner {
+impl InputTuner {
     pub fn with_label(mut self, label: String) -> Self {
         self.label = Some(label);
         self
@@ -13,5 +13,5 @@ impl FieldTuner {
 pub trait Tune {
     type Tuner;
 
-    fn tune_with(&mut self, tuner: Self::Tuner);
+    fn tune(&mut self, tuner: Self::Tuner);
 }

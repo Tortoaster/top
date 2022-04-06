@@ -15,7 +15,6 @@ use log::{error, trace, warn};
 use tower_http::services::ServeDir;
 use tower_service::Service;
 
-use crate::component::Component;
 use crate::event::{Event, EventError, EventHandler, Feedback, FeedbackError, FeedbackHandler};
 use crate::task::{Context, Task};
 
@@ -88,7 +87,7 @@ impl Service<Request<Body>> for TaskRouter {
 }
 
 async fn wrapper() -> impl IntoResponse {
-    Html(Component::html_wrapper("Top Axum"))
+    Html(crate::html::Html::wrapper("Top Axum").to_string())
 }
 
 async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoResponse

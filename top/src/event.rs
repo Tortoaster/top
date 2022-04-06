@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::component::Component;
+use crate::html::Html;
 use crate::id::Id;
 
 /// Interaction event from the user, such as checking a checkbox or pressing a button.
@@ -31,15 +31,15 @@ pub enum EventError {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Feedback {
-    /// Replace this component with a new component.
-    Replace { id: Id, component: Component },
-    /// Add a component to this component.
-    Append { id: Id, component: Component },
-    /// Remove this component.
+    /// Replace this html with a new html.
+    Replace { id: Id, html: Html },
+    /// Add a html to this html.
+    Append { id: Id, html: Html },
+    /// Remove this html.
     Remove { id: Id },
-    /// The value of this component is valid.
+    /// The value of this html is valid.
     Valid { id: Id },
-    /// The value of this component is invalid.
+    /// The value of this html is invalid.
     Invalid { id: Id },
 }
 

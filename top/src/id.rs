@@ -4,7 +4,7 @@ use std::str::FromStr;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 // TODO: Allow identifying containing form, and disable any buttons while syncing or invalid
-/// Unique component identifier.
+/// Unique html identifier.
 #[derive(
     Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, SerializeDisplay, DeserializeFromStr,
 )]
@@ -31,7 +31,7 @@ impl FromStr for Id {
     }
 }
 
-/// A creator used to generate components with unique identifiers.
+/// A generator used to generate unique identifiers.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Generator(Id);
 

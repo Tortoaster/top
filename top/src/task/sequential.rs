@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use either::Either;
 
-use crate::component::{Component, Widget};
 use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::html::{AsHtml, Button};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
@@ -69,13 +69,13 @@ where
                 task.start(ctx).await?;
                 for cont in &mut self.continuations {
                     if let Continuation::OnAction(action, _) = cont {
-                        let widget = Widget::Button(action.0.to_owned());
-                        let button = Component::new(ctx.gen.next(), widget);
+                        let id = ctx.gen.next();
+                        let button = Button::new(id, &action.0);
                         // TODO: Type-safe way?
-                        action.1 = Some(button.id());
+                        action.1 = Some(id);
                         let feedback = Feedback::Append {
                             id: Id::ROOT,
-                            component: button,
+                            html: button.as_html(),
                         };
                         ctx.feedback.send(feedback).await?;
                     }

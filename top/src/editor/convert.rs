@@ -1,15 +1,17 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
+use crate::html::{AsHtml, Html, Input};
 use crate::id::{Generator, Id};
+use crate::tune::{InputTuner, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FromStrEditor<T> {
     id: Id,
     value: Result<T, EditorError>,
+    tuner: InputTuner,
 }
 
 impl<T> FromStrEditor<T>
@@ -20,7 +22,26 @@ where
         FromStrEditor {
             id: Id::INVALID,
             value: "".parse().map_err(|_| EditorError::Invalid),
+            tuner: InputTuner::default(),
         }
+    }
+}
+
+impl<T> AsHtml for FromStrEditor<T>
+where
+    T: Display,
+{
+    fn as_html(&self) -> Html {
+        Input::new(self.id)
+            .with_value(
+                &self
+                    .value
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+            )
+            .with_label(self.tuner.label.as_deref())
+            .as_html()
     }
 }
 
@@ -36,17 +57,6 @@ where
         if let Some(value) = value {
             self.value = Ok(value);
         }
-    }
-
-    fn component(&self) -> Component {
-        let widget = Widget::TextField(
-            self.value
-                .as_ref()
-                .map(|value| value.to_string())
-                .unwrap_or_default(),
-        );
-
-        Component::new(self.id, widget)
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -71,8 +81,16 @@ where
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
+    }
+}
+
+impl<T> Tune for FromStrEditor<T> {
+    type Tuner = InputTuner;
+
+    fn tune(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
     }
 }
 

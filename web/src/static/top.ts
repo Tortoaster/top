@@ -61,11 +61,11 @@ function onMessage(ev: MessageEvent) {
   const data = JSON.parse(ev.data);
   if(data.replace != null) {
     const element = document.getElementById(data.replace.id) as HTMLDivElement;
-    element.innerHTML = data.replace.component;
+    element.innerHTML = data.replace.html;
   } else if(data.append != null) {
     const element = document.getElementById(data.append.id) as HTMLDivElement;
     const template = document.createElement('template');
-    template.innerHTML = data.append.component;
+    template.innerHTML = data.append.html;
     element.appendChild(template.content);
   } else if(data.remove != null) {
     const element = document.getElementById(data.remove.id) as HTMLDivElement;

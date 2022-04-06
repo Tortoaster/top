@@ -1,6 +1,6 @@
-use crate::component::{Component, Widget};
 use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
+use crate::html::{AsHtml, Html, RadioGroup};
 use crate::id::{Generator, Id};
 use crate::viewer::Viewer;
 
@@ -26,6 +26,16 @@ where
     }
 }
 
+impl<V> AsHtml for ChoiceEditor<V>
+where
+    V: AsHtml,
+{
+    fn as_html(&self) -> Html {
+        let options = self.choices.iter().map(V::as_html).collect();
+        RadioGroup::new(self.id, options).as_html()
+    }
+}
+
 impl<V> Editor for ChoiceEditor<V>
 where
     V: Viewer,
@@ -36,12 +46,6 @@ where
     fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
         self.choice = value;
         self.id = gen.next();
-    }
-
-    fn component(&self) -> Component {
-        let options = self.choices.iter().map(Viewer::component).collect();
-        let component = Component::new(self.id, Widget::RadioGroup(options));
-        component
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -57,13 +61,13 @@ where
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         match self.choice {
             None => Err(EditorError::Invalid),
             Some(index) => self
                 .choices
                 .get(index)
-                .map(|viewer| viewer.read())
+                .map(|viewer| viewer.finish())
                 .ok_or(EditorError::Invalid),
         }
     }

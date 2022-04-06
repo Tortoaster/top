@@ -3,10 +3,10 @@ use log::info;
 
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::tune::FieldTuner;
+use top::tune::InputTuner;
 
 async fn name() -> impl Task {
-    enter::<bool>().tuned_with(FieldTuner::default().with_label("Name".to_string()))
+    enter::<bool>().tune(InputTuner::default().with_label("Name".to_string()))
 }
 
 const HOST: &str = "0.0.0.0:3000";

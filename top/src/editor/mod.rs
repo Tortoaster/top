@@ -2,8 +2,8 @@
 
 use thiserror::Error;
 
-use crate::component::Component;
 use crate::event::{Event, Feedback};
+use crate::html::AsHtml;
 use crate::id::Generator;
 
 pub mod choice;
@@ -14,7 +14,7 @@ pub mod primitive;
 pub mod tuple;
 
 /// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
-pub trait Editor {
+pub trait Editor: AsHtml {
     /// The type of data this editor can read. For example, a checkbox can take a boolean value to
     /// represent its checked state.
     type Input;
@@ -25,16 +25,13 @@ pub trait Editor {
     // TODO: Turn into constructor?
     fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator);
 
-    /// Create the initial user interface for this editor.
-    fn component(&self) -> Component;
-
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
     fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback>;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.
-    fn read(&self) -> Result<Self::Output, EditorError>;
+    fn finish(&self) -> Result<Self::Output, EditorError>;
 }
 
 /// Common error type for [`Editor`]s.

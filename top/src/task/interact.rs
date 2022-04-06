@@ -89,8 +89,8 @@ impl<E> Interact<E>
 where
     E: Editor + Tune,
 {
-    pub fn tuned_with(mut self, tuner: E::Tuner) -> Self {
-        self.editor.tune_with(tuner);
+    pub fn tune(mut self, tuner: E::Tuner) -> Self {
+        self.editor.tune(tuner);
         self
     }
 }
@@ -109,12 +109,9 @@ where
         H: FeedbackHandler + Send,
     {
         self.editor.start(self.input.take(), &mut ctx.gen);
-        let component = self.editor.component();
+        let html = self.editor.as_html();
 
-        let initial = Feedback::Replace {
-            id: Id::ROOT,
-            component,
-        };
+        let initial = Feedback::Replace { id: Id::ROOT, html };
 
         ctx.feedback.send(initial).await?;
         Ok(())
@@ -127,7 +124,7 @@ where
         if let Some(feedback) = self.editor.on_event(event, &mut ctx.gen) {
             ctx.feedback.send(feedback).await?;
         }
-        match self.editor.read() {
+        match self.editor.finish() {
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }

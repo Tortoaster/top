@@ -1,5 +1,7 @@
 use crate::editor::container::{OptionEditor, VecEditor};
-use crate::editor::primitive::{BooleanEditor, CharEditor, FloatEditor, IntegerEditor, TextEditor};
+use crate::editor::primitive::{
+    BooleanEditor, CharEditor, FloatEditor, IntegerEditor, StringEditor,
+};
 use crate::editor::tuple::*;
 use crate::editor::Editor;
 
@@ -13,10 +15,10 @@ pub trait Edit: Sized {
 }
 
 impl Edit for String {
-    type Editor = TextEditor;
+    type Editor = StringEditor;
 
     fn default_editor() -> Self::Editor {
-        TextEditor::new()
+        StringEditor::new()
     }
 }
 

@@ -4,31 +4,40 @@ use std::fmt::Display;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
-use crate::component::Widget;
-use crate::editor::{Component, Editor, EditorError};
+use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
+use crate::html::{AsHtml, CheckBox, Html, Input, InputType};
 use crate::id::{Generator, Id};
-use crate::tune::{FieldTuner, Tune};
+use crate::tune::{InputTuner, Tune};
 
 /// Basic editor for strings.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TextEditor {
+pub struct StringEditor {
     id: Id,
     value: String,
-    tuner: FieldTuner,
+    tuner: InputTuner,
 }
 
-impl TextEditor {
+impl StringEditor {
     pub fn new() -> Self {
-        TextEditor {
+        StringEditor {
             id: Id::INVALID,
             value: String::new(),
-            tuner: FieldTuner::default(),
+            tuner: InputTuner::default(),
         }
     }
 }
 
-impl Editor for TextEditor {
+impl AsHtml for StringEditor {
+    fn as_html(&self) -> Html {
+        Input::new(self.id)
+            .with_value(&self.value)
+            .with_label(self.tuner.label.as_deref())
+            .as_html()
+    }
+}
+
+impl Editor for StringEditor {
     type Input = String;
     type Output = String;
 
@@ -36,18 +45,6 @@ impl Editor for TextEditor {
         self.id = gen.next();
         if let Some(value) = value {
             self.value = value;
-        }
-    }
-
-    fn component(&self) -> Component {
-        let widget = Widget::TextField(self.value.clone());
-
-        match &self.tuner.label {
-            None => Component::new(self.id, widget),
-            Some(label) => Component::new(self.id, widget)
-                .tune()
-                .add_label(label.clone())
-                .finish(),
         }
     }
 
@@ -61,22 +58,22 @@ impl Editor for TextEditor {
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         Ok(self.value.clone())
     }
 }
 
-impl Tune for TextEditor {
-    type Tuner = FieldTuner;
+impl Tune for StringEditor {
+    type Tuner = InputTuner;
 
-    fn tune_with(&mut self, tuner: Self::Tuner) {
+    fn tune(&mut self, tuner: Self::Tuner) {
         self.tuner = tuner;
     }
 }
 
-impl Default for TextEditor {
+impl Default for StringEditor {
     fn default() -> Self {
-        TextEditor::new()
+        StringEditor::new()
     }
 }
 
@@ -85,7 +82,7 @@ impl Default for TextEditor {
 pub struct IntegerEditor<N> {
     id: Id,
     value: Result<N, EditorError>,
-    tuner: FieldTuner,
+    tuner: InputTuner,
 }
 
 impl<N> IntegerEditor<N>
@@ -96,8 +93,27 @@ where
         IntegerEditor {
             id: Id::INVALID,
             value: Ok(N::default()),
-            tuner: FieldTuner::default(),
+            tuner: InputTuner::default(),
         }
+    }
+}
+
+impl<N> AsHtml for IntegerEditor<N>
+where
+    N: Display,
+{
+    fn as_html(&self) -> Html {
+        Input::new(self.id)
+            .with_type(InputType::Number)
+            .with_value(
+                &self
+                    .value
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+            )
+            .with_label(self.tuner.label.as_deref())
+            .as_html()
     }
 }
 
@@ -112,23 +128,6 @@ where
         self.id = gen.next();
         if let Some(value) = value {
             self.value = Ok(value);
-        }
-    }
-
-    fn component(&self) -> Component {
-        let widget = Widget::NumberField(
-            self.value
-                .as_ref()
-                .map(|value| value.to_string())
-                .unwrap_or_default(),
-        );
-
-        match &self.tuner.label {
-            None => Component::new(self.id, widget),
-            Some(label) => Component::new(self.id, widget)
-                .tune()
-                .add_label(label.clone())
-                .finish(),
         }
     }
 
@@ -154,15 +153,15 @@ where
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 }
 
 impl<N> Tune for IntegerEditor<N> {
-    type Tuner = FieldTuner;
+    type Tuner = InputTuner;
 
-    fn tune_with(&mut self, tuner: Self::Tuner) {
+    fn tune(&mut self, tuner: Self::Tuner) {
         self.tuner = tuner;
     }
 }
@@ -181,7 +180,7 @@ where
 pub struct FloatEditor<N> {
     id: Id,
     value: Result<N, EditorError>,
-    tuner: FieldTuner,
+    tuner: InputTuner,
 }
 
 impl<N> FloatEditor<N>
@@ -192,8 +191,27 @@ where
         FloatEditor {
             id: Id::INVALID,
             value: Ok(N::default()),
-            tuner: FieldTuner::default(),
+            tuner: InputTuner::default(),
         }
+    }
+}
+
+impl<N> AsHtml for FloatEditor<N>
+where
+    N: Display,
+{
+    fn as_html(&self) -> Html {
+        Input::new(self.id)
+            .with_type(InputType::Number)
+            .with_value(
+                &self
+                    .value
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+            )
+            .with_label(self.tuner.label.as_deref())
+            .as_html()
     }
 }
 
@@ -208,23 +226,6 @@ where
         self.id = gen.next();
         if let Some(value) = value {
             self.value = Ok(value);
-        }
-    }
-
-    fn component(&self) -> Component {
-        let widget = Widget::NumberField(
-            self.value
-                .as_ref()
-                .map(|value| value.to_string())
-                .unwrap_or_default(),
-        );
-
-        match &self.tuner.label {
-            None => Component::new(self.id, widget),
-            Some(label) => Component::new(self.id, widget)
-                .tune()
-                .add_label(label.clone())
-                .finish(),
         }
     }
 
@@ -250,15 +251,15 @@ where
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
     }
 }
 
 impl<N> Tune for FloatEditor<N> {
-    type Tuner = FieldTuner;
+    type Tuner = InputTuner;
 
-    fn tune_with(&mut self, tuner: Self::Tuner) {
+    fn tune(&mut self, tuner: Self::Tuner) {
         self.tuner = tuner;
     }
 }
@@ -277,7 +278,7 @@ where
 pub struct BooleanEditor {
     id: Id,
     value: Result<bool, EditorError>,
-    tuner: FieldTuner,
+    tuner: InputTuner,
 }
 
 impl BooleanEditor {
@@ -285,8 +286,17 @@ impl BooleanEditor {
         BooleanEditor {
             id: Id::INVALID,
             value: Ok(false),
-            tuner: FieldTuner::default(),
+            tuner: InputTuner::default(),
         }
+    }
+}
+
+impl AsHtml for BooleanEditor {
+    fn as_html(&self) -> Html {
+        CheckBox::new(self.id)
+            .with_checked(self.value.as_ref().copied().unwrap_or_default())
+            .with_label(self.tuner.label.as_deref())
+            .as_html()
     }
 }
 
@@ -301,18 +311,6 @@ impl Editor for BooleanEditor {
         }
     }
 
-    fn component(&self) -> Component {
-        let widget = Widget::Checkbox(*self.value.as_ref().unwrap_or(&false));
-
-        match &self.tuner.label {
-            None => Component::new(self.id, widget),
-            Some(label) => Component::new(self.id, widget)
-                .tune()
-                .add_label(label.clone())
-                .finish(),
-        }
-    }
-
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
@@ -335,8 +333,16 @@ impl Editor for BooleanEditor {
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
+    }
+}
+
+impl Tune for BooleanEditor {
+    type Tuner = InputTuner;
+
+    fn tune(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
     }
 }
 
@@ -346,20 +352,12 @@ impl Default for BooleanEditor {
     }
 }
 
-impl Tune for BooleanEditor {
-    type Tuner = FieldTuner;
-
-    fn tune_with(&mut self, tuner: Self::Tuner) {
-        self.tuner = tuner;
-    }
-}
-
 /// Basic editor for characters.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CharEditor {
     id: Id,
     value: Result<char, EditorError>,
-    tuner: FieldTuner,
+    tuner: InputTuner,
 }
 
 impl CharEditor {
@@ -367,8 +365,24 @@ impl CharEditor {
         CharEditor {
             id: Id::INVALID,
             value: Err(EditorError::Invalid),
-            tuner: FieldTuner::default(),
+            tuner: InputTuner::default(),
         }
+    }
+}
+
+impl AsHtml for CharEditor {
+    fn as_html(&self) -> Html {
+        // TODO: Limit length to 1
+        Input::new(self.id)
+            .with_value(
+                &self
+                    .value
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+            )
+            .with_label(self.tuner.label.as_deref())
+            .as_html()
     }
 }
 
@@ -383,24 +397,6 @@ impl Editor for CharEditor {
         }
     }
 
-    fn component(&self) -> Component {
-        // TODO: Limit length to 1
-        let widget = Widget::TextField(
-            self.value
-                .as_ref()
-                .map(|value| value.to_string())
-                .unwrap_or_default(),
-        );
-
-        match &self.tuner.label {
-            None => Component::new(self.id, widget),
-            Some(label) => Component::new(self.id, widget)
-                .tune()
-                .add_label(label.clone())
-                .finish(),
-        }
-    }
-
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
         match event {
             Event::Update { id, value } => {
@@ -423,21 +419,21 @@ impl Editor for CharEditor {
         }
     }
 
-    fn read(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Output, EditorError> {
         self.value.clone()
+    }
+}
+
+impl Tune for CharEditor {
+    type Tuner = InputTuner;
+
+    fn tune(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
     }
 }
 
 impl Default for CharEditor {
     fn default() -> Self {
         CharEditor::new()
-    }
-}
-
-impl Tune for CharEditor {
-    type Tuner = FieldTuner;
-
-    fn tune_with(&mut self, tuner: Self::Tuner) {
-        self.tuner = tuner;
     }
 }
