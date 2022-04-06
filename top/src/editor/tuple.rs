@@ -96,15 +96,15 @@ macro_rules! tuple_editor {
     }
 }
 
-tuple_editor!(MonupleEditor<A>);
-tuple_editor!(CoupleEditor<A, B>);
-tuple_editor!(TripleEditor<A, B, C>);
-tuple_editor!(QuadrupleEditor<A, B, C, D>);
-tuple_editor!(QuintupleEditor<A, B, C, D, E>);
-tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
-tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
-tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
-tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
-tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
-tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
-tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
+// tuple_editor!(MonupleEditor<A>);
+// tuple_editor!(CoupleEditor<A, B>);
+// tuple_editor!(TripleEditor<A, B, C>);
+// tuple_editor!(QuadrupleEditor<A, B, C, D>);
+// tuple_editor!(QuintupleEditor<A, B, C, D, E>);
+// tuple_editor!(SextupleEditor<A, B, C, D, E, F>);
+// tuple_editor!(SeptupleEditor<A, B, C, D, E, F, G>);
+// tuple_editor!(OctupleEditor<A, B, C, D, E, F, G, H>);
+// tuple_editor!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
+// tuple_editor!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
+// tuple_editor!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
+// tuple_editor!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
