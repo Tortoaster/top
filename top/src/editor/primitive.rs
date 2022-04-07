@@ -85,7 +85,7 @@ macro_rules! impl_as_html_for_number {
                             &self
                                 .value
                                 .as_ref()
-                                .map(ToString::to_string)
+                                .map(<$ty>::to_string)
                                 .unwrap_or_default(),
                         )
                         .with_label(self.tuner.label.as_deref())
@@ -111,13 +111,7 @@ impl AsHtml for InputEditor<char> {
     fn as_html(&self) -> Html {
         // TODO: Limit length to 1
         Input::new(self.id)
-            .with_value(
-                &self
-                    .value
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
-            )
+            .with_value(&self.value.as_ref().map(char::to_string).unwrap_or_default())
             .with_label(self.tuner.label.as_deref())
             .as_html()
     }
