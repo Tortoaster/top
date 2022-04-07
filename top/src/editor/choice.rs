@@ -11,10 +11,7 @@ pub struct ChoiceEditor<V> {
     choice: Option<usize>,
 }
 
-impl<V> ChoiceEditor<V>
-where
-    V: Viewer,
-{
+impl<V> ChoiceEditor<V> {
     pub fn new(options: Vec<V>) -> Self {
         ChoiceEditor {
             id: Id::INVALID,

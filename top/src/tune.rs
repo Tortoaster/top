@@ -36,7 +36,7 @@ impl StringTuner {
     }
 }
 
-impl<E> Interact<E>
+impl<E> Interact<E, E::Input>
 where
     E: Editor + Tune,
 {
@@ -48,7 +48,7 @@ where
 
 impl<V> Inspect<V>
 where
-    V: Viewer + Tune,
+    V: Tune,
 {
     pub fn tune(mut self, tuner: V::Tuner) -> Self {
         self.viewer.tune(tuner);
