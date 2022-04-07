@@ -31,16 +31,8 @@ pub trait Editor: AsHtml {
 }
 
 /// Common error type for [`Editor`]s.
-#[derive(Clone, Debug, Eq, PartialEq, Error)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Error)]
 pub enum EditorError {
-    #[error("failed to parse integer")]
-    ParseInt(#[from] std::num::ParseIntError),
-    #[error("failed to parse float")]
-    ParseFloat(#[from] std::num::ParseFloatError),
-    #[error("failed to parse boolean")]
-    ParseBool(#[from] std::str::ParseBoolError),
-    #[error("failed to parse character")]
-    ParseChar(#[from] std::char::ParseCharError),
     #[error("something is wrong with the value")]
     Invalid,
 }

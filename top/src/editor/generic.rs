@@ -1,9 +1,7 @@
-// use crate::editor::container::{OptionEditor, VecEditor};
-use crate::editor::primitive::{
-    BooleanEditor, CharEditor, FloatEditor, IntegerEditor, StringEditor,
-};
-use crate::editor::tuple::*;
+use crate::editor::primitive::InputEditor;
 use crate::editor::Editor;
+// use crate::editor::container::{OptionEditor, VecEditor};
+use crate::editor::tuple::*;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
@@ -15,58 +13,42 @@ pub trait Edit: Sized {
 }
 
 impl Edit for String {
-    type Editor = StringEditor;
+    type Editor = InputEditor<String>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        StringEditor::new(value)
+        InputEditor::new(value)
     }
 }
 
-macro_rules! impl_edit_for_integer {
+macro_rules! impl_edit_for_number {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Editor = IntegerEditor<$ty>;
+                type Editor = InputEditor<$ty>;
 
                 fn edit(value: Option<Self>) -> Self::Editor {
-                    IntegerEditor::new(value)
+                    InputEditor::new(value)
                 }
             }
         )*
     };
 }
 
-impl_edit_for_integer!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
-
-macro_rules! impl_edit_for_float {
-    ($($ty:ty),*) => {
-        $(
-            impl Edit for $ty {
-                type Editor = FloatEditor<$ty>;
-
-                fn edit(value: Option<Self>) -> Self::Editor {
-                    FloatEditor::new(value)
-                }
-            }
-        )*
-    };
-}
-
-impl_edit_for_float!(f32, f64);
+impl_edit_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
 impl Edit for bool {
-    type Editor = BooleanEditor;
+    type Editor = InputEditor<bool>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        BooleanEditor::new(value)
+        InputEditor::new(value)
     }
 }
 
 impl Edit for char {
-    type Editor = CharEditor;
+    type Editor = InputEditor<char>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        CharEditor::new(value)
+        InputEditor::new(value)
     }
 }
 
