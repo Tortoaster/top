@@ -1,32 +1,44 @@
 use std::fmt::Display;
 
-use crate::html::{AsHtml, Html, Span};
+use crate::html::{AsHtml, Html};
+use crate::tune::Tune;
+use crate::viewer::primitive::StringViewer;
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DisplayViewer<T>(T);
+pub struct DisplayViewer {
+    viewer: StringViewer,
+}
 
-impl<T> AsHtml for DisplayViewer<T>
-where
-    T: Display,
-{
-    fn as_html(&self) -> Html {
-        Span::new(&self.0.to_string()).as_html()
+impl DisplayViewer {
+    pub fn new<T>(value: T) -> Self
+    where
+        T: Display,
+    {
+        DisplayViewer {
+            viewer: StringViewer::new(value.to_string()),
+        }
     }
 }
 
-impl<T> Viewer for DisplayViewer<T>
-where
-    T: Clone + Display,
-{
-    type Input = T;
-    type Output = T;
-
-    fn start(value: Self::Input) -> Self {
-        DisplayViewer(value)
+impl AsHtml for DisplayViewer {
+    fn as_html(&self) -> Html {
+        self.viewer.as_html()
     }
+}
+
+impl Viewer for DisplayViewer {
+    type Output = <StringViewer as Viewer>::Output;
 
     fn finish(&self) -> Self::Output {
-        self.0.clone()
+        self.viewer.finish()
+    }
+}
+
+impl Tune for DisplayViewer {
+    type Tuner = <StringViewer as Tune>::Tuner;
+
+    fn tune(&mut self, tuner: Self::Tuner) {
+        self.viewer.tune(tuner);
     }
 }

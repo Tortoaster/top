@@ -1,25 +1,43 @@
 use crate::html::{AsHtml, Html, Span};
+use crate::tune::{StringTuner, Tune};
 use crate::viewer::Viewer;
 
 /// Basic viewer for strings.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TextViewer(String);
+pub struct StringViewer {
+    content: String,
+    tuner: StringTuner,
+}
 
-impl AsHtml for TextViewer {
-    fn as_html(&self) -> Html {
-        Span::new(&self.0).as_html()
+impl StringViewer {
+    pub fn new(value: String) -> Self {
+        StringViewer {
+            content: value,
+            tuner: StringTuner::default(),
+        }
     }
 }
 
-impl Viewer for TextViewer {
-    type Input = String;
+impl AsHtml for StringViewer {
+    fn as_html(&self) -> Html {
+        Span::new(&self.content)
+            .with_color(self.tuner.color)
+            .as_html()
+    }
+}
+
+impl Viewer for StringViewer {
     type Output = String;
 
-    fn start(value: Self::Input) -> Self {
-        TextViewer(value)
-    }
-
     fn finish(&self) -> Self::Output {
-        self.0.clone()
+        self.content.clone()
+    }
+}
+
+impl Tune for StringViewer {
+    type Tuner = StringTuner;
+
+    fn tune(&mut self, tuner: Self::Tuner) {
+        self.tuner = tuner;
     }
 }

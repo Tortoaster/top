@@ -9,7 +9,7 @@ use serde_json::json;
 
 pub use button::{Button, Icon, IconButton};
 pub use input::{CheckBox, Input, InputType};
-pub use tag::{Div, Layout, RadioGroup, Span};
+pub use tag::{Color, Div, Layout, RadioGroup, Span};
 
 mod button;
 mod input;

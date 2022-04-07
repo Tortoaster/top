@@ -11,13 +11,13 @@ pub trait Edit: Sized {
     type Editor: Editor<Input = Self, Output = Self>;
 
     /// Specifies the default editor for this type.
-    fn default_editor() -> Self::Editor;
+    fn edit() -> Self::Editor;
 }
 
 impl Edit for String {
     type Editor = StringEditor;
 
-    fn default_editor() -> Self::Editor {
+    fn edit() -> Self::Editor {
         StringEditor::new()
     }
 }
@@ -28,7 +28,7 @@ macro_rules! impl_edit_for_integer {
             impl Edit for $ty {
                 type Editor = IntegerEditor<$ty>;
 
-                fn default_editor() -> Self::Editor {
+                fn edit() -> Self::Editor {
                     IntegerEditor::new()
                 }
             }
@@ -44,7 +44,7 @@ macro_rules! impl_edit_for_float {
             impl Edit for $ty {
                 type Editor = FloatEditor<$ty>;
 
-                fn default_editor() -> Self::Editor {
+                fn edit() -> Self::Editor {
                     FloatEditor::new()
                 }
             }
@@ -57,7 +57,7 @@ impl_edit_for_float!(f32, f64);
 impl Edit for bool {
     type Editor = BooleanEditor;
 
-    fn default_editor() -> Self::Editor {
+    fn edit() -> Self::Editor {
         BooleanEditor::new()
     }
 }
@@ -65,7 +65,7 @@ impl Edit for bool {
 impl Edit for char {
     type Editor = CharEditor;
 
-    fn default_editor() -> Self::Editor {
+    fn edit() -> Self::Editor {
         CharEditor::new()
     }
 }
@@ -73,7 +73,7 @@ impl Edit for char {
 impl Edit for () {
     type Editor = UnitEditor;
 
-    fn default_editor() -> Self::Editor {
+    fn edit() -> Self::Editor {
         UnitEditor
     }
 }
@@ -113,8 +113,8 @@ where
 {
     type Editor = VecEditor<T::Editor>;
 
-    fn default_editor() -> Self::Editor {
-        VecEditor::new(T::default_editor())
+    fn edit() -> Self::Editor {
+        VecEditor::new(T::edit())
     }
 }
 
@@ -124,7 +124,7 @@ where
 {
     type Editor = OptionEditor<T::Editor>;
 
-    fn default_editor() -> Self::Editor {
-        OptionEditor::new(T::default_editor())
+    fn edit() -> Self::Editor {
+        OptionEditor::new(T::edit())
     }
 }

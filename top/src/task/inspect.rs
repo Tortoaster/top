@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use either::Either;
 
 use crate::event::{Event, Feedback, FeedbackHandler};
 use crate::id::Id;
@@ -15,7 +14,7 @@ pub struct Inspect<V>
 where
     V: Viewer,
 {
-    viewer: Either<V::Input, V>,
+    pub(crate) viewer: V,
 }
 
 /// Show a value to the user. To use a custom editor, see [`view_with`].
@@ -24,25 +23,22 @@ pub fn view<T>(value: T) -> Inspect<T::Viewer>
 where
     T: View,
 {
-    view_with(value)
+    view_with(value.view())
 }
 
 /// Show a value to the user, through a custom editor.
 #[inline]
-pub fn view_with<V>(value: V::Input) -> Inspect<V>
+pub fn view_with<V>(viewer: V) -> Inspect<V>
 where
     V: Viewer,
 {
-    Inspect {
-        viewer: Either::Left(value),
-    }
+    Inspect { viewer }
 }
 
 #[async_trait]
 impl<V> Task for Inspect<V>
 where
     V: Viewer + Send,
-    V::Input: Clone + Debug + Send,
     V::Output: Send + Sync,
 {
     type Value = V::Output;
@@ -51,15 +47,9 @@ where
     where
         H: FeedbackHandler + Send,
     {
-        if let Either::Left(input) = &self.viewer {
-            self.viewer = Either::Right(V::start(input.clone()))
-        };
-
-        let html = self.viewer.as_ref().unwrap_right().as_html();
-
-        let initial = Feedback::Replace { id: Id::ROOT, html };
-
-        ctx.feedback.send(initial).await?;
+        let html = self.viewer.as_html();
+        let feedback = Feedback::Replace { id: Id::ROOT, html };
+        ctx.feedback.send(feedback).await?;
         Ok(())
     }
 
@@ -67,9 +57,6 @@ where
     where
         H: FeedbackHandler + Send,
     {
-        match &self.viewer {
-            Either::Left(_) => Ok(TaskValue::Empty),
-            Either::Right(viewer) => Ok(TaskValue::Stable(viewer.finish())),
-        }
+        Ok(TaskValue::Stable(self.viewer.finish()))
     }
 }

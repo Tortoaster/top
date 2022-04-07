@@ -6,7 +6,6 @@ use crate::editor::Editor;
 use crate::event::{Event, Feedback, FeedbackHandler};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
-use crate::tune::Tune;
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
@@ -18,7 +17,7 @@ where
     E: Editor,
 {
     input: Option<E::Input>,
-    editor: E,
+    pub(crate) editor: E,
 }
 
 /// Have the user enter a value. To use a custom editor, see [`enter_with`].
@@ -27,7 +26,7 @@ pub fn enter<T>() -> Interact<T::Editor>
 where
     T: Edit,
 {
-    enter_with(T::default_editor())
+    enter_with(T::edit())
 }
 
 /// Have the user enter a value, through a custom editor.
@@ -48,7 +47,7 @@ pub fn edit<T>(value: T) -> Interact<T::Editor>
 where
     T: Edit,
 {
-    edit_with(value, T::default_editor())
+    edit_with(value, T::edit())
 }
 
 /// Have the user update a value, through a custom editor.
@@ -70,28 +69,18 @@ pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
 where
     T: View,
 {
-    choose_with(options)
+    choose_with(options.into_iter().map(T::view).collect())
 }
 
 /// Have the user select a value out of a list of options, using a custom viewer.
 #[inline]
-pub fn choose_with<V>(options: Vec<V::Input>) -> Interact<ChoiceEditor<V>>
+pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>>
 where
     V: Viewer,
 {
     Interact {
         input: None,
         editor: ChoiceEditor::new(options),
-    }
-}
-
-impl<E> Interact<E>
-where
-    E: Editor + Tune,
-{
-    pub fn tune(mut self, tuner: E::Tuner) -> Self {
-        self.editor.tune(tuner);
-        self
     }
 }
 

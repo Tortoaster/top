@@ -15,9 +15,7 @@ impl<V> ChoiceEditor<V>
 where
     V: Viewer,
 {
-    pub fn new(options: Vec<V::Input>) -> Self {
-        let options = options.into_iter().map(|option| V::start(option)).collect();
-
+    pub fn new(options: Vec<V>) -> Self {
         ChoiceEditor {
             id: Id::INVALID,
             choices: options,

@@ -3,10 +3,9 @@ use log::info;
 
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::tune::InputTuner;
 
 async fn name() -> impl Task {
-    enter::<bool>().tune(InputTuner::default().with_label("Name".to_string()))
+    view_with(DisplayViewer::new("x")).tune(StringTuner::default().with_color(Color::Blue))
 }
 
 const HOST: &str = "0.0.0.0:3000";
