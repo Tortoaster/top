@@ -1,4 +1,4 @@
-use crate::editor::container::{OptionEditor, VecEditor};
+// use crate::editor::container::{OptionEditor, VecEditor};
 use crate::editor::primitive::{
     BooleanEditor, CharEditor, FloatEditor, IntegerEditor, StringEditor,
 };
@@ -8,17 +8,17 @@ use crate::editor::Editor;
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
 pub trait Edit: Sized {
-    type Editor: Editor<Input = Self, Output = Self>;
+    type Editor: Editor<Output = Self>;
 
     /// Specifies the default editor for this type.
-    fn edit() -> Self::Editor;
+    fn edit(value: Option<Self>) -> Self::Editor;
 }
 
 impl Edit for String {
     type Editor = StringEditor;
 
-    fn edit() -> Self::Editor {
-        StringEditor::new()
+    fn edit(value: Option<Self>) -> Self::Editor {
+        StringEditor::new(value)
     }
 }
 
@@ -28,8 +28,8 @@ macro_rules! impl_edit_for_integer {
             impl Edit for $ty {
                 type Editor = IntegerEditor<$ty>;
 
-                fn edit() -> Self::Editor {
-                    IntegerEditor::new()
+                fn edit(value: Option<Self>) -> Self::Editor {
+                    IntegerEditor::new(value)
                 }
             }
         )*
@@ -44,8 +44,8 @@ macro_rules! impl_edit_for_float {
             impl Edit for $ty {
                 type Editor = FloatEditor<$ty>;
 
-                fn edit() -> Self::Editor {
-                    FloatEditor::new()
+                fn edit(value: Option<Self>) -> Self::Editor {
+                    FloatEditor::new(value)
                 }
             }
         )*
@@ -57,23 +57,23 @@ impl_edit_for_float!(f32, f64);
 impl Edit for bool {
     type Editor = BooleanEditor;
 
-    fn edit() -> Self::Editor {
-        BooleanEditor::new()
+    fn edit(value: Option<Self>) -> Self::Editor {
+        BooleanEditor::new(value)
     }
 }
 
 impl Edit for char {
     type Editor = CharEditor;
 
-    fn edit() -> Self::Editor {
-        CharEditor::new()
+    fn edit(value: Option<Self>) -> Self::Editor {
+        CharEditor::new(value)
     }
 }
 
 impl Edit for () {
     type Editor = UnitEditor;
 
-    fn edit() -> Self::Editor {
+    fn edit(_: Option<Self>) -> Self::Editor {
         UnitEditor
     }
 }
@@ -106,25 +106,24 @@ macro_rules! impl_edit_for_tuple {
 // impl_edit_for_tuple!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
 // impl_edit_for_tuple!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
 
-impl<T> Edit for Vec<T>
-where
-    T: Edit,
-    <T as Edit>::Editor: Clone,
-{
-    type Editor = VecEditor<T::Editor>;
-
-    fn edit() -> Self::Editor {
-        VecEditor::new(T::edit())
-    }
-}
-
-impl<T> Edit for Option<T>
-where
-    T: Edit,
-{
-    type Editor = OptionEditor<T::Editor>;
-
-    fn edit() -> Self::Editor {
-        OptionEditor::new(T::edit())
-    }
-}
+// impl<T> Edit for Vec<T>
+// where
+//     T: Edit,
+// {
+//     type Editor = VecEditor<T::Editor>;
+//
+//     fn edit(self) -> Self::Editor {
+//         VecEditor::new(self.into_iter().map(T::edit).collect())
+//     }
+// }
+//
+// impl<T> Edit for Option<T>
+// where
+//     T: Edit,
+// {
+//     type Editor = OptionEditor<T::Editor>;
+//
+//     fn edit(self) -> Self::Editor {
+//         OptionEditor::new(self.map(T::edit))
+//     }
+// }

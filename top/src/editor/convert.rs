@@ -18,10 +18,10 @@ impl<T> FromStrEditor<T>
 where
     T: FromStr,
 {
-    pub fn new() -> Self {
+    pub fn new(value: T) -> Self {
         FromStrEditor {
             id: Id::INVALID,
-            value: "".parse().map_err(|_| EditorError::Invalid),
+            value: Ok(value),
             tuner: InputTuner::default(),
         }
     }
@@ -49,14 +49,10 @@ impl<T> Editor for FromStrEditor<T>
 where
     T: Clone + Display + FromStr,
 {
-    type Input = T;
     type Output = T;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
-        if let Some(value) = value {
-            self.value = Ok(value);
-        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -91,14 +87,5 @@ impl<T> Tune for FromStrEditor<T> {
 
     fn tune(&mut self, tuner: Self::Tuner) {
         self.tuner = tuner;
-    }
-}
-
-impl<T> Default for FromStrEditor<T>
-where
-    T: FromStr,
-{
-    fn default() -> Self {
-        FromStrEditor::new()
     }
 }

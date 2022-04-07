@@ -11,57 +11,38 @@ use crate::viewer::generic::View;
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
 /// [`choose`] to construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Interact<E, T> {
-    input: Option<T>,
+pub struct Interact<E> {
     pub(crate) editor: E,
 }
 
-/// Have the user enter a value. To use a custom editor, see [`enter_with`].
+/// Have the user enter a value. To use a custom editor, see [`edit_with`].
 #[inline]
-pub fn enter<T>() -> Interact<T::Editor, T>
+pub fn enter<T>() -> Interact<T::Editor>
 where
     T: Edit,
 {
-    enter_with(T::edit())
-}
-
-/// Have the user enter a value, through a custom editor.
-#[inline]
-pub fn enter_with<E>(editor: E) -> Interact<E, E::Input>
-where
-    E: Editor,
-{
-    Interact {
-        input: None,
-        editor,
-    }
+    edit_with(T::edit(None))
 }
 
 /// Have the user update a value. To use a custom editor, see [`edit_with`].
 #[inline]
-pub fn edit<T>(value: T) -> Interact<T::Editor, T>
+pub fn edit<T>(value: T) -> Interact<T::Editor>
 where
     T: Edit,
 {
-    edit_with(value, T::edit())
+    edit_with(T::edit(Some(value)))
 }
 
-/// Have the user update a value, through a custom editor.
+/// Have the user enter a value, through a custom editor.
 #[inline]
-pub fn edit_with<E>(value: E::Input, editor: E) -> Interact<E, E::Input>
-where
-    E: Editor,
-{
-    Interact {
-        input: Some(value),
-        editor,
-    }
+pub fn edit_with<E>(editor: E) -> Interact<E> {
+    Interact { editor }
 }
 
 /// Have the user select a value out of a list of options. To use a custom viewer for the options,
 /// see [`choose_with`].
 #[inline]
-pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>, usize>
+pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
 where
     T: View,
 {
@@ -70,18 +51,16 @@ where
 
 /// Have the user select a value out of a list of options, using a custom viewer.
 #[inline]
-pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>, usize> {
+pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
     Interact {
-        input: None,
         editor: ChoiceEditor::new(options),
     }
 }
 
 #[async_trait]
-impl<E> Task for Interact<E, E::Input>
+impl<E> Task for Interact<E>
 where
     E: Editor + Send,
-    E::Input: Send,
 {
     type Value = E::Output;
 
@@ -89,7 +68,7 @@ where
     where
         H: FeedbackHandler + Send,
     {
-        self.editor.start(self.input.take(), &mut ctx.gen);
+        self.editor.start(&mut ctx.gen);
         let html = self.editor.as_html();
 
         let initial = Feedback::Replace { id: Id::ROOT, html };

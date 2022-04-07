@@ -15,10 +15,9 @@ impl AsHtml for UnitEditor {
 }
 
 impl Editor for UnitEditor {
-    type Input = ();
     type Output = ();
 
-    fn start(&mut self, _value: Option<Self::Input>, _gen: &mut Generator) {}
+    fn start(&mut self, _gen: &mut Generator) {}
 
     fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Option<Feedback> {
         None

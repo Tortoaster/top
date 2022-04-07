@@ -35,11 +35,9 @@ impl<V> Editor for ChoiceEditor<V>
 where
     V: Viewer,
 {
-    type Input = usize;
-    type Output = V::Output;
+    type Output = Option<V::Output>;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
-        self.choice = value;
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
     }
 
@@ -57,13 +55,10 @@ where
     }
 
     fn finish(&self) -> Result<Self::Output, EditorError> {
-        match self.choice {
-            None => Err(EditorError::Invalid),
-            Some(index) => self
-                .choices
-                .get(index)
-                .map(|viewer| viewer.finish())
-                .ok_or(EditorError::Invalid),
-        }
+        let choice = self
+            .choice
+            .and_then(|index| self.choices.get(index).map(|choice| choice.finish()));
+
+        Ok(choice)
     }
 }

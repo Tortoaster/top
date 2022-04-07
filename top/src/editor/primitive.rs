@@ -19,10 +19,10 @@ pub struct StringEditor {
 }
 
 impl StringEditor {
-    pub fn new() -> Self {
+    pub fn new(value: Option<String>) -> Self {
         StringEditor {
             id: Id::INVALID,
-            value: String::new(),
+            value: value.unwrap_or_default(),
             tuner: InputTuner::default(),
         }
     }
@@ -38,14 +38,10 @@ impl AsHtml for StringEditor {
 }
 
 impl Editor for StringEditor {
-    type Input = String;
     type Output = String;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
-        if let Some(value) = value {
-            self.value = value;
-        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -71,12 +67,6 @@ impl Tune for StringEditor {
     }
 }
 
-impl Default for StringEditor {
-    fn default() -> Self {
-        StringEditor::new()
-    }
-}
-
 /// Basic editor for integers.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntegerEditor<N> {
@@ -89,10 +79,10 @@ impl<N> IntegerEditor<N>
 where
     N: Default,
 {
-    pub fn new() -> Self {
+    pub fn new(value: Option<N>) -> Self {
         IntegerEditor {
             id: Id::INVALID,
-            value: Ok(N::default()),
+            value: Ok(value.unwrap_or_default()),
             tuner: InputTuner::default(),
         }
     }
@@ -121,14 +111,10 @@ impl<N> Editor for IntegerEditor<N>
 where
     N: Copy + Display + FromStr<Err = ParseIntError>,
 {
-    type Input = N;
     type Output = N;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
-        if let Some(value) = value {
-            self.value = Ok(value);
-        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -166,15 +152,6 @@ impl<N> Tune for IntegerEditor<N> {
     }
 }
 
-impl<N> Default for IntegerEditor<N>
-where
-    N: Default,
-{
-    fn default() -> Self {
-        IntegerEditor::new()
-    }
-}
-
 /// Basic editor for floats.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FloatEditor<N> {
@@ -187,10 +164,10 @@ impl<N> FloatEditor<N>
 where
     N: Default,
 {
-    pub fn new() -> Self {
+    pub fn new(value: Option<N>) -> Self {
         FloatEditor {
             id: Id::INVALID,
-            value: Ok(N::default()),
+            value: Ok(value.unwrap_or_default()),
             tuner: InputTuner::default(),
         }
     }
@@ -219,14 +196,10 @@ impl<N> Editor for FloatEditor<N>
 where
     N: Copy + Display + FromStr<Err = ParseFloatError>,
 {
-    type Input = N;
     type Output = N;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
-        if let Some(value) = value {
-            self.value = Ok(value);
-        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -264,15 +237,6 @@ impl<N> Tune for FloatEditor<N> {
     }
 }
 
-impl<N> Default for FloatEditor<N>
-where
-    N: Default,
-{
-    fn default() -> Self {
-        FloatEditor::new()
-    }
-}
-
 /// Basic editor for booleans.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BooleanEditor {
@@ -282,10 +246,10 @@ pub struct BooleanEditor {
 }
 
 impl BooleanEditor {
-    pub fn new() -> Self {
+    pub fn new(value: Option<bool>) -> Self {
         BooleanEditor {
             id: Id::INVALID,
-            value: Ok(false),
+            value: Ok(value.unwrap_or_default()),
             tuner: InputTuner::default(),
         }
     }
@@ -301,14 +265,10 @@ impl AsHtml for BooleanEditor {
 }
 
 impl Editor for BooleanEditor {
-    type Input = bool;
     type Output = bool;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
-        if let Some(value) = value {
-            self.value = Ok(value);
-        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -346,12 +306,6 @@ impl Tune for BooleanEditor {
     }
 }
 
-impl Default for BooleanEditor {
-    fn default() -> Self {
-        BooleanEditor::new()
-    }
-}
-
 /// Basic editor for characters.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CharEditor {
@@ -361,10 +315,10 @@ pub struct CharEditor {
 }
 
 impl CharEditor {
-    pub fn new() -> Self {
+    pub fn new(value: Option<char>) -> Self {
         CharEditor {
             id: Id::INVALID,
-            value: Err(EditorError::Invalid),
+            value: value.ok_or(EditorError::Invalid),
             tuner: InputTuner::default(),
         }
     }
@@ -387,14 +341,10 @@ impl AsHtml for CharEditor {
 }
 
 impl Editor for CharEditor {
-    type Input = char;
     type Output = char;
 
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator) {
+    fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
-        if let Some(value) = value {
-            self.value = Ok(value);
-        }
     }
 
     fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
@@ -429,11 +379,5 @@ impl Tune for CharEditor {
 
     fn tune(&mut self, tuner: Self::Tuner) {
         self.tuner = tuner;
-    }
-}
-
-impl Default for CharEditor {
-    fn default() -> Self {
-        CharEditor::new()
     }
 }

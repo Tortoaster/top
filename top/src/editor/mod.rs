@@ -15,15 +15,11 @@ pub mod tuple;
 
 /// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
 pub trait Editor: AsHtml {
-    /// The type of data this editor can read. For example, a checkbox can take a boolean value to
-    /// represent its checked state.
-    type Input;
-    /// The type of data this editor can produce, usually [`Self::Input`] for interaction tasks. For
-    /// example, a number field produces a number, but the value may not always be valid.
+    /// The type of data this editor can produce.
     type Output;
 
     // TODO: Turn into constructor?
-    fn start(&mut self, value: Option<Self::Input>, gen: &mut Generator);
+    fn start(&mut self, gen: &mut Generator);
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.

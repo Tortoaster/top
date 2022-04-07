@@ -1,10 +1,8 @@
 use std::fmt::Debug;
 
-use crate::editor::Editor;
 use crate::html::Color;
 use crate::task::inspect::Inspect;
 use crate::task::interact::Interact;
-use crate::viewer::Viewer;
 
 pub trait Tune {
     type Tuner;
@@ -36,9 +34,9 @@ impl StringTuner {
     }
 }
 
-impl<E> Interact<E, E::Input>
+impl<E> Interact<E>
 where
-    E: Editor + Tune,
+    E: Tune,
 {
     pub fn tune(mut self, tuner: E::Tuner) -> Self {
         self.editor.tune(tuner);
