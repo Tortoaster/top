@@ -1,3 +1,4 @@
+use crate::editor::container::OptionEditor;
 use crate::editor::primitive::InputEditor;
 use crate::editor::Editor;
 // use crate::editor::container::{OptionEditor, VecEditor};
@@ -98,14 +99,16 @@ macro_rules! impl_edit_for_tuple {
 //         VecEditor::new(self.into_iter().map(T::edit).collect())
 //     }
 // }
-//
-// impl<T> Edit for Option<T>
-// where
-//     T: Edit,
-// {
-//     type Editor = OptionEditor<T::Editor>;
-//
-//     fn edit(self) -> Self::Editor {
-//         OptionEditor::new(self.map(T::edit))
-//     }
-// }
+
+impl<T> Edit for Option<T>
+where
+    T: Edit,
+{
+    type Editor = OptionEditor<T::Editor>;
+
+    fn edit(value: Option<Self>) -> Self::Editor {
+        let enabled = value.as_ref().map(Option::is_some).unwrap_or_default();
+
+        OptionEditor::new(T::edit(value.flatten()), enabled)
+    }
+}

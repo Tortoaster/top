@@ -21,7 +21,7 @@ where
 {
     pub fn new(value: Option<T>) -> Self {
         FromStrEditor {
-            editor: InputEditor::new(value.map(|value| value.to_string())),
+            editor: InputEditor::new(value.as_ref().map(ToString::to_string)),
             _parsed: PhantomData,
         }
     }

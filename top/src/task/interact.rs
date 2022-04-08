@@ -71,9 +71,9 @@ where
         self.editor.start(&mut ctx.gen);
         let html = self.editor.as_html();
 
-        let initial = Feedback::Replace { id: Id::ROOT, html };
+        let feedback = Feedback::Insert { id: Id::ROOT, html };
 
-        ctx.feedback.send(initial).await?;
+        ctx.feedback.send(feedback).await?;
         Ok(())
     }
 

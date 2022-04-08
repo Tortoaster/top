@@ -41,7 +41,7 @@ where
         H: FeedbackHandler + Send,
     {
         let html = self.viewer.as_html();
-        let feedback = Feedback::Replace { id: Id::ROOT, html };
+        let feedback = Feedback::Insert { id: Id::ROOT, html };
         ctx.feedback.send(feedback).await?;
         Ok(())
     }

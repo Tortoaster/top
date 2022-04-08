@@ -59,9 +59,14 @@ function onOpen(ev: Event) {
 function onMessage(ev: MessageEvent) {
   console.log(`received: ${ev.data}`);
   const data = JSON.parse(ev.data);
-  if(data.replace != null) {
+  if(data.insert != null) {
+    const element = document.getElementById(data.insert.id) as HTMLDivElement;
+    element.innerHTML = data.insert.html;
+  } else if(data.replace != null) {
     const element = document.getElementById(data.replace.id) as HTMLDivElement;
-    element.innerHTML = data.replace.html;
+    const template = document.createElement('template');
+    template.innerHTML = data.replace.html;
+    element.replaceWith(template.content);
   } else if(data.append != null) {
     const element = document.getElementById(data.append.id) as HTMLDivElement;
     const template = document.createElement('template');
