@@ -32,6 +32,8 @@ pub trait Editor {
 /// Common error type for [`Editor`]s.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Error)]
 pub enum EditorError {
+    #[error("no value entered")]
+    Empty,
     #[error("something is wrong with the value")]
     Invalid,
 }

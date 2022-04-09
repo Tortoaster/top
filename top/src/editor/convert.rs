@@ -13,11 +13,20 @@ pub struct DisplayFromStrEditor<T> {
     editor: InputEditor<T>,
 }
 
-impl<T> DisplayFromStrEditor<T> {
+impl<T> DisplayFromStrEditor<T>
+where
+    T: FromStr,
+{
     pub fn new(value: Option<T>) -> Self {
-        DisplayFromStrEditor {
-            editor: InputEditor::new(value),
-        }
+        let editor = match value {
+            None => match "".parse::<T>() {
+                Ok(value) => InputEditor::new(value),
+                Err(_) => InputEditor::empty(),
+            },
+            Some(value) => InputEditor::new(value),
+        };
+
+        DisplayFromStrEditor { editor }
     }
 }
 

@@ -18,7 +18,7 @@ impl Edit for String {
     type Editor = InputEditor<String>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        InputEditor::new(value)
+        InputEditor::new(value.unwrap_or_default())
     }
 }
 
@@ -29,7 +29,7 @@ macro_rules! impl_edit_for_number {
                 type Editor = InputEditor<$ty>;
 
                 fn edit(value: Option<Self>) -> Self::Editor {
-                    InputEditor::new(value)
+                    InputEditor::new(value.unwrap_or_default())
                 }
             }
         )*
@@ -42,7 +42,7 @@ impl Edit for bool {
     type Editor = InputEditor<bool>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        InputEditor::new(value)
+        InputEditor::new(value.unwrap_or_default())
     }
 }
 
@@ -50,7 +50,10 @@ impl Edit for char {
     type Editor = InputEditor<char>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        InputEditor::new(value)
+        match value {
+            None => InputEditor::empty(),
+            Some(value) => InputEditor::new(value),
+        }
     }
 }
 

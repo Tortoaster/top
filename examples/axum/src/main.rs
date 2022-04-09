@@ -5,7 +5,7 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    edit_with(DisplayFromStrEditor::new(None))
+    enter::<bool>()
         .steps()
         .on_action(Action::OK, has_value(|x: bool| view(format!("{:?}", x))))
         .confirm()
