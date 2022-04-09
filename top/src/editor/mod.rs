@@ -3,7 +3,6 @@
 use thiserror::Error;
 
 use crate::event::{Event, Feedback};
-use crate::html::AsHtml;
 use crate::id::Generator;
 
 pub mod choice;
@@ -14,7 +13,7 @@ pub mod primitive;
 pub mod tuple;
 
 /// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
-pub trait Editor: AsHtml {
+pub trait Editor {
     /// The type of data this editor can produce.
     type Output;
 

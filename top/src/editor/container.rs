@@ -48,7 +48,7 @@ where
 
 impl<E> Editor for VecEditor<E>
 where
-    E: Editor + Clone,
+    E: Editor + AsHtml + Clone,
 {
     type Output = Vec<E::Output>;
 
@@ -146,7 +146,7 @@ where
 
 impl<E> Editor for OptionEditor<E>
 where
-    E: Editor,
+    E: Editor + AsHtml,
 {
     type Output = Option<E::Output>;
 

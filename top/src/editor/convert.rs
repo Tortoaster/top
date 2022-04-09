@@ -1,45 +1,48 @@
 use std::fmt::Display;
-use std::marker::PhantomData;
 use std::str::FromStr;
 
 use crate::editor::primitive::InputEditor;
 use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Html};
+use crate::html::{AsHtml, Html, Input};
 use crate::id::Generator;
 use crate::tune::{InputTuner, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FromStrEditor<T> {
-    editor: InputEditor<String>,
-    _parsed: PhantomData<T>,
+pub struct DisplayFromStrEditor<T> {
+    editor: InputEditor<T>,
 }
 
-impl<T> FromStrEditor<T>
-where
-    T: Display,
-{
+impl<T> DisplayFromStrEditor<T> {
     pub fn new(value: Option<T>) -> Self {
-        FromStrEditor {
-            editor: InputEditor::new(value.as_ref().map(ToString::to_string)),
-            _parsed: PhantomData,
+        DisplayFromStrEditor {
+            editor: InputEditor::new(value),
         }
     }
 }
 
-impl<T> AsHtml for FromStrEditor<T>
+impl<T> AsHtml for DisplayFromStrEditor<T>
 where
-    InputEditor<T>: AsHtml,
+    T: Display,
 {
     fn as_html(&self) -> Html {
-        self.editor.as_html()
+        Input::new(self.editor.id)
+            .with_value(
+                &self
+                    .editor
+                    .value
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+            )
+            .with_label(self.editor.tuner.label.as_deref())
+            .as_html()
     }
 }
 
-impl<T> Editor for FromStrEditor<T>
+impl<T> Editor for DisplayFromStrEditor<T>
 where
-    InputEditor<T>: AsHtml,
-    T: FromStr,
+    T: Clone + Display + FromStr,
 {
     type Output = T;
 
@@ -52,13 +55,11 @@ where
     }
 
     fn finish(&self) -> Result<Self::Output, EditorError> {
-        self.editor
-            .finish()
-            .and_then(|s| s.parse().map_err(|_| EditorError::Invalid))
+        self.editor.finish()
     }
 }
 
-impl<T> Tune for FromStrEditor<T> {
+impl<T> Tune for DisplayFromStrEditor<T> {
     type Tuner = InputTuner;
 
     fn tune(&mut self, tuner: Self::Tuner) {

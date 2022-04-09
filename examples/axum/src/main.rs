@@ -5,12 +5,10 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    edit::<Option<Option<Option<Option<Option<Option<Option<Option<Option<Option<u8>>>>>>>>>>>(
-        Some(Some(None)),
-    )
-    .steps()
-    .on_action(Action::OK, has_value(|x| view(format!("{:?}", x))))
-    .confirm()
+    edit_with(DisplayFromStrEditor::new(None))
+        .steps()
+        .on_action(Action::OK, has_value(|x: bool| view(format!("{:?}", x))))
+        .confirm()
 }
 
 const HOST: &str = "0.0.0.0:3000";

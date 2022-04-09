@@ -10,9 +10,9 @@ use crate::tune::{InputTuner, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct InputEditor<T> {
-    id: Id,
-    value: Result<T, EditorError>,
-    tuner: InputTuner,
+    pub(in crate::editor) id: Id,
+    pub(in crate::editor) value: Result<T, EditorError>,
+    pub(in crate::editor) tuner: InputTuner,
 }
 
 impl<T> InputEditor<T> {
@@ -27,7 +27,6 @@ impl<T> InputEditor<T> {
 
 impl<T> Editor for InputEditor<T>
 where
-    Self: AsHtml,
     T: Clone + FromStr,
 {
     type Output = T;

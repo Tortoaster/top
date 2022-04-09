@@ -1,4 +1,4 @@
-pub use crate::editor::convert::FromStrEditor;
+pub use crate::editor::convert::DisplayFromStrEditor;
 pub use crate::html::Color;
 pub use crate::task::inspect::{view, view_with};
 pub use crate::task::interact::{choose, choose_with, edit, edit_with, enter};

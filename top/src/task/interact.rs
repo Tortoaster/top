@@ -4,6 +4,7 @@ use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::html::AsHtml;
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
@@ -60,7 +61,7 @@ pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
 #[async_trait]
 impl<E> Task for Interact<E>
 where
-    E: Editor + Send,
+    E: Editor + AsHtml + Send,
 {
     type Value = E::Output;
 
