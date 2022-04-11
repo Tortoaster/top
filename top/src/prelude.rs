@@ -6,7 +6,7 @@ pub use crate::task::sequential::{has_value, if_value};
 pub use crate::task::sequential::{Action, TaskStepExt};
 pub use crate::task::Task;
 pub use crate::tune::{InputTuner, StringTuner};
-pub use crate::viewer::convert::DisplayViewer;
+pub use crate::viewer::convert::{DebugViewer, DisplayViewer};
 
 pub mod derive {
     pub use top_derive::Edit;
