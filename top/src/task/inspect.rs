@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 
 use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::html::AsHtml;
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
@@ -32,7 +33,7 @@ pub fn view_with<V>(viewer: V) -> Inspect<V> {
 #[async_trait]
 impl<V> Task for Inspect<V>
 where
-    V: Viewer + Send,
+    V: Viewer + AsHtml + Send,
 {
     type Value = V::Output;
 

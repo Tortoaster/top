@@ -1,11 +1,9 @@
-use crate::html::AsHtml;
-
 pub mod convert;
 pub mod generic;
 pub mod primitive;
 
 /// Viewers describe how tasks should be displayed to the user.
-pub trait Viewer: AsHtml {
+pub trait Viewer {
     /// The type of data this viewer produces.
     type Output;
 

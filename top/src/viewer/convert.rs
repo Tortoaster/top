@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use crate::html::{AsHtml, Html};
 use crate::tune::Tune;
@@ -36,6 +36,44 @@ impl Viewer for DisplayViewer {
 }
 
 impl Tune for DisplayViewer {
+    type Tuner = <StringViewer as Tune>::Tuner;
+
+    fn tune(&mut self, tuner: Self::Tuner) {
+        self.viewer.tune(tuner);
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DebugViewer {
+    viewer: StringViewer,
+}
+
+impl DebugViewer {
+    pub fn new<T>(value: T) -> Self
+    where
+        T: Debug,
+    {
+        DebugViewer {
+            viewer: StringViewer::new(format!("{:?}", value)),
+        }
+    }
+}
+
+impl AsHtml for DebugViewer {
+    fn as_html(&self) -> Html {
+        self.viewer.as_html()
+    }
+}
+
+impl Viewer for DebugViewer {
+    type Output = <StringViewer as Viewer>::Output;
+
+    fn finish(&self) -> Self::Output {
+        self.viewer.finish()
+    }
+}
+
+impl Tune for DebugViewer {
     type Tuner = <StringViewer as Tune>::Tuner;
 
     fn tune(&mut self, tuner: Self::Tuner) {
