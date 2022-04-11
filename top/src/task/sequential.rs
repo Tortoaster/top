@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use either::Either;
 
-use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::event::{Event, Feedback};
 use crate::html::{AsHtml, Button};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
@@ -12,10 +12,13 @@ use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 /// construct the next task.
 pub enum Continuation<A, B> {
     /// Consume the current task as soon as the value satisfies the predicate.
-    OnValue(Box<dyn Fn(TaskValue<A>) -> Option<B> + Send>),
+    OnValue(Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>),
     /// Consume the current task as soon as the user performs and action and the value satisfies the
     /// predicate.
-    OnAction(Action, Box<dyn Fn(TaskValue<A>) -> Option<B> + Send>),
+    OnAction(
+        Action,
+        Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>,
+    ),
 }
 
 /// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
@@ -46,24 +49,21 @@ impl Action {
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
-pub struct Step<T1: Task, T2> {
-    current: Either<T1, T2>,
-    continuations: Vec<Continuation<T1::Value, T2>>,
+pub struct Step<T: Task, B> {
+    current: Either<T, Box<dyn Task<Value = B>>>,
+    continuations: Vec<Continuation<T::Value, B>>,
 }
 
 #[async_trait]
-impl<T1, T2> Task for Step<T1, T2>
+impl<T, B> Task for Step<T, B>
 where
-    T1: Task + Debug + Send,
-    T1::Value: Clone + Send + Sync,
-    T2: Task + Debug + Send,
+    T: Task + Debug + Send,
+    T::Value: Clone + Send + Sync,
+    B: Send,
 {
-    type Value = T2::Value;
+    type Value = B;
 
-    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
-    where
-        H: FeedbackHandler + Send,
-    {
+    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
         match &mut self.current {
             Either::Left(task) => {
                 task.start(ctx).await?;
@@ -86,50 +86,39 @@ where
         }
     }
 
-    async fn on_event<H>(&mut self, event: Event, ctx: &mut Context<H>) -> TaskResult<Self::Value>
-    where
-        H: FeedbackHandler + Send,
-    {
-        if self.current.is_left() {
-            let value = self
-                .current
-                .as_mut()
-                .unwrap_left()
-                .on_event(event.clone(), ctx)
-                .await?;
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
+        match &mut self.current {
+            Either::Left(task) => {
+                let value = task.on_event(event.clone(), ctx).await?;
 
-            let next = self.continuations.iter().find_map(|cont| match cont {
-                Continuation::OnValue(f) => f(value.clone()),
-                Continuation::OnAction(action, f) => {
-                    if let Event::Press { id } = &event {
-                        if action
-                            .1
-                            .map(|action_id| action_id == *id)
-                            .unwrap_or_default()
-                        {
-                            f(value.clone())
+                let next = self.continuations.iter().find_map(|cont| match cont {
+                    Continuation::OnValue(f) => f(value.clone()),
+                    Continuation::OnAction(action, f) => {
+                        if let Event::Press { id } = &event {
+                            if action
+                                .1
+                                .map(|action_id| action_id == *id)
+                                .unwrap_or_default()
+                            {
+                                f(value.clone())
+                            } else {
+                                None
+                            }
                         } else {
                             None
                         }
-                    } else {
-                        None
                     }
+                });
+
+                if let Some(next) = next {
+                    self.current = Either::Right(next);
+                    self.continuations.clear();
+                    self.start(ctx).await?;
                 }
-            });
 
-            if let Some(next) = next {
-                self.current = Either::Right(next);
-                self.continuations.clear();
-                self.start(ctx).await?;
+                Ok(TaskValue::Empty)
             }
-
-            Ok(TaskValue::Empty)
-        } else {
-            self.current
-                .as_mut()
-                .unwrap_right()
-                .on_event(event, ctx)
-                .await
+            Either::Right(task) => task.on_event(event, ctx).await,
         }
     }
 }
@@ -156,15 +145,15 @@ pub struct Steps<T1: Task, T2> {
     continuations: Vec<Continuation<T1::Value, T2>>,
 }
 
-impl<T1, T2> Steps<T1, T2>
+impl<T, B> Steps<T, B>
 where
-    T1: Task,
+    T: Task,
 {
     /// Consume the current task value and use it to construct the next task as soon as `f`
     /// returns [`Some`] task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
     pub fn on_value(
         mut self,
-        f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
+        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
     ) -> Self {
         self.continuations.push(Continuation::OnValue(Box::new(f)));
         self
@@ -176,7 +165,7 @@ where
     pub fn on_action(
         mut self,
         action: Action,
-        f: impl Fn(TaskValue<T1::Value>) -> Option<T2> + Send + 'static,
+        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
     ) -> Self {
         self.continuations
             .push(Continuation::OnAction(action, Box::new(f)));
@@ -184,7 +173,7 @@ where
     }
 
     /// Turn this builder into a sequential task.
-    pub fn confirm(self) -> Step<T1, T2> {
+    pub fn finish(self) -> Step<T, B> {
         Step {
             current: Either::Left(self.current),
             continuations: self.continuations,
@@ -194,15 +183,35 @@ where
 
 /// Utility function to turn a simple mapping function into the type of closure a
 /// [`Continuation`] requires.
-pub fn has_value<A, B>(f: impl Fn(A) -> B) -> impl Fn(TaskValue<A>) -> Option<B> {
-    move |value| value.into_option().map(|x| f(x))
+pub fn has_value<A, T>(
+    f: impl Fn(A) -> T,
+) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+where
+    T: Task + 'static,
+{
+    move |value| {
+        value.into_option().map(|x| {
+            let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
+            result
+        })
+    }
 }
 
 /// Utility function to turn a simple mapping function into the type of closure a
 /// [`Continuation`] requires, but only if its value satisfies the predicate `f`.
-pub fn if_value<A, B>(
+pub fn if_value<A, T>(
     f: impl Fn(&A) -> bool,
-    g: impl Fn(A) -> B,
-) -> impl Fn(TaskValue<A>) -> Option<B> {
-    move |value| value.into_option().and_then(|x| f(&x).then(|| g(x)))
+    g: impl Fn(A) -> T,
+) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+where
+    T: Task + 'static,
+{
+    move |value| {
+        value.into_option().and_then(|x| {
+            f(&x).then(|| {
+                let result: Box<dyn Task<Value = T::Value>> = Box::new(g(x));
+                result
+            })
+        })
+    }
 }

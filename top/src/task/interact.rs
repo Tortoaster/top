@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
-use crate::event::{Event, Feedback, FeedbackHandler};
+use crate::event::{Event, Feedback};
 use crate::html::AsHtml;
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
@@ -65,10 +65,7 @@ where
 {
     type Value = E::Output;
 
-    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
-    where
-        H: FeedbackHandler + Send,
-    {
+    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
         self.editor.start(&mut ctx.gen);
         let html = self.editor.as_html();
 
@@ -78,10 +75,7 @@ where
         Ok(())
     }
 
-    async fn on_event<H>(&mut self, event: Event, ctx: &mut Context<H>) -> TaskResult<Self::Value>
-    where
-        H: FeedbackHandler + Send,
-    {
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
         if let Some(feedback) = self.editor.on_event(event, &mut ctx.gen) {
             ctx.feedback.send(feedback).await?;
         }

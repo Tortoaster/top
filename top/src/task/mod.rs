@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::event::{Event, FeedbackError, FeedbackHandler};
+use crate::event::handler::{FeedbackError, FeedbackHandler};
+use crate::event::Event;
 use crate::id::Generator;
 
 pub mod inspect;
@@ -15,29 +16,22 @@ pub type TaskResult<T> = std::result::Result<TaskValue<T>, TaskError>;
 pub trait Task: Send {
     type Value;
 
-    async fn start<H>(&mut self, ctx: &mut Context<H>) -> Result<(), TaskError>
-    where
-        H: FeedbackHandler + Send;
+    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError>;
 
-    async fn on_event<H>(&mut self, event: Event, ctx: &mut Context<H>) -> TaskResult<Self::Value>
-    where
-        H: FeedbackHandler + Send;
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value>;
 }
 
 /// A context for [`Task`]s to interact with their environment.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Context<E> {
-    feedback: E,
+#[derive(Debug)]
+pub struct Context {
+    feedback: FeedbackHandler,
     gen: Generator,
 }
 
-impl<E> Context<E>
-where
-    E: FeedbackHandler,
-{
-    pub fn new(handler: E) -> Self {
+impl Context {
+    pub fn new(feedback: FeedbackHandler) -> Self {
         Context {
-            feedback: handler,
+            feedback,
             gen: Generator::new(),
         }
     }

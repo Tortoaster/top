@@ -45,15 +45,45 @@ pub enum Feedback {
     Invalid { id: Id },
 }
 
-#[async_trait]
-pub trait FeedbackHandler {
-    async fn send(&mut self, feedback: Feedback) -> Result<(), FeedbackError>;
-}
+// TODO: Remove use of feature
+#[cfg(feature = "axum_integration")]
+pub mod handler {
+    use axum::extract::ws::{Message, WebSocket};
+    use futures::stream::SplitSink;
+    use futures::SinkExt;
+    use log::trace;
+    use thiserror::Error;
 
-#[derive(Debug, Error)]
-pub enum FeedbackError {
-    #[error("error during serialization: {0}")]
-    Serialize(#[from] serde_json::Error),
-    #[error("failed to send feedback")]
-    Send,
+    use crate::event::Feedback;
+
+    #[derive(Debug)]
+    pub struct FeedbackHandler {
+        sink: SplitSink<WebSocket, Message>,
+    }
+
+    impl FeedbackHandler {
+        pub fn new(sink: SplitSink<WebSocket, Message>) -> Self {
+            FeedbackHandler { sink }
+        }
+    }
+
+    impl FeedbackHandler {
+        pub async fn send(&mut self, feedback: Feedback) -> Result<(), FeedbackError> {
+            let serialized = serde_json::to_string(&feedback)?;
+            self.sink
+                .send(Message::Text(serialized))
+                .await
+                .map_err(|_| FeedbackError::Send)?;
+            trace!("sent feedback: {:?}", feedback);
+            Ok(())
+        }
+    }
+
+    #[derive(Debug, Error)]
+    pub enum FeedbackError {
+        #[error("error during serialization: {0}")]
+        Serialize(#[from] serde_json::Error),
+        #[error("failed to send feedback")]
+        Send,
+    }
 }

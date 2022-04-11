@@ -9,13 +9,14 @@ use axum::extract::WebSocketUpgrade;
 use axum::http::{Request, StatusCode};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, MethodRouter};
-use futures::stream::{SplitSink, SplitStream};
-use futures::{SinkExt, StreamExt};
+use futures::stream::SplitStream;
+use futures::StreamExt;
 use log::{error, trace, warn};
 use tower_http::services::ServeDir;
 use tower_service::Service;
 
-use crate::event::{Event, EventError, EventHandler, Feedback, FeedbackError, FeedbackHandler};
+use crate::event::handler::FeedbackHandler;
+use crate::event::{Event, EventError, EventHandler};
 use crate::task::{Context, Task};
 
 #[derive(Clone, Debug)]
@@ -100,7 +101,7 @@ where
         let mut task = handler().await;
         let (sender, mut receiver) = socket.split();
 
-        let mut ctx = Context::new(sender);
+        let mut ctx = Context::new(FeedbackHandler::new(sender));
 
         if let Err(error) = task.start(&mut ctx).await {
             error!("failed to start task: {error}")
@@ -139,17 +140,5 @@ impl EventHandler for SplitStream<WebSocket> {
                 Err(_) => Some(Err(EventError::Receive)),
             },
         }
-    }
-}
-
-#[async_trait]
-impl FeedbackHandler for SplitSink<WebSocket, Message> {
-    async fn send(&mut self, feedback: Feedback) -> Result<(), FeedbackError> {
-        let serialized = serde_json::to_string(&feedback)?;
-        SinkExt::send(&mut self, Message::Text(serialized))
-            .await
-            .map_err(|_| FeedbackError::Send)?;
-        trace!("sent feedback: {:?}", feedback);
-        Ok(())
     }
 }
