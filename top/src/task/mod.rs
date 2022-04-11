@@ -7,6 +7,7 @@ use crate::id::Generator;
 
 pub mod inspect;
 pub mod interact;
+pub mod parallel;
 pub mod sequential;
 
 pub type TaskResult<T> = std::result::Result<TaskValue<T>, TaskError>;
@@ -67,5 +68,27 @@ impl<T> TaskValue<T> {
 impl<T> Default for TaskValue<T> {
     fn default() -> Self {
         TaskValue::Empty
+    }
+}
+
+pub trait OptionExt<T> {
+    fn into_stable(self) -> TaskValue<T>;
+
+    fn into_unstable(self) -> TaskValue<T>;
+}
+
+impl<T> OptionExt<T> for Option<T> {
+    fn into_stable(self) -> TaskValue<T> {
+        match self {
+            None => TaskValue::Empty,
+            Some(value) => TaskValue::Stable(value),
+        }
+    }
+
+    fn into_unstable(self) -> TaskValue<T> {
+        match self {
+            None => TaskValue::Empty,
+            Some(value) => TaskValue::Unstable(value),
+        }
     }
 }

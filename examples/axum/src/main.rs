@@ -3,27 +3,13 @@ use log::info;
 
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
+use top::task::parallel::TaskParallelExt;
 
 async fn name() -> impl Task {
-    enter::<bool>()
-        .tune(InputTuner::default().with_label("hello".to_owned()))
+    view("hello!".to_owned())
+        .right(enter::<bool>())
         .steps()
-        .on_action(
-            Action::OK,
-            has_value(|x: bool| view_with(DebugViewer::new(x))),
-        )
-        .on_action(
-            Action::CONTINUE,
-            has_value(|x: bool| {
-                edit(x)
-                    .steps()
-                    .on_action(
-                        Action::OK,
-                        has_value(move |y| view_with(DisplayViewer::new(x && y))),
-                    )
-                    .finish()
-            }),
-        )
+        .on_action(Action::OK, has_value(|b| edit(b)))
         .finish()
 }
 

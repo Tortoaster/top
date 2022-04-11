@@ -8,57 +8,18 @@ use crate::html::{AsHtml, Button};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
-/// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
-/// construct the next task.
-pub enum Continuation<A, B> {
-    /// Consume the current task as soon as the value satisfies the predicate.
-    OnValue(Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>),
-    /// Consume the current task as soon as the user performs and action and the value satisfies the
-    /// predicate.
-    OnAction(
-        Action,
-        Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>,
-    ),
-}
-
-/// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
-/// the user presses the associated button, and the associated predicate in the continuation is met,
-/// the current task is consumed and the next task will be created from the resulting value.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Action(&'static str, Option<Id>);
-
-impl Action {
-    pub const OK: Self = Action::new("Ok");
-    pub const CANCEL: Self = Action::new("Cancel");
-    pub const YES: Self = Action::new("Yes");
-    pub const NO: Self = Action::new("No");
-    pub const NEXT: Self = Action::new("Next");
-    pub const PREVIOUS: Self = Action::new("Previous");
-    pub const FINISH: Self = Action::new("Finish");
-    pub const CONTINUE: Self = Action::new("Continue");
-    pub const NEW: Self = Action::new("New");
-    pub const EDIT: Self = Action::new("Edit");
-    pub const DELETE: Self = Action::new("Delete");
-    pub const REFRESH: Self = Action::new("Refresh");
-    pub const CLOSE: Self = Action::new("Close");
-
-    pub const fn new(label: &'static str) -> Self {
-        Action(label, None)
-    }
-}
-
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
-pub struct Step<T: Task, B> {
+pub struct Sequential<T: Task, B> {
     current: Either<T, Box<dyn Task<Value = B>>>,
     continuations: Vec<Continuation<T::Value, B>>,
 }
 
 #[async_trait]
-impl<T, B> Task for Step<T, B>
+impl<T, B> Task for Sequential<T, B>
 where
     T: Task + Debug + Send,
-    T::Value: Clone + Send + Sync,
+    T::Value: Clone + Send,
     B: Send,
 {
     type Value = B;
@@ -123,9 +84,48 @@ where
     }
 }
 
+/// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
+/// construct the next task.
+pub enum Continuation<A, B> {
+    /// Consume the current task as soon as the value satisfies the predicate.
+    OnValue(Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>),
+    /// Consume the current task as soon as the user performs and action and the value satisfies the
+    /// predicate.
+    OnAction(
+        Action,
+        Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>,
+    ),
+}
+
+/// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
+/// the user presses the associated button, and the associated predicate in the continuation is met,
+/// the current task is consumed and the next task will be created from the resulting value.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Action(&'static str, Option<Id>);
+
+impl Action {
+    pub const OK: Self = Action::new("Ok");
+    pub const CANCEL: Self = Action::new("Cancel");
+    pub const YES: Self = Action::new("Yes");
+    pub const NO: Self = Action::new("No");
+    pub const NEXT: Self = Action::new("Next");
+    pub const PREVIOUS: Self = Action::new("Previous");
+    pub const FINISH: Self = Action::new("Finish");
+    pub const CONTINUE: Self = Action::new("Continue");
+    pub const NEW: Self = Action::new("New");
+    pub const EDIT: Self = Action::new("Edit");
+    pub const DELETE: Self = Action::new("Delete");
+    pub const REFRESH: Self = Action::new("Refresh");
+    pub const CLOSE: Self = Action::new("Close");
+
+    pub const fn new(label: &'static str) -> Self {
+        Action(label, None)
+    }
+}
+
 /// Adds the [`steps`] method to any task, allowing it to become a sequential task through the
 /// [`Steps`] builder.
-pub trait TaskStepExt: Task {
+pub trait TaskSequentialExt: Task {
     fn steps<T2>(self) -> Steps<Self, T2>
     where
         Self: Sized,
@@ -137,7 +137,7 @@ pub trait TaskStepExt: Task {
     }
 }
 
-impl<T> TaskStepExt for T where T: Task {}
+impl<T> TaskSequentialExt for T where T: Task {}
 
 /// Builder for the step combinator.
 pub struct Steps<T1: Task, T2> {
@@ -173,8 +173,8 @@ where
     }
 
     /// Turn this builder into a sequential task.
-    pub fn finish(self) -> Step<T, B> {
-        Step {
+    pub fn finish(self) -> Sequential<T, B> {
+        Sequential {
             current: Either::Left(self.current),
             continuations: self.continuations,
         }
