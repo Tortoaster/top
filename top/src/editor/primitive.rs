@@ -37,7 +37,7 @@ impl<T> Editor for InputEditor<T>
 where
     T: Clone + FromStr,
 {
-    type Output = T;
+    type Value = T;
 
     fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
@@ -59,7 +59,7 @@ where
         }
     }
 
-    fn finish(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Value, EditorError> {
         self.value.clone()
     }
 }

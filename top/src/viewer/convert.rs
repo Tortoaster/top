@@ -28,9 +28,9 @@ impl AsHtml for DisplayViewer {
 }
 
 impl Viewer for DisplayViewer {
-    type Output = <StringViewer as Viewer>::Output;
+    type Value = <StringViewer as Viewer>::Value;
 
-    fn finish(&self) -> Self::Output {
+    fn finish(&self) -> Self::Value {
         self.viewer.finish()
     }
 }
@@ -66,9 +66,9 @@ impl AsHtml for DebugViewer {
 }
 
 impl Viewer for DebugViewer {
-    type Output = <StringViewer as Viewer>::Output;
+    type Value = <StringViewer as Viewer>::Value;
 
-    fn finish(&self) -> Self::Output {
+    fn finish(&self) -> Self::Value {
         self.viewer.finish()
     }
 }

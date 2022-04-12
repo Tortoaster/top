@@ -8,7 +8,7 @@ use crate::html::AsHtml;
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
 pub trait Edit: Sized {
-    type Editor: Editor<Output = Self>;
+    type Editor: Editor<Value = Self>;
 
     /// Specifies the default editor for this type.
     fn edit(value: Option<Self>) -> Self::Editor;

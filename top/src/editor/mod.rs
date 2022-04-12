@@ -15,7 +15,7 @@ pub mod tuple;
 /// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
 pub trait Editor {
     /// The type of data this editor can produce.
-    type Output;
+    type Value;
 
     // TODO: Turn into constructor?
     fn start(&mut self, gen: &mut Generator);
@@ -26,7 +26,7 @@ pub trait Editor {
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.
-    fn finish(&self) -> Result<Self::Output, EditorError>;
+    fn finish(&self) -> Result<Self::Value, EditorError>;
 }
 
 /// Common error type for [`Editor`]s.

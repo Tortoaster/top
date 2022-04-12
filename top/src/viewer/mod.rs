@@ -5,9 +5,9 @@ pub mod primitive;
 /// Viewers describe how tasks should be displayed to the user.
 pub trait Viewer {
     /// The type of data this viewer produces.
-    type Output;
+    type Value;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this viewer.
-    fn finish(&self) -> Self::Output;
+    fn finish(&self) -> Self::Value;
 }

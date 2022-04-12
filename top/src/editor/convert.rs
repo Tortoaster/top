@@ -53,7 +53,7 @@ impl<T> Editor for DisplayFromStrEditor<T>
 where
     T: Clone + Display + FromStr,
 {
-    type Output = T;
+    type Value = T;
 
     fn start(&mut self, gen: &mut Generator) {
         self.editor.start(gen)
@@ -63,7 +63,7 @@ where
         self.editor.on_event(event, gen)
     }
 
-    fn finish(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Value, EditorError> {
         self.editor.finish()
     }
 }

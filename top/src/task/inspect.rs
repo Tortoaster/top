@@ -39,7 +39,7 @@ impl<V> Task for Inspect<V>
 where
     V: Viewer + AsHtml + Send,
 {
-    type Value = V::Output;
+    type Value = V::Value;
 
     async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
         self.id = ctx.gen.next();

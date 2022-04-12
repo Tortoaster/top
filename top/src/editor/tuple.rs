@@ -15,7 +15,7 @@ impl AsHtml for UnitEditor {
 }
 
 impl Editor for UnitEditor {
-    type Output = ();
+    type Value = ();
 
     fn start(&mut self, _gen: &mut Generator) {}
 
@@ -23,7 +23,7 @@ impl Editor for UnitEditor {
         None
     }
 
-    fn finish(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Value, EditorError> {
         Ok(())
     }
 }

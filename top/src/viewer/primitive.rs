@@ -5,14 +5,14 @@ use crate::viewer::Viewer;
 /// Basic viewer for strings.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StringViewer {
-    content: String,
+    value: String,
     tuner: StringTuner,
 }
 
 impl StringViewer {
     pub fn new(value: String) -> Self {
         StringViewer {
-            content: value,
+            value,
             tuner: StringTuner::default(),
         }
     }
@@ -20,17 +20,17 @@ impl StringViewer {
 
 impl AsHtml for StringViewer {
     fn as_html(&self) -> Html {
-        Span::new(&self.content)
+        Span::new(&self.value)
             .with_color(self.tuner.color)
             .as_html()
     }
 }
 
 impl Viewer for StringViewer {
-    type Output = String;
+    type Value = String;
 
-    fn finish(&self) -> Self::Output {
-        self.content.clone()
+    fn finish(&self) -> Self::Value {
+        self.value.clone()
     }
 }
 

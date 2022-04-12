@@ -68,7 +68,7 @@ impl<E> Task for Interact<E>
 where
     E: Editor + AsHtml + Send,
 {
-    type Value = E::Output;
+    type Value = E::Value;
 
     async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
         self.id = ctx.gen.next();

@@ -35,7 +35,7 @@ impl<V> Editor for ChoiceEditor<V>
 where
     V: Viewer,
 {
-    type Output = Option<V::Output>;
+    type Value = Option<V::Value>;
 
     fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
@@ -54,7 +54,7 @@ where
         }
     }
 
-    fn finish(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Value, EditorError> {
         let choice = self
             .choice
             .and_then(|index| self.choices.get(index).map(|choice| choice.finish()));

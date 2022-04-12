@@ -5,11 +5,11 @@ use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VecEditor<E> {
-    /// Represents the list containing all choices.
+    /// Represents the list containing all elements.
     group_id: Id,
     /// Represents the plus button.
     add_id: Id,
-    /// Represents of each of the choices with their respective identifiers.
+    /// Represents of each of the elements with their respective identifiers.
     rows: Vec<Row>,
     editors: Vec<E>,
     template: E,
@@ -50,7 +50,7 @@ impl<E> Editor for VecEditor<E>
 where
     E: Editor + AsHtml + Clone,
 {
-    type Output = Vec<E::Output>;
+    type Value = Vec<E::Value>;
 
     fn start(&mut self, gen: &mut Generator) {
         self.group_id = gen.next();
@@ -94,7 +94,7 @@ where
         }
     }
 
-    fn finish(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Value, EditorError> {
         // TODO: Return all errors
         self.editors
             .iter()
@@ -148,7 +148,7 @@ impl<E> Editor for OptionEditor<E>
 where
     E: Editor + AsHtml,
 {
-    type Output = Option<E::Output>;
+    type Value = Option<E::Value>;
 
     fn start(&mut self, gen: &mut Generator) {
         self.row = Row::new(gen);
@@ -182,7 +182,7 @@ where
         }
     }
 
-    fn finish(&self) -> Result<Self::Output, EditorError> {
+    fn finish(&self) -> Result<Self::Value, EditorError> {
         if self.enabled {
             Ok(Some(self.editor.finish()?))
         } else {
