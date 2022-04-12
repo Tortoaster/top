@@ -31,12 +31,10 @@ pub enum EventError {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Feedback {
-    /// Replace this element's content with new html.
-    Insert { id: Id, html: Html },
     /// Replace this element with new html.
     Replace { id: Id, html: Html },
     /// Add html to this element.
-    Append { id: Id, html: Html },
+    Insert { id: Id, html: Html },
     /// Remove this element.
     Remove { id: Id },
     /// The value of this html is valid.

@@ -20,6 +20,8 @@ pub trait Task: Send {
     async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError>;
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value>;
+
+    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError>;
 }
 
 /// A context for [`Task`]s to interact with their environment.

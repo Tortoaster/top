@@ -4,7 +4,7 @@ use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::event::{Event, Feedback};
-use crate::html::AsHtml;
+use crate::html::{AsHtml, Div};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
@@ -13,6 +13,7 @@ use crate::viewer::generic::View;
 /// [`choose`] to construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Interact<E> {
+    id: Id,
     pub(crate) editor: E,
 }
 
@@ -37,7 +38,10 @@ where
 /// Have the user enter a value, through a custom editor.
 #[inline]
 pub fn edit_with<E>(editor: E) -> Interact<E> {
-    Interact { editor }
+    Interact {
+        id: Id::INVALID,
+        editor,
+    }
 }
 
 /// Have the user select a value out of a list of options. To use a custom viewer for the options,
@@ -54,6 +58,7 @@ where
 #[inline]
 pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
     Interact {
+        id: Id::INVALID,
         editor: ChoiceEditor::new(options),
     }
 }
@@ -66,12 +71,16 @@ where
     type Value = E::Output;
 
     async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
+        self.id = ctx.gen.next();
         self.editor.start(&mut ctx.gen);
-        let html = self.editor.as_html();
 
+        let html = Div::new(vec![self.editor.as_html()])
+            .with_id(self.id)
+            .as_html();
         let feedback = Feedback::Insert { id: Id::ROOT, html };
 
         ctx.feedback.send(feedback).await?;
+
         Ok(())
     }
 
@@ -83,5 +92,11 @@ where
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }
+    }
+
+    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
+        ctx.feedback.send(Feedback::Remove { id: self.id }).await?;
+
+        Ok(())
     }
 }

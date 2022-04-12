@@ -45,6 +45,13 @@ where
 
         Ok(combined)
     }
+
+    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
+        self.tasks.0.finish(ctx).await?;
+        self.tasks.1.finish(ctx).await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -68,6 +75,13 @@ where
 
         Ok(a)
     }
+
+    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
+        self.tasks.0.finish(ctx).await?;
+        self.tasks.1.finish(ctx).await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -90,6 +104,13 @@ where
         let b = self.tasks.1.on_event(event, ctx).await?;
 
         Ok(b)
+    }
+
+    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
+        self.tasks.0.finish(ctx).await?;
+        self.tasks.1.finish(ctx).await?;
+
+        Ok(())
     }
 }
 

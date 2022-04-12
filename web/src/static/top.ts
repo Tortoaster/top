@@ -59,18 +59,15 @@ function onOpen(ev: Event) {
 function onMessage(ev: MessageEvent) {
   console.log(`received: ${ev.data}`);
   const data = JSON.parse(ev.data);
-  if(data.insert != null) {
-    const element = document.getElementById(data.insert.id) as HTMLDivElement;
-    element.innerHTML = data.insert.html;
-  } else if(data.replace != null) {
+  if(data.replace != null) {
     const element = document.getElementById(data.replace.id) as HTMLDivElement;
     const template = document.createElement('template');
     template.innerHTML = data.replace.html;
     element.replaceWith(template.content);
-  } else if(data.append != null) {
-    const element = document.getElementById(data.append.id) as HTMLDivElement;
+  } else if(data.insert != null) {
+    const element = document.getElementById(data.insert.id) as HTMLDivElement;
     const template = document.createElement('template');
-    template.innerHTML = data.append.html;
+    template.innerHTML = data.insert.html;
     element.appendChild(template.content);
   } else if(data.remove != null) {
     const element = document.getElementById(data.remove.id) as HTMLDivElement;

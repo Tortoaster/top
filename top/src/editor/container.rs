@@ -74,7 +74,7 @@ where
                 self.editors.push(editor);
                 self.rows.push(row);
 
-                Some(Feedback::Append {
+                Some(Feedback::Insert {
                     id: self.group_id,
                     html,
                 })

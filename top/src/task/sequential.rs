@@ -34,7 +34,7 @@ where
                         let button = Button::new(id, &action.0);
                         // TODO: Type-safe way?
                         action.1 = Some(id);
-                        let feedback = Feedback::Append {
+                        let feedback = Feedback::Insert {
                             id: Id::ROOT,
                             html: button.as_html(),
                         };
@@ -72,8 +72,8 @@ where
                 });
 
                 if let Some(next) = next {
+                    self.finish(ctx).await?;
                     self.current = Either::Right(next);
-                    self.continuations.clear();
                     self.start(ctx).await?;
                 }
 
@@ -81,6 +81,22 @@ where
             }
             Either::Right(task) => task.on_event(event, ctx).await,
         }
+    }
+
+    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
+        match &mut self.current {
+            Either::Left(task) => {
+                while let Some(cont) = self.continuations.pop() {
+                    if let Continuation::OnAction(Action(_, Some(id)), _) = cont {
+                        ctx.feedback.send(Feedback::Remove { id }).await?;
+                    }
+                }
+                task.finish(ctx).await?
+            }
+            Either::Right(task) => task.finish(ctx).await?,
+        }
+
+        Ok(())
     }
 }
 
