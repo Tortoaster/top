@@ -6,7 +6,7 @@ use top::prelude::*;
 use top::task::parallel::TaskParallelExt;
 
 async fn name() -> impl Task {
-    choose(vec!["a".to_owned(), "b".to_owned(), "c".to_owned()])
+    choose_with(vec![1, 2, 3].into_iter().map(DisplayViewer::new).collect())
         .left(enter::<Vec<u32>>())
         .steps()
         .on_action(Action::OK, has_value(|b| edit(b)))

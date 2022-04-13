@@ -1,7 +1,7 @@
 <div id="{{id}}" class="control">
     {{#each options}}
         <label class="radio">
-            <input type="radio" id="{{../id}}-{{@index}}" name="{{../id}}" value="{{@index}}" onclick="update(this.parentElement, this.value)">
+            <input type="radio" id="{{../id}}-{{@index}}" name="{{../id}}" value="{{@index}}" onclick="update(this.parentElement.parentElement, this.value)">
             {{{this}}}
         </label><br/>
     {{/each}}

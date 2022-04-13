@@ -54,7 +54,6 @@ where
     choose_with(options.into_iter().map(T::view).collect())
 }
 
-// TODO: Fix
 /// Have the user select a value out of a list of options, using a custom viewer.
 #[inline]
 pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
