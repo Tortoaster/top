@@ -1,4 +1,4 @@
-let socket!: WebSocket;
+const socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}`);
 
 document.addEventListener('DOMContentLoaded', connect);
 
@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', connect);
  * Connect to the server.
  */
 function connect() {
-  socket = new WebSocket(`ws://${document.location.host}${document.location.pathname}`);
   socket.onopen = onOpen;
   socket.onmessage = onMessage;
   socket.onerror = onError;
@@ -91,7 +90,8 @@ function onMessage(ev: MessageEvent) {
  * @param {Event} ev The event.
  */
 function onError(ev: Event) {
-  setTimeout(connect, 5000);
+  console.log(`connection error`);
+  alert('Failed to connect to the server')
 }
 
 /**
@@ -99,5 +99,5 @@ function onError(ev: Event) {
  */
 function onClose(ev: CloseEvent) {
   console.log(`lost connection: ${ev.reason}`);
-  setTimeout(connect, 1000);
+  alert('Lost connection')
 }
