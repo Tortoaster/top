@@ -6,36 +6,41 @@ use crate::viewer::primitive::StringViewer;
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DisplayViewer {
+pub struct DisplayViewer<T> {
     viewer: StringViewer,
+    value: T,
 }
 
-impl DisplayViewer {
-    pub fn new<T>(value: T) -> Self
+impl<T> DisplayViewer<T> {
+    pub fn new(value: T) -> Self
     where
         T: Display,
     {
         DisplayViewer {
             viewer: StringViewer::new(value.to_string()),
+            value,
         }
     }
 }
 
-impl AsHtml for DisplayViewer {
+impl<T> AsHtml for DisplayViewer<T> {
     fn as_html(&self) -> Html {
         self.viewer.as_html()
     }
 }
 
-impl Viewer for DisplayViewer {
-    type Value = <StringViewer as Viewer>::Value;
+impl<T> Viewer for DisplayViewer<T>
+where
+    T: Clone,
+{
+    type Value = T;
 
     fn finish(&self) -> Self::Value {
-        self.viewer.finish()
+        self.value.clone()
     }
 }
 
-impl Tune for DisplayViewer {
+impl<T> Tune for DisplayViewer<T> {
     type Tuner = <StringViewer as Tune>::Tuner;
 
     fn tune(&mut self, tuner: Self::Tuner) {
@@ -44,36 +49,41 @@ impl Tune for DisplayViewer {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DebugViewer {
+pub struct DebugViewer<T> {
     viewer: StringViewer,
+    value: T,
 }
 
-impl DebugViewer {
-    pub fn new<T>(value: T) -> Self
+impl<T> DebugViewer<T> {
+    pub fn new(value: T) -> Self
     where
         T: Debug,
     {
         DebugViewer {
             viewer: StringViewer::new(format!("{:?}", value)),
+            value,
         }
     }
 }
 
-impl AsHtml for DebugViewer {
+impl<T> AsHtml for DebugViewer<T> {
     fn as_html(&self) -> Html {
         self.viewer.as_html()
     }
 }
 
-impl Viewer for DebugViewer {
-    type Value = <StringViewer as Viewer>::Value;
+impl<T> Viewer for DebugViewer<T>
+where
+    T: Clone,
+{
+    type Value = T;
 
     fn finish(&self) -> Self::Value {
-        self.viewer.finish()
+        self.value.clone()
     }
 }
 
-impl Tune for DebugViewer {
+impl<T> Tune for DebugViewer<T> {
     type Tuner = <StringViewer as Tune>::Tuner;
 
     fn tune(&mut self, tuner: Self::Tuner) {
