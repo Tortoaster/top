@@ -3,10 +3,9 @@
   "version": "0.1.0",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run clean && npm run copyfiles && npm run tailwindcss:build && npm run tsc:build",
+    "build": "npm run clean && npm run copyfiles && npm run tsc:build",
     "watch": "npx nodemon --watch src --ext hbs,ts,css --exec \"npm run build\"",
     "copyfiles": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\"",
-    "tailwindcss:build": "npx tailwindcss -i ./src/static/style.css -o ./dist/static/style.css",
     "tsc:build": "npx tsc"
   },
   "devDependencies": {
@@ -17,7 +16,6 @@
     "eslint-config-google": "^0.14.0",
     "nodemon": "^2.0.15",
     "rimraf": "^3.0.2",
-    "tailwindcss": "^3.0.23",
     "typescript": "^4.5.5"
   }
 }

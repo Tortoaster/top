@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::html::{AsHtml, Html, BUTTON, ICON_BUTTON, MINUS, PLUS, REGISTRY};
+use crate::html::{AsHtml, Html, BUTTON, ICON_BUTTON, REGISTRY};
 use crate::id::Id;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -68,11 +68,10 @@ pub enum Icon {
 impl AsHtml for Icon {
     fn as_html(&self) -> Html {
         let html = match self {
-            Icon::Plus => REGISTRY.render(PLUS, &()),
-            Icon::Minus => REGISTRY.render(MINUS, &()),
-        }
-        .expect("failed to render template");
+            Icon::Plus => "<i class=\"fas fa-plus\"></i>",
+            Icon::Minus => "<i class=\"fas fa-minus\"></i>",
+        };
 
-        Html(html)
+        Html(format!("<span class=\"icon is-small\">{html}</span>"))
     }
 }

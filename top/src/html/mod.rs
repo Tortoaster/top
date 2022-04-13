@@ -8,12 +8,16 @@ use serde::Serialize;
 use serde_json::json;
 
 pub use button::{Button, Icon, IconButton};
+pub use div::{Div, DivType};
 pub use input::{CheckBox, Input, InputType};
-pub use tag::{Color, Div, Layout, RadioGroup, Span};
+pub use radio::RadioGroup;
+pub use span::{Color, Span};
 
 mod button;
+mod div;
 mod input;
-mod tag;
+mod radio;
+mod span;
 
 const INDEX: &str = "index";
 
@@ -21,11 +25,8 @@ const INPUT: &str = "input";
 const CHECKBOX: &str = "checkbox";
 const BUTTON: &str = "button";
 const ICON_BUTTON: &str = "icon_button";
-const GROUP: &str = "group";
+const DIV: &str = "div";
 const RADIO_GROUP: &str = "radio_group";
-
-const PLUS: &str = "plus";
-const MINUS: &str = "minus";
 
 lazy_static! {
     static ref REGISTRY: Handlebars<'static> = {
@@ -41,11 +42,8 @@ lazy_static! {
         reg.register_template_file(CHECKBOX, "../../web/dist/template/checkbox.hbs").unwrap();
         reg.register_template_file(BUTTON, "../../web/dist/template/button.hbs").unwrap();
         reg.register_template_file(ICON_BUTTON, "../../web/dist/template/icon_button.hbs").unwrap();
-        reg.register_template_file(GROUP, "../../web/dist/template/group.hbs").unwrap();
+        reg.register_template_file(DIV, "../../web/dist/template/div.hbs").unwrap();
         reg.register_template_file(RADIO_GROUP, "../../web/dist/template/radio_group.hbs").unwrap();
-
-        reg.register_template_file(PLUS, "../../web/dist/template/plus.hbs").unwrap();
-        reg.register_template_file(MINUS, "../../web/dist/template/minus.hbs").unwrap();
 
         reg
     };

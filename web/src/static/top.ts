@@ -18,11 +18,11 @@ function connect() {
  * @param {string} value The new value.
  */
 function update(input: HTMLInputElement, value: string = input.value) {
-  if(input.attributes.getNamedItem('synced') != null)
-    input.attributes.removeNamedItem('synced');
-  if(input.attributes.getNamedItem('failed') != null)
-    input.attributes.removeNamedItem('failed');
-  input.attributes.setNamedItem(document.createAttribute('syncing'));
+  if(input.classList.contains('is-success'))
+    input.classList.remove('is-success');
+  if(input.classList.contains('is-danger'))
+    input.classList.remove('is-danger');
+  input.classList.add('is-loading');
   const message = JSON.stringify({
     update: {
       id: input.id,
@@ -60,28 +60,30 @@ function onMessage(ev: MessageEvent) {
   console.log(`received: ${ev.data}`);
   const data = JSON.parse(ev.data);
   if(data.replace != null) {
-    const element = document.getElementById(data.replace.id) as HTMLDivElement;
     const template = document.createElement('template');
     template.innerHTML = data.replace.html;
-    element.replaceWith(template.content);
+
+    const element = document.getElementById(data.replace.id);
+    element?.replaceWith(template.content);
   } else if(data.insert != null) {
-    const element = document.getElementById(data.insert.id) as HTMLDivElement;
     const template = document.createElement('template');
     template.innerHTML = data.insert.html;
-    element.appendChild(template.content);
+
+    const element = document.getElementById(data.insert.id);
+    element?.appendChild(template.content);
   } else if(data.remove != null) {
-    const element = document.getElementById(data.remove.id) as HTMLDivElement;
-    element.parentElement?.removeChild(element);
+    const element = document.getElementById(data.remove.id);
+    element?.parentElement?.removeChild(element);
   } else if(data.valid != null) {
     const id = data.valid.id;
-    const input = document.getElementById(id) as HTMLElement;
-    input.attributes.removeNamedItem('syncing');
-    input.attributes.setNamedItem(document.createAttribute('synced'));
+    const input = document.getElementById(id);
+    input?.classList.remove('is-loading');
+    input?.classList.add('is-success');
   } else if(data.invalid != null) {
     const id = data.invalid.id;
-    const input = document.getElementById(id) as HTMLElement;
-    input.attributes.removeNamedItem('syncing');
-    input.attributes.setNamedItem(document.createAttribute('failed'));
+    const input = document.getElementById(id);
+    input?.classList.remove('is-loading');
+    input?.classList.add('is-danger');
   }
 }
 

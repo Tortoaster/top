@@ -6,8 +6,8 @@ use top::prelude::*;
 use top::task::parallel::TaskParallelExt;
 
 async fn name() -> impl Task {
-    view("hello!".to_owned())
-        .right(enter::<bool>())
+    choose(vec!["a".to_owned(), "b".to_owned(), "c".to_owned()])
+        .left(enter::<Vec<u32>>())
         .steps()
         .on_action(Action::OK, has_value(|b| edit(b)))
         .finish()

@@ -34,6 +34,7 @@ where
                         let button = Button::new(id, &action.0);
                         // TODO: Type-safe way?
                         action.1 = Some(id);
+                        // TODO: Insert in task, not at top level
                         let feedback = Feedback::Insert {
                             id: Id::ROOT,
                             html: button.as_html(),

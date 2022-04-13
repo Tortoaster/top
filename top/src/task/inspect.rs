@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 
 use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Div};
+use crate::html::{AsHtml, Div, DivType};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
@@ -46,6 +46,7 @@ where
 
         let html = Div::new(vec![self.viewer.as_html()])
             .with_id(self.id)
+            .with_div_type(DivType::Section)
             .as_html();
         let feedback = Feedback::Insert { id: Id::ROOT, html };
 

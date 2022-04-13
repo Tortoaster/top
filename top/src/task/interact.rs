@@ -4,7 +4,7 @@ use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Div};
+use crate::html::{AsHtml, Div, DivType};
 use crate::id::Id;
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
@@ -54,6 +54,7 @@ where
     choose_with(options.into_iter().map(T::view).collect())
 }
 
+// TODO: Fix
 /// Have the user select a value out of a list of options, using a custom viewer.
 #[inline]
 pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
@@ -76,6 +77,7 @@ where
 
         let html = Div::new(vec![self.editor.as_html()])
             .with_id(self.id)
+            .with_div_type(DivType::Section)
             .as_html();
         let feedback = Feedback::Insert { id: Id::ROOT, html };
 

@@ -1,6 +1,6 @@
 use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Div, Html, Icon, IconButton, Layout};
+use crate::html::{AsHtml, Div, DivType, Html, Icon, IconButton};
 use crate::id::{Generator, Id};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -39,10 +39,10 @@ where
             .map(|(editor, row)| row.as_html(editor))
             .collect();
 
-        let group = Div::new(children).with_id(self.group_id).as_html();
+        let div = Div::new(children).with_id(self.group_id).as_html();
         let button = Row::add_button(self.add_id);
 
-        Div::new(vec![group, button]).as_html()
+        Div::new(vec![div, button]).as_html()
     }
 }
 
@@ -213,8 +213,8 @@ impl Row {
         let editor = editor.as_html();
         let button = IconButton::new(self.sub_id, Icon::Minus).as_html();
         Div::new(vec![editor, button])
-            .with_layout(Layout::Row)
             .with_id(self.id)
+            .with_div_type(DivType::Row)
             .as_html()
     }
 
