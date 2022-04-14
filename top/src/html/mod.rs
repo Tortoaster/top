@@ -36,14 +36,14 @@ lazy_static! {
         reg.set_dev_mode(true);
 
         // TODO: Improve paths
-        reg.register_template_file(INDEX, "../../web/dist/template/index.hbs").unwrap();
+        reg.register_template_file(INDEX, "../../web/src/template/index.hbs").unwrap();
 
-        reg.register_template_file(INPUT, "../../web/dist/template/input.hbs").unwrap();
-        reg.register_template_file(CHECKBOX, "../../web/dist/template/checkbox.hbs").unwrap();
-        reg.register_template_file(BUTTON, "../../web/dist/template/button.hbs").unwrap();
-        reg.register_template_file(ICON_BUTTON, "../../web/dist/template/icon_button.hbs").unwrap();
-        reg.register_template_file(DIV, "../../web/dist/template/div.hbs").unwrap();
-        reg.register_template_file(RADIO_GROUP, "../../web/dist/template/radio_group.hbs").unwrap();
+        reg.register_template_file(INPUT, "../../web/src/template/input.hbs").unwrap();
+        reg.register_template_file(CHECKBOX, "../../web/src/template/checkbox.hbs").unwrap();
+        reg.register_template_file(BUTTON, "../../web/src/template/button.hbs").unwrap();
+        reg.register_template_file(ICON_BUTTON, "../../web/src/template/icon_button.hbs").unwrap();
+        reg.register_template_file(DIV, "../../web/src/template/div.hbs").unwrap();
+        reg.register_template_file(RADIO_GROUP, "../../web/src/template/radio_group.hbs").unwrap();
 
         reg
     };

@@ -21,7 +21,7 @@ async fn main() {
     info!("Listening on http://{HOST}");
 
     let router = Router::new()
-        .nest("/static", TopService::new())
+        .nest("/top", TopService::new())
         .route("/", task(name));
 
     axum::Server::bind(&HOST.parse().unwrap())

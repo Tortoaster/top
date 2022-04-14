@@ -2,16 +2,14 @@
   "name": "web",
   "version": "0.1.0",
   "scripts": {
+    "build": "npm run clean && npm run tsc:build",
+    "watch": "npx nodemon --watch src --ext ts --exec \"npm run build\"",
     "clean": "rimraf dist",
-    "build": "npm run clean && npm run copyfiles && npm run tsc:build",
-    "watch": "npx nodemon --watch src --ext hbs,ts,css --exec \"npm run build\"",
-    "copyfiles": "copyfiles -u 1 \"./src/**/*.hbs\" \"./dist/\"",
     "tsc:build": "npx tsc"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
-    "copyfiles": "^2.4.1",
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
     "nodemon": "^2.0.15",

@@ -12,7 +12,7 @@ use axum::routing::{get, get_service, MethodRouter};
 use futures::stream::SplitStream;
 use futures::StreamExt;
 use log::{error, trace, warn};
-use tower_http::services::ServeDir;
+use tower_http::services::ServeFile;
 use tower_service::Service;
 
 use crate::event::handler::FeedbackHandler;
@@ -26,7 +26,7 @@ impl TopService {
     pub fn new() -> Self {
         // TODO: Fix path
         TopService(
-            get_service(ServeDir::new("../../web/dist/static"))
+            get_service(ServeFile::new("../../web/dist/top.js"))
                 .handle_error(|_: std::io::Error| async move { StatusCode::NOT_FOUND }),
         )
     }
