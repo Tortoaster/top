@@ -15,10 +15,6 @@ pub mod id;
 pub struct Html(pub String);
 
 impl Html {
-    pub const fn empty() -> Self {
-        Html(String::new())
-    }
-
     pub fn wrapper(title: &str) -> Html {
         html! {r#"
             <!DOCTYPE html>
@@ -49,31 +45,36 @@ impl Display for Html {
     }
 }
 
+impl FromIterator<Html> for Html {
+    fn from_iter<T: IntoIterator<Item = Html>>(iter: T) -> Self {
+        let html: String = iter.into_iter().map(|html| html.0).collect();
+        Html(html)
+    }
+}
+
 pub trait ToHtml {
     fn to_html(&self) -> Html;
 }
 
+macro_rules! impl_to_html {
+    ($($ty:ty),*) => {
+        $(
+            impl ToHtml for $ty {
+                fn to_html(&self) -> Html {
+                    Html(self.to_string())
+                }
+            }
+        )*
+    };
+}
+
+impl_to_html!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, &str, String
+);
+
 impl ToHtml for Html {
     fn to_html(&self) -> Html {
         self.clone()
-    }
-}
-
-impl ToHtml for &str {
-    fn to_html(&self) -> Html {
-        Html((*self).to_owned())
-    }
-}
-
-impl ToHtml for String {
-    fn to_html(&self) -> Html {
-        Html(self.clone())
-    }
-}
-
-impl ToHtml for usize {
-    fn to_html(&self) -> Html {
-        Html(self.to_string())
     }
 }
 
@@ -101,12 +102,5 @@ where
 {
     fn to_html(&self) -> Html {
         self.iter().map(ToHtml::to_html).collect()
-    }
-}
-
-impl FromIterator<Html> for Html {
-    fn from_iter<T: IntoIterator<Item = Html>>(iter: T) -> Self {
-        let html: String = iter.into_iter().map(|html| html.0).collect();
-        Html(html)
     }
 }

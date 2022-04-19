@@ -10,7 +10,7 @@ pub struct UnitEditor;
 
 impl ToHtml for UnitEditor {
     fn to_html(&self) -> Html {
-        Html::empty()
+        Html::default()
     }
 }
 

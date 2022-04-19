@@ -89,7 +89,7 @@ impl ToHtml for InputEditor<String> {
     }
 }
 
-macro_rules! impl_as_html_for_number {
+macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
             impl ToHtml for InputEditor<$ty> {
@@ -105,7 +105,7 @@ macro_rules! impl_as_html_for_number {
     };
 }
 
-impl_as_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
+impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
 impl ToHtml for InputEditor<bool> {
     fn to_html(&self) -> Html {
