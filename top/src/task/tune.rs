@@ -23,7 +23,7 @@ impl InputTuner {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct StringTuner {
+pub struct OutputTuner {
     pub color: Color,
 }
 
@@ -64,7 +64,7 @@ impl ToHtml for Color {
     }
 }
 
-impl StringTuner {
+impl OutputTuner {
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = color;
         self

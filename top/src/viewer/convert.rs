@@ -2,12 +2,12 @@ use std::fmt::{Debug, Display};
 
 use crate::html::{Html, ToHtml};
 use crate::task::tune::Tune;
-use crate::viewer::primitive::StringViewer;
+use crate::viewer::primitive::OutputViewer;
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DisplayViewer<T> {
-    viewer: StringViewer,
+    viewer: OutputViewer<String>,
     value: T,
 }
 
@@ -17,7 +17,7 @@ impl<T> DisplayViewer<T> {
         T: Display,
     {
         DisplayViewer {
-            viewer: StringViewer::new(value.to_string()),
+            viewer: OutputViewer::new(value.to_string()),
             value,
         }
     }
@@ -41,7 +41,7 @@ where
 }
 
 impl<T> Tune for DisplayViewer<T> {
-    type Tuner = <StringViewer as Tune>::Tuner;
+    type Tuner = <OutputViewer<String> as Tune>::Tuner;
 
     fn tune(&mut self, tuner: Self::Tuner) {
         self.viewer.tune(tuner);
@@ -50,7 +50,7 @@ impl<T> Tune for DisplayViewer<T> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DebugViewer<T> {
-    viewer: StringViewer,
+    viewer: OutputViewer<String>,
     value: T,
 }
 
@@ -60,7 +60,7 @@ impl<T> DebugViewer<T> {
         T: Debug,
     {
         DebugViewer {
-            viewer: StringViewer::new(format!("{:?}", value)),
+            viewer: OutputViewer::new(format!("{:?}", value)),
             value,
         }
     }
@@ -84,7 +84,7 @@ where
 }
 
 impl<T> Tune for DebugViewer<T> {
-    type Tuner = <StringViewer as Tune>::Tuner;
+    type Tuner = <OutputViewer<String> as Tune>::Tuner;
 
     fn tune(&mut self, tuner: Self::Tuner) {
         self.viewer.tune(tuner);

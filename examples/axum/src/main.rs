@@ -5,7 +5,7 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    choose_with(vec![1, 2, 3].into_iter().map(DisplayViewer::new).collect())
+    choose(vec![1, 2, 3])
         .left(enter::<Vec<u32>>())
         .steps()
         .on_action(Action::OK, has_value(edit))
