@@ -4,6 +4,7 @@ use crate::editor::{Editor, EditorError};
 use crate::html::event::{Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
+use crate::task::tune::{ContentTune, Tune};
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -73,5 +74,19 @@ where
             .and_then(|index| self.choices.get(index).map(|choice| choice.finish()));
 
         Ok(choice)
+    }
+}
+
+impl<V> ContentTune for ChoiceEditor<V>
+where
+    V: Tune,
+    V::Tuner: Clone,
+{
+    type ContentTuner = V::Tuner;
+
+    fn tune_content(&mut self, tuner: Self::ContentTuner) {
+        self.choices
+            .iter_mut()
+            .for_each(|choice| choice.tune(tuner.clone()));
     }
 }

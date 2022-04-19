@@ -5,6 +5,7 @@ use crate::html::event::{Event, Feedback};
 use crate::html::icon::Icon;
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
+use crate::task::tune::{ContentTune, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VecEditor<E> {
@@ -112,6 +113,20 @@ where
     }
 }
 
+impl<E> ContentTune for VecEditor<E>
+where
+    E: Tune,
+    E::Tuner: Clone,
+{
+    type ContentTuner = E::Tuner;
+
+    fn tune_content(&mut self, tuner: Self::ContentTuner) {
+        self.editors
+            .iter_mut()
+            .for_each(|choice| choice.tune(tuner.clone()));
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionEditor<E> {
     /// Represents the row containing the editor and the minus button if a value is present.
@@ -197,6 +212,17 @@ where
         } else {
             Ok(None)
         }
+    }
+}
+
+impl<E> ContentTune for OptionEditor<E>
+where
+    E: Tune,
+{
+    type ContentTuner = E::Tuner;
+
+    fn tune_content(&mut self, tuner: Self::ContentTuner) {
+        self.editor.tune(tuner)
     }
 }
 

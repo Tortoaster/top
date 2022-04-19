@@ -6,6 +6,7 @@ use top::prelude::*;
 
 async fn name() -> impl Task {
     choose(vec![1, 2, 3])
+        .tune_content(OutputTuner::default().with_color(Color::Pink))
         .left(enter::<Vec<u32>>())
         .steps()
         .on_action(Action::OK, has_value(edit))
