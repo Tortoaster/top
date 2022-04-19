@@ -1,5 +1,7 @@
-use crate::html::{AsHtml, Html, Span};
-use crate::tune::{StringTuner, Tune};
+use top_derive::html;
+
+use crate::html::{Html, ToHtml};
+use crate::task::tune::{StringTuner, Tune};
 use crate::viewer::Viewer;
 
 /// Basic viewer for strings.
@@ -18,11 +20,11 @@ impl StringViewer {
     }
 }
 
-impl AsHtml for StringViewer {
-    fn as_html(&self) -> Html {
-        Span::new(&self.value)
-            .with_color(self.tuner.color)
-            .as_html()
+impl ToHtml for StringViewer {
+    fn to_html(&self) -> Html {
+        html! {r#"
+            <span style="color: {self.tuner.color};">{self.value}</span>
+        "#}
     }
 }
 

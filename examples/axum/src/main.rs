@@ -3,13 +3,12 @@ use log::info;
 
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::task::parallel::TaskParallelExt;
 
 async fn name() -> impl Task {
     choose_with(vec![1, 2, 3].into_iter().map(DisplayViewer::new).collect())
         .left(enter::<Vec<u32>>())
         .steps()
-        .on_action(Action::OK, has_value(|b| edit(b)))
+        .on_action(Action::OK, has_value(edit))
         .finish()
 }
 

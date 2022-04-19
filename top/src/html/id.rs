@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::html::{AsHtml, Html};
+use crate::html::{Html, ToHtml};
 
 // TODO: Allow identifying containing form, and disable any buttons while syncing or invalid
 /// Unique html identifier.
@@ -18,8 +18,8 @@ impl Id {
     pub const INVALID: Id = Id(u32::MAX);
 }
 
-impl AsHtml for Id {
-    fn as_html(&self) -> Html {
+impl ToHtml for Id {
+    fn to_html(&self) -> Html {
         Html(self.to_string())
     }
 }

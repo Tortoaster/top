@@ -2,52 +2,13 @@
 
 use std::fmt::{Display, Formatter};
 
-use handlebars::Handlebars;
-use lazy_static::lazy_static;
 use serde::Serialize;
-use serde_json::json;
 
-pub use button::{Button, Icon, IconButton};
-pub use div::{Div, DivType};
-pub use input::{CheckBox, Input, InputType};
-pub use radio::RadioGroup;
-pub use span::{Color, Span};
+use top_derive::html;
 
-mod button;
-mod div;
-mod input;
-mod radio;
-mod span;
-
-const INDEX: &str = "index";
-
-const INPUT: &str = "input";
-const CHECKBOX: &str = "checkbox";
-const BUTTON: &str = "button";
-const ICON_BUTTON: &str = "icon_button";
-const DIV: &str = "div";
-const RADIO_GROUP: &str = "radio_group";
-
-lazy_static! {
-    static ref REGISTRY: Handlebars<'static> = {
-        let mut reg = Handlebars::new();
-
-        #[cfg(debug_assertions)]
-        reg.set_dev_mode(true);
-
-        // TODO: Improve paths
-        reg.register_template_file(INDEX, "../../web/src/template/index.hbs").unwrap();
-
-        reg.register_template_file(INPUT, "../../web/src/template/input.hbs").unwrap();
-        reg.register_template_file(CHECKBOX, "../../web/src/template/checkbox.hbs").unwrap();
-        reg.register_template_file(BUTTON, "../../web/src/template/button.hbs").unwrap();
-        reg.register_template_file(ICON_BUTTON, "../../web/src/template/icon_button.hbs").unwrap();
-        reg.register_template_file(DIV, "../../web/src/template/div.hbs").unwrap();
-        reg.register_template_file(RADIO_GROUP, "../../web/src/template/radio_group.hbs").unwrap();
-
-        reg
-    };
-}
+pub mod event;
+pub mod icon;
+pub mod id;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
@@ -59,11 +20,26 @@ impl Html {
     }
 
     pub fn wrapper(title: &str) -> Html {
-        let html = REGISTRY
-            .render(INDEX, &json!({ "title": title }))
-            .expect("failed to render template");
-
-        Html(html)
+        html! {r#"
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>{title}</title>
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+                    <script src="https://kit.fontawesome.com/e94af86b8c.js" crossorigin="anonymous"></script>
+                    <script src="top/top.js"></script>
+                </head>
+                <body>
+                    <section class="section">
+                        <div class="container">
+                            <div id="top-0"></div>
+                        </div>
+                    </section>
+                </body>
+            </html>
+        "#}
     }
 }
 
@@ -73,36 +49,64 @@ impl Display for Html {
     }
 }
 
-pub trait AsHtml {
-    fn as_html(&self) -> Html;
+pub trait ToHtml {
+    fn to_html(&self) -> Html;
 }
 
-impl AsHtml for &str {
-    fn as_html(&self) -> Html {
+impl ToHtml for Html {
+    fn to_html(&self) -> Html {
+        self.clone()
+    }
+}
+
+impl ToHtml for &str {
+    fn to_html(&self) -> Html {
         Html((*self).to_owned())
     }
 }
 
-impl AsHtml for String {
-    fn as_html(&self) -> Html {
+impl ToHtml for String {
+    fn to_html(&self) -> Html {
         Html(self.clone())
     }
 }
 
-impl<T> AsHtml for Option<T>
-where
-    T: AsHtml,
-{
-    fn as_html(&self) -> Html {
-        self.as_ref().map(AsHtml::as_html).unwrap_or_default()
+impl ToHtml for usize {
+    fn to_html(&self) -> Html {
+        Html(self.to_string())
     }
 }
 
-impl<T, E> AsHtml for Result<T, E>
+impl<T> ToHtml for Option<T>
 where
-    T: AsHtml,
+    T: ToHtml,
 {
-    fn as_html(&self) -> Html {
-        self.as_ref().map(AsHtml::as_html).unwrap_or_default()
+    fn to_html(&self) -> Html {
+        self.as_ref().map(ToHtml::to_html).unwrap_or_default()
+    }
+}
+
+impl<T, E> ToHtml for Result<T, E>
+where
+    T: ToHtml,
+{
+    fn to_html(&self) -> Html {
+        self.as_ref().map(ToHtml::to_html).unwrap_or_default()
+    }
+}
+
+impl<T> ToHtml for Vec<T>
+where
+    T: ToHtml,
+{
+    fn to_html(&self) -> Html {
+        self.iter().map(ToHtml::to_html).collect()
+    }
+}
+
+impl FromIterator<Html> for Html {
+    fn from_iter<T: IntoIterator<Item = Html>>(iter: T) -> Self {
+        let html: String = iter.into_iter().map(|html| html.0).collect();
+        Html(html)
     }
 }

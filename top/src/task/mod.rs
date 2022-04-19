@@ -1,14 +1,15 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::event::handler::{FeedbackError, FeedbackHandler};
-use crate::event::Event;
-use crate::id::Generator;
+use crate::html::event::handler::{FeedbackError, FeedbackHandler};
+use crate::html::event::Event;
+use crate::html::id::Generator;
 
 pub mod inspect;
 pub mod interact;
 pub mod parallel;
 pub mod sequential;
+pub mod tune;
 
 pub type TaskResult<T> = std::result::Result<TaskValue<T>, TaskError>;
 

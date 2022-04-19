@@ -2,9 +2,11 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Div, DivType};
-use crate::id::Id;
+use top_derive::html;
+
+use crate::html::event::{Event, Feedback};
+use crate::html::id::Id;
+use crate::html::{Html, ToHtml};
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
@@ -37,17 +39,20 @@ pub fn view_with<V>(viewer: V) -> Inspect<V> {
 #[async_trait]
 impl<V> Task for Inspect<V>
 where
-    V: Viewer + AsHtml + Send,
+    V: Viewer + ToHtml + Send,
 {
     type Value = V::Value;
 
     async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
         self.id = ctx.gen.next();
 
-        let html = Div::new(vec![self.viewer.as_html()])
-            .with_id(self.id)
-            .with_div_type(DivType::Section)
-            .as_html();
+        let id = self.id;
+        let viewer = self.viewer.to_html();
+        let html = html! {r#"
+            <div id="{id}" class="section">
+                {viewer}
+            </div>
+        "#};
         let feedback = Feedback::Insert { id: Id::ROOT, html };
 
         ctx.feedback.send(feedback).await?;

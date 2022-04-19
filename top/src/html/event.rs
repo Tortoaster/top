@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::html::id::Id;
 use crate::html::Html;
-use crate::id::Id;
 
 /// Interaction event from the user, such as checking a checkbox or pressing a button.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize)]
@@ -52,7 +52,7 @@ pub mod handler {
     use log::trace;
     use thiserror::Error;
 
-    use crate::event::Feedback;
+    use crate::html::event::Feedback;
 
     #[derive(Debug)]
     pub struct FeedbackHandler {

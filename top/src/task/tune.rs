@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::html::Color;
+use crate::html::{Html, ToHtml};
 use crate::task::inspect::Inspect;
 use crate::task::interact::Interact;
 
@@ -25,6 +25,43 @@ impl InputTuner {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StringTuner {
     pub color: Color,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum Color {
+    Black,
+    White,
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Blue,
+    Purple,
+    Pink,
+    Brown,
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Color::Black
+    }
+}
+
+impl ToHtml for Color {
+    fn to_html(&self) -> Html {
+        match self {
+            Color::Black => Html("black".to_owned()),
+            Color::White => Html("white".to_owned()),
+            Color::Red => Html("red".to_owned()),
+            Color::Orange => Html("orange".to_owned()),
+            Color::Yellow => Html("yellow".to_owned()),
+            Color::Green => Html("green".to_owned()),
+            Color::Blue => Html("blue".to_owned()),
+            Color::Purple => Html("purple".to_owned()),
+            Color::Pink => Html("pink".to_owned()),
+            Color::Brown => Html("brown".to_owned()),
+        }
+    }
 }
 
 impl StringTuner {

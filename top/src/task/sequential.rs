@@ -3,9 +3,11 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use either::Either;
 
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Button};
-use crate::id::Id;
+use top_derive::html;
+
+use crate::html::event::{Event, Feedback};
+use crate::html::id::Id;
+use crate::html::{Html, ToHtml};
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
@@ -31,14 +33,15 @@ where
                 for cont in &mut self.continuations {
                     if let Continuation::OnAction(action, _) = cont {
                         let id = ctx.gen.next();
-                        let button = Button::new(id, &action.0);
+                        let html = html! {r#"
+                            <button id="{id}" class="button is-link" type="button" onclick="press(this)">
+                                {action.0}
+                            </button>
+                        "#};
                         // TODO: Type-safe way?
                         action.1 = Some(id);
                         // TODO: Insert in task, not at top level
-                        let feedback = Feedback::Insert {
-                            id: Id::ROOT,
-                            html: button.as_html(),
-                        };
+                        let feedback = Feedback::Insert { id: Id::ROOT, html };
                         ctx.feedback.send(feedback).await?;
                     }
                 }

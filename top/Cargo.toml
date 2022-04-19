@@ -11,7 +11,6 @@ axum_integration = ["axum", "futures", "tower-http", "tower-service"]
 [dependencies]
 async-trait = "0.1.52"
 either = "1.6"
-handlebars = "4.2"
 lazy_static = "1.4"
 paste = "1.0"
 serde = { version = "1.0", features = ["derive"] }

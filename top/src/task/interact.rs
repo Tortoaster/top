@@ -1,11 +1,13 @@
 use async_trait::async_trait;
 
+use top_derive::html;
+
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Div, DivType};
-use crate::id::Id;
+use crate::html::event::{Event, Feedback};
+use crate::html::id::Id;
+use crate::html::{Html, ToHtml};
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
 
@@ -66,7 +68,7 @@ pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
 #[async_trait]
 impl<E> Task for Interact<E>
 where
-    E: Editor + AsHtml + Send,
+    E: Editor + ToHtml + Send,
 {
     type Value = E::Value;
 
@@ -74,10 +76,13 @@ where
         self.id = ctx.gen.next();
         self.editor.start(&mut ctx.gen);
 
-        let html = Div::new(vec![self.editor.as_html()])
-            .with_id(self.id)
-            .with_div_type(DivType::Section)
-            .as_html();
+        let id = self.id;
+        let editor = self.editor.to_html();
+        let html = html! {r#"
+            <div id="{id}" class="section">
+                {editor}
+            </div>
+        "#};
         let feedback = Feedback::Insert { id: Id::ROOT, html };
 
         ctx.feedback.send(feedback).await?;

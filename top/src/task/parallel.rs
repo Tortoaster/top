@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use async_trait::async_trait;
 
-use crate::event::Event;
+use crate::html::event::Event;
 use crate::task::{Context, OptionExt, Task, TaskError, TaskResult};
 
 #[derive(Debug)]

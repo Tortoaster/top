@@ -3,7 +3,7 @@ use crate::editor::primitive::InputEditor;
 use crate::editor::Editor;
 // use crate::editor::container::{OptionEditor, VecEditor};
 use crate::editor::tuple::*;
-use crate::html::AsHtml;
+use crate::html::ToHtml;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
@@ -96,7 +96,7 @@ macro_rules! impl_edit_for_tuple {
 impl<T> Edit for Vec<T>
 where
     T: Edit,
-    T::Editor: AsHtml + Clone,
+    T::Editor: ToHtml + Clone,
 {
     type Editor = VecEditor<T::Editor>;
 
@@ -115,7 +115,7 @@ where
 impl<T> Edit for Option<T>
 where
     T: Edit,
-    T::Editor: AsHtml,
+    T::Editor: ToHtml,
 {
     type Editor = OptionEditor<T::Editor>;
 

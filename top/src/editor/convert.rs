@@ -5,10 +5,10 @@ use top_derive::html;
 
 use crate::editor::primitive::InputEditor;
 use crate::editor::{Editor, EditorError};
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Html};
-use crate::id::Generator;
-use crate::tune::{InputTuner, Tune};
+use crate::html::event::{Event, Feedback};
+use crate::html::id::Generator;
+use crate::html::{Html, ToHtml};
+use crate::task::tune::{InputTuner, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DisplayFromStrEditor<T> {
@@ -32,11 +32,11 @@ where
     }
 }
 
-impl<T> AsHtml for DisplayFromStrEditor<T>
+impl<T> ToHtml for DisplayFromStrEditor<T>
 where
     T: Display,
 {
-    fn as_html(&self) -> Html {
+    fn to_html(&self) -> Html {
         let value = self.editor.value.as_ref().map(ToString::to_string);
         html! {r#"
             <label for="{self.editor.id}" class="label">{self.editor.tuner.label}</label>

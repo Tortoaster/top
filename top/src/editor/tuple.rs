@@ -1,15 +1,15 @@
 use paste::paste;
 
 use crate::editor::{Editor, EditorError};
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Html};
-use crate::id::Generator;
+use crate::html::event::{Event, Feedback};
+use crate::html::id::Generator;
+use crate::html::{Html, ToHtml};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
 
-impl AsHtml for UnitEditor {
-    fn as_html(&self) -> Html {
+impl ToHtml for UnitEditor {
+    fn to_html(&self) -> Html {
         Html::empty()
     }
 }

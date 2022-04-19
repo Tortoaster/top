@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
-use crate::html::{AsHtml, Html};
-use crate::tune::Tune;
+use crate::html::{Html, ToHtml};
+use crate::task::tune::Tune;
 use crate::viewer::primitive::StringViewer;
 use crate::viewer::Viewer;
 
@@ -23,9 +23,9 @@ impl<T> DisplayViewer<T> {
     }
 }
 
-impl<T> AsHtml for DisplayViewer<T> {
-    fn as_html(&self) -> Html {
-        self.viewer.as_html()
+impl<T> ToHtml for DisplayViewer<T> {
+    fn to_html(&self) -> Html {
+        self.viewer.to_html()
     }
 }
 
@@ -66,9 +66,9 @@ impl<T> DebugViewer<T> {
     }
 }
 
-impl<T> AsHtml for DebugViewer<T> {
-    fn as_html(&self) -> Html {
-        self.viewer.as_html()
+impl<T> ToHtml for DebugViewer<T> {
+    fn to_html(&self) -> Html {
+        self.viewer.to_html()
     }
 }
 

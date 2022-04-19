@@ -1,7 +1,9 @@
+use top_derive::html;
+
 use crate::editor::{Editor, EditorError};
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Html, RadioGroup};
-use crate::id::{Generator, Id};
+use crate::html::event::{Event, Feedback};
+use crate::html::id::{Generator, Id};
+use crate::html::{Html, ToHtml};
 use crate::viewer::Viewer;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,13 +23,24 @@ impl<V> ChoiceEditor<V> {
     }
 }
 
-impl<V> AsHtml for ChoiceEditor<V>
+impl<V> ToHtml for ChoiceEditor<V>
 where
-    V: AsHtml,
+    V: ToHtml,
 {
-    fn as_html(&self) -> Html {
-        let options = self.choices.iter().map(V::as_html).collect();
-        RadioGroup::new(self.id, options).as_html()
+    fn to_html(&self) -> Html {
+        // TODO: Join with <br/> instead
+        let options: Html = self.choices.iter().enumerate().map(|(index, choice)| html! {r#"
+            <label class="radio">
+                <input type="radio" id="{self.id}-{index}" name="{self.id}" value="{index}" onclick="update(this.parentElement.parentElement, this.value)">
+                {choice}
+            </label><br/>
+        "#}).collect();
+
+        html! {r#"
+            <div id="{self.id}" class="control">
+                {options}
+            </div>
+        "#}
     }
 }
 

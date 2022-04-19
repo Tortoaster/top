@@ -1,7 +1,10 @@
+use top_derive::html;
+
 use crate::editor::{Editor, EditorError};
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Div, DivType, Html, Icon, IconButton};
-use crate::id::{Generator, Id};
+use crate::html::event::{Event, Feedback};
+use crate::html::icon::Icon;
+use crate::html::id::{Generator, Id};
+use crate::html::{Html, ToHtml};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VecEditor<E> {
@@ -27,28 +30,34 @@ impl<E> VecEditor<E> {
     }
 }
 
-impl<E> AsHtml for VecEditor<E>
+impl<E> ToHtml for VecEditor<E>
 where
-    E: AsHtml,
+    E: ToHtml,
 {
-    fn as_html(&self) -> Html {
-        let children = self
+    fn to_html(&self) -> Html {
+        let children: Html = self
             .editors
             .iter()
             .zip(&self.rows)
-            .map(|(editor, row)| row.as_html(editor))
+            .map(|(editor, row)| row.to_html(editor))
             .collect();
 
-        let div = Div::new(children).with_id(self.group_id).as_html();
         let button = Row::add_button(self.add_id);
 
-        Div::new(vec![div, button]).as_html()
+        html! {r#"
+            <div class="column">
+                <div id="{self.group_id}" class="column">
+                    {children}
+                </div>
+                {button}
+            </div>
+        "#}
     }
 }
 
 impl<E> Editor for VecEditor<E>
 where
-    E: Editor + AsHtml + Clone,
+    E: Editor + ToHtml + Clone,
 {
     type Value = Vec<E::Value>;
 
@@ -69,7 +78,7 @@ where
                 let mut editor = self.template.clone();
                 editor.start(gen);
                 let row = Row::new(gen);
-                let html = row.as_html(&editor);
+                let html = row.to_html(&editor);
 
                 self.editors.push(editor);
                 self.rows.push(row);
@@ -131,22 +140,22 @@ where
     }
 }
 
-impl<E> AsHtml for OptionEditor<E>
+impl<E> ToHtml for OptionEditor<E>
 where
-    E: AsHtml,
+    E: ToHtml,
 {
-    fn as_html(&self) -> Html {
+    fn to_html(&self) -> Html {
         if self.enabled {
-            self.row.as_html(&self.editor)
+            self.row.to_html(&self.editor)
         } else {
-            Row::add_button(self.add_id)
+            Row::add_button(self.add_id).to_html()
         }
     }
 }
 
 impl<E> Editor for OptionEditor<E>
 where
-    E: Editor + AsHtml,
+    E: Editor + ToHtml,
 {
     type Value = Option<E::Value>;
 
@@ -162,7 +171,7 @@ where
             Event::Press { id } if id == self.add_id && !self.enabled => {
                 // Add value
                 let id = self.add_id;
-                let html = self.row.as_html(&mut self.editor);
+                let html = self.row.to_html(&mut self.editor);
                 self.enabled = true;
 
                 Some(Feedback::Replace { id, html })
@@ -170,7 +179,7 @@ where
             Event::Press { id } if id == self.row.sub_id && self.enabled => {
                 // Remove value
                 let id = self.row.id;
-                let html = Row::add_button(self.add_id);
+                let html = Row::add_button(self.add_id).to_html();
                 self.enabled = false;
 
                 Some(Feedback::Replace { id, html })
@@ -206,19 +215,25 @@ impl Row {
     }
 
     /// Creates a row consisting of the editor and a button to remove it.
-    fn as_html<E>(&self, editor: &E) -> Html
+    fn to_html<E>(&self, editor: &E) -> Html
     where
-        E: AsHtml,
+        E: ToHtml,
     {
-        let editor = editor.as_html();
-        let button = IconButton::new(self.sub_id, Icon::Minus).as_html();
-        Div::new(vec![editor, button])
-            .with_id(self.id)
-            .with_div_type(DivType::Row)
-            .as_html()
+        html! {r#"
+            <div id="{self.id}" class="level">
+                {editor}
+                <button id="{self.sub_id}" class="button is-outlined" type="button" onclick="press(this)">
+                    {Icon::Minus}
+                </button>
+            </div>
+        "#}
     }
 
     fn add_button(id: Id) -> Html {
-        IconButton::new(id, Icon::Plus).as_html()
+        html! {r#"
+            <button id="{id}" class="button is-outlined" type="button" onclick="press(this)">
+                {Icon::Plus}
+            </button>
+        "#}
     }
 }

@@ -2,11 +2,13 @@
 
 use std::str::FromStr;
 
+use top_derive::html;
+
 use crate::editor::{Editor, EditorError};
-use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, CheckBox, Html, Input, InputType};
-use crate::id::{Generator, Id};
-use crate::tune::{InputTuner, Tune};
+use crate::html::event::{Event, Feedback};
+use crate::html::id::{Generator, Id};
+use crate::html::{Html, ToHtml};
+use crate::task::tune::{InputTuner, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct InputEditor<T> {
@@ -78,31 +80,25 @@ impl<T> Default for InputEditor<T> {
     }
 }
 
-impl AsHtml for InputEditor<String> {
-    fn as_html(&self) -> Html {
-        Input::new(self.id)
-            .with_value(self.value.as_deref().unwrap_or_default())
-            .with_label(self.tuner.label.as_deref())
-            .as_html()
+impl ToHtml for InputEditor<String> {
+    fn to_html(&self) -> Html {
+        html! {r#"
+            <label for="{self.id}" class="label">{self.tuner.label}</label>
+            <input id="{self.id}" class="input" value="{self.value}" onblur="update(this)"/>
+        "#}
     }
 }
 
 macro_rules! impl_as_html_for_number {
     ($($ty:ty),*) => {
         $(
-            impl AsHtml for InputEditor<$ty> {
-                fn as_html(&self) -> Html {
-                    Input::new(self.id)
-                        .with_type(InputType::Number)
-                        .with_value(
-                            &self
-                                .value
-                                .as_ref()
-                                .map(<$ty>::to_string)
-                                .unwrap_or_default(),
-                        )
-                        .with_label(self.tuner.label.as_deref())
-                        .as_html()
+            impl ToHtml for InputEditor<$ty> {
+                fn to_html(&self) -> Html {
+                    let value = self.value.as_ref().map(ToString::to_string);
+                    html! {r#"
+                        <label for="{self.id}" class="label">{self.tuner.label}</label>
+                        <input id="{self.id}" type="number" class="input" value="{value}" onblur="update(this)"/>
+                    "#}
                 }
             }
         )*
@@ -111,21 +107,33 @@ macro_rules! impl_as_html_for_number {
 
 impl_as_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
-impl AsHtml for InputEditor<bool> {
-    fn as_html(&self) -> Html {
-        CheckBox::new(self.id)
-            .with_checked(self.value.as_ref().copied().unwrap_or_default())
-            .with_label(self.tuner.label.as_deref())
-            .as_html()
+impl ToHtml for InputEditor<bool> {
+    fn to_html(&self) -> Html {
+        let checked = self
+            .value
+            .as_ref()
+            .copied()
+            .unwrap_or_default()
+            .then(|| "checked");
+        html! {r#"
+            <label class="checkbox">
+                <input id="{self.id}" type="checkbox" onclick="update(this, this.checked.toString())" {checked}>
+                {self.tuner.label}
+            </label>
+        "#}
     }
 }
 
-impl AsHtml for InputEditor<char> {
-    fn as_html(&self) -> Html {
-        // TODO: Limit length to 1
-        Input::new(self.id)
-            .with_value(&self.value.as_ref().map(char::to_string).unwrap_or_default())
-            .with_label(self.tuner.label.as_deref())
-            .as_html()
+impl ToHtml for InputEditor<char> {
+    fn to_html(&self) -> Html {
+        let value = self
+            .value
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        html! {r#"
+            <label for="{self.id}" class="label">{self.tuner.label}</label>
+            <input id="{self.id}" class="input" value="{value}" onblur="update(this)" maxlength="1"/>
+        "#}
     }
 }

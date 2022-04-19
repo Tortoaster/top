@@ -2,8 +2,8 @@
 
 use thiserror::Error;
 
-use crate::event::{Event, Feedback};
-use crate::id::Generator;
+use crate::html::event::{Event, Feedback};
+use crate::html::id::Generator;
 
 pub mod choice;
 pub mod container;

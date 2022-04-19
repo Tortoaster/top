@@ -15,8 +15,8 @@ use log::{error, trace, warn};
 use tower_http::services::ServeFile;
 use tower_service::Service;
 
-use crate::event::handler::FeedbackHandler;
-use crate::event::{Event, EventError, EventHandler};
+use crate::html::event::handler::FeedbackHandler;
+use crate::html::event::{Event, EventError, EventHandler};
 use crate::task::{Context, Task};
 
 #[derive(Clone, Debug)]
