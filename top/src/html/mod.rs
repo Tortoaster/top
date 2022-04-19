@@ -49,9 +49,9 @@ lazy_static! {
     };
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
-pub struct Html(String);
+pub struct Html(pub String);
 
 impl Html {
     pub const fn empty() -> Self {
@@ -75,4 +75,34 @@ impl Display for Html {
 
 pub trait AsHtml {
     fn as_html(&self) -> Html;
+}
+
+impl AsHtml for &str {
+    fn as_html(&self) -> Html {
+        Html((*self).to_owned())
+    }
+}
+
+impl AsHtml for String {
+    fn as_html(&self) -> Html {
+        Html(self.clone())
+    }
+}
+
+impl<T> AsHtml for Option<T>
+where
+    T: AsHtml,
+{
+    fn as_html(&self) -> Html {
+        self.as_ref().map(AsHtml::as_html).unwrap_or_default()
+    }
+}
+
+impl<T, E> AsHtml for Result<T, E>
+where
+    T: AsHtml,
+{
+    fn as_html(&self) -> Html {
+        self.as_ref().map(AsHtml::as_html).unwrap_or_default()
+    }
 }

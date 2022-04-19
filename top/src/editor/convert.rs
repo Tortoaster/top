@@ -1,10 +1,12 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use top_derive::html;
+
 use crate::editor::primitive::InputEditor;
 use crate::editor::{Editor, EditorError};
 use crate::event::{Event, Feedback};
-use crate::html::{AsHtml, Html, Input};
+use crate::html::{AsHtml, Html};
 use crate::id::Generator;
 use crate::tune::{InputTuner, Tune};
 
@@ -35,17 +37,11 @@ where
     T: Display,
 {
     fn as_html(&self) -> Html {
-        Input::new(self.editor.id)
-            .with_value(
-                &self
-                    .editor
-                    .value
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
-            )
-            .with_label(self.editor.tuner.label.as_deref())
-            .as_html()
+        let value = self.editor.value.as_ref().map(ToString::to_string);
+        html! {r#"
+            <label for="{self.editor.id}" class="label">{self.editor.tuner.label}</label>
+            <input id="self.editor.id" class="input" value="{value}" onblur="update(this)"/>
+        "#}
     }
 }
 

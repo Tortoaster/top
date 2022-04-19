@@ -8,6 +8,13 @@ use syn::{
     Index,
 };
 
+mod html;
+
+#[proc_macro]
+pub fn html(input: TokenStream) -> TokenStream {
+    html::html(input)
+}
+
 #[proc_macro_derive(Edit)]
 pub fn edit_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
