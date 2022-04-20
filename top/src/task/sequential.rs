@@ -12,10 +12,36 @@ use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
-pub struct Sequential<T: Task, B> {
+pub struct Sequential<T, B>
+where
+    T: Task,
+{
     id: Id,
     current: Either<T, Box<dyn Task<Value = B>>>,
     continuations: Vec<Continuation<T::Value, B>>,
+}
+
+impl<T, B> Sequential<T, B>
+where
+    T: Task,
+{
+    pub fn on_value(
+        mut self,
+        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
+    ) -> Self {
+        self.continuations.push(Continuation::OnValue(Box::new(f)));
+        self
+    }
+
+    pub fn on_action(
+        mut self,
+        action: Action,
+        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
+    ) -> Self {
+        self.continuations
+            .push(Continuation::OnAction(action, Box::new(f)));
+        self
+    }
 }
 
 #[async_trait]
@@ -168,61 +194,19 @@ impl ToHtml for Action {
 /// Adds the [`steps`] method to any task, allowing it to become a sequential task through the
 /// [`Steps`] builder.
 pub trait TaskSequentialExt: Task {
-    fn steps<T2>(self) -> Steps<Self, T2>
+    fn then<B>(self) -> Sequential<Self, B>
     where
         Self: Sized,
     {
-        Steps {
-            current: self,
+        Sequential {
+            id: Id::INVALID,
+            current: Either::Left(self),
             continuations: Vec::new(),
         }
     }
 }
 
 impl<T> TaskSequentialExt for T where T: Task {}
-
-/// Builder for the step combinator.
-pub struct Steps<T1: Task, T2> {
-    current: T1,
-    continuations: Vec<Continuation<T1::Value, T2>>,
-}
-
-impl<T, B> Steps<T, B>
-where
-    T: Task,
-{
-    /// Consume the current task value and use it to construct the next task as soon as `f`
-    /// returns [`Some`] task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
-    pub fn on_value(
-        mut self,
-        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
-    ) -> Self {
-        self.continuations.push(Continuation::OnValue(Box::new(f)));
-        self
-    }
-
-    /// Adds a button to the user interface; consumes the current task value and uses it to
-    /// construct the next task when the button is pressed, but only if `f` returns [`Some`]
-    /// task. Use [`has_value`] or [`if_value`] for `f` to simplify it.
-    pub fn on_action(
-        mut self,
-        action: Action,
-        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
-    ) -> Self {
-        self.continuations
-            .push(Continuation::OnAction(action, Box::new(f)));
-        self
-    }
-
-    /// Turn this builder into a sequential task.
-    pub fn finish(self) -> Sequential<T, B> {
-        Sequential {
-            id: Id::INVALID,
-            current: Either::Left(self.current),
-            continuations: self.continuations,
-        }
-    }
-}
 
 /// Utility function to turn a simple mapping function into the type of closure a
 /// [`Continuation`] requires.

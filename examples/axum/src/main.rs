@@ -7,15 +7,12 @@ use top::task::sequential::if_stable;
 
 async fn name() -> impl Task {
     enter::<u32>()
-        // TODO: Shorthand for single actions
-        .steps()
+        .then()
         .on_action(Action::OK, has_value(|n: u32| view(n)))
-        .finish()
         .left(view("Hello, world!"))
+        .then()
         // TODO: Make it work without action
-        .steps()
         .on_action(Action::OK, if_stable(|n: u32| view(n)))
-        .finish()
 }
 
 const HOST: &str = "0.0.0.0:3000";
