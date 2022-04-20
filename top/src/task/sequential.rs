@@ -6,13 +6,14 @@ use either::Either;
 use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Id;
+use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
 pub struct Sequential<T: Task, B> {
+    id: Id,
     current: Either<T, Box<dyn Task<Value = B>>>,
     continuations: Vec<Continuation<T::Value, B>>,
 }
@@ -26,29 +27,39 @@ where
 {
     type Value = B;
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        match &mut self.current {
-            Either::Left(task) => {
-                task.start(ctx).await?;
-                for cont in &mut self.continuations {
-                    if let Continuation::OnAction(action, _) = cont {
-                        let id = ctx.gen.next();
-                        let html = html! {r#"
-                            <button id="{id}" class="button is-link" type="button" onclick="press(this)">
-                                {action.0}
-                            </button>
-                        "#};
-                        // TODO: Type-safe way?
-                        action.1 = Some(id);
-                        // TODO: Insert in task, not at top level
-                        let feedback = Feedback::Insert { id: Id::ROOT, html };
-                        ctx.feedback.send(feedback).await?;
-                    }
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+        self.id = gen.next();
+
+        let task = self
+            .current
+            .as_mut()
+            .left()
+            .ok_or(TaskError::State)?
+            .start(gen)
+            .await?;
+
+        let buttons: Html = self
+            .continuations
+            .iter_mut()
+            .flat_map(|cont| {
+                if let Continuation::OnAction(action, _) = cont {
+                    action.1 = gen.next();
+                    Some(action.to_html())
+                } else {
+                    None
                 }
-                Ok(())
-            }
-            Either::Right(task) => task.start(ctx).await,
-        }
+            })
+            .collect();
+
+        let id = self.id;
+        let html = html! {r#"
+            <div id={id}>
+                {task}
+                {buttons}
+            </div>
+        "#};
+
+        Ok(html)
     }
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
@@ -60,11 +71,7 @@ where
                     Continuation::OnValue(f) => f(value.clone()),
                     Continuation::OnAction(action, f) => {
                         if let Event::Press { id } = &event {
-                            if action
-                                .1
-                                .map(|action_id| action_id == *id)
-                                .unwrap_or_default()
-                            {
+                            if action.1 == *id {
                                 f(value.clone())
                             } else {
                                 None
@@ -75,32 +82,28 @@ where
                     }
                 });
 
-                if let Some(next) = next {
-                    self.finish(ctx).await?;
+                if let Some(mut next) = next {
+                    let task = next.start(&mut ctx.gen).await?;
+
+                    self.continuations.clear();
                     self.current = Either::Right(next);
-                    self.start(ctx).await?;
+
+                    let id = self.id;
+                    let html = html! {r#"
+                        <div id={id}>
+                            {task}
+                        </div>
+                    "#};
+
+                    ctx.feedback
+                        .send(Feedback::Replace { id: self.id, html })
+                        .await?;
                 }
 
                 Ok(TaskValue::Empty)
             }
             Either::Right(task) => task.on_event(event, ctx).await,
         }
-    }
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        match &mut self.current {
-            Either::Left(task) => {
-                while let Some(cont) = self.continuations.pop() {
-                    if let Continuation::OnAction(Action(_, Some(id)), _) = cont {
-                        ctx.feedback.send(Feedback::Remove { id }).await?;
-                    }
-                }
-                task.finish(ctx).await?
-            }
-            Either::Right(task) => task.finish(ctx).await?,
-        }
-
-        Ok(())
     }
 }
 
@@ -121,7 +124,7 @@ pub enum Continuation<A, B> {
 /// the user presses the associated button, and the associated predicate in the continuation is met,
 /// the current task is consumed and the next task will be created from the resulting value.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Action(&'static str, Option<Id>);
+pub struct Action(&'static str, Id);
 
 impl Action {
     pub const OK: Self = Action::new("Ok");
@@ -139,7 +142,17 @@ impl Action {
     pub const CLOSE: Self = Action::new("Close");
 
     pub const fn new(label: &'static str) -> Self {
-        Action(label, None)
+        Action(label, Id::INVALID)
+    }
+}
+
+impl ToHtml for Action {
+    fn to_html(&self) -> Html {
+        html! {r#"
+            <button id="{self.1}" class="button is-link" type="button" onclick="press(this)">
+                {self.0}
+            </button>
+        "#}
     }
 }
 
@@ -195,6 +208,7 @@ where
     /// Turn this builder into a sequential task.
     pub fn finish(self) -> Sequential<T, B> {
         Sequential {
+            id: Id::INVALID,
             current: Either::Left(self.current),
             continuations: self.continuations,
         }

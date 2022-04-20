@@ -5,12 +5,11 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    choose(vec![1, 2, 3])
-        .tune_content(OutputTuner::default().with_color(Color::Pink))
-        .left(enter::<Vec<u32>>())
+    enter::<u32>()
         .steps()
-        .on_action(Action::OK, has_value(edit))
+        .on_action(Action::OK, has_value(|n: u32| view(n)))
         .finish()
+        .and(view("Hello, world!"))
 }
 
 const HOST: &str = "0.0.0.0:3000";

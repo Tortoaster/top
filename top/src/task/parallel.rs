@@ -2,7 +2,11 @@ use std::marker::PhantomData;
 
 use async_trait::async_trait;
 
+use top_derive::html;
+
 use crate::html::event::Event;
+use crate::html::id::Generator;
+use crate::html::{Html, ToHtml};
 use crate::task::{Context, OptionExt, Task, TaskError, TaskResult};
 
 #[derive(Debug)]
@@ -33,10 +37,15 @@ where
 {
     type Value = (T1::Value, T2::Value);
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.start(ctx).await?;
-        self.tasks.1.start(ctx).await?;
-        Ok(())
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+        let left = self.tasks.0.start(gen).await?;
+        let right = self.tasks.1.start(gen).await?;
+        let html = html! {r#"
+            {left}
+            {right}
+        "#};
+
+        Ok(html)
     }
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
@@ -49,13 +58,6 @@ where
 
         Ok(combined)
     }
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.finish(ctx).await?;
-        self.tasks.1.finish(ctx).await?;
-
-        Ok(())
-    }
 }
 
 #[async_trait]
@@ -67,10 +69,15 @@ where
 {
     type Value = T1::Value;
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.start(ctx).await?;
-        self.tasks.1.start(ctx).await?;
-        Ok(())
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+        let left = self.tasks.0.start(gen).await?;
+        let right = self.tasks.1.start(gen).await?;
+        let html = html! {r#"
+            {left}
+            {right}
+        "#};
+
+        Ok(html)
     }
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
@@ -78,13 +85,6 @@ where
         let _ = self.tasks.1.on_event(event, ctx).await?;
 
         Ok(a)
-    }
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.finish(ctx).await?;
-        self.tasks.1.finish(ctx).await?;
-
-        Ok(())
     }
 }
 
@@ -97,10 +97,15 @@ where
 {
     type Value = T2::Value;
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.start(ctx).await?;
-        self.tasks.1.start(ctx).await?;
-        Ok(())
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+        let left = self.tasks.0.start(gen).await?;
+        let right = self.tasks.1.start(gen).await?;
+        let html = html! {r#"
+            {left}
+            {right}
+        "#};
+
+        Ok(html)
     }
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
@@ -108,13 +113,6 @@ where
         let b = self.tasks.1.on_event(event, ctx).await?;
 
         Ok(b)
-    }
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.finish(ctx).await?;
-        self.tasks.1.finish(ctx).await?;
-
-        Ok(())
     }
 }
 
@@ -127,10 +125,15 @@ where
 {
     type Value = T1::Value;
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.start(ctx).await?;
-        self.tasks.1.start(ctx).await?;
-        Ok(())
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+        let left = self.tasks.0.start(gen).await?;
+        let right = self.tasks.1.start(gen).await?;
+        let html = html! {r#"
+            {left}
+            {right}
+        "#};
+
+        Ok(html)
     }
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
@@ -139,13 +142,6 @@ where
         let combined = a.into_option().or(b.into_option()).into_unstable();
 
         Ok(combined)
-    }
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.tasks.0.finish(ctx).await?;
-        self.tasks.1.finish(ctx).await?;
-
-        Ok(())
     }
 }
 

@@ -1,12 +1,10 @@
 use async_trait::async_trait;
 
-use top_derive::html;
-
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
-use crate::html::event::{Event, Feedback};
-use crate::html::id::Id;
+use crate::html::event::Event;
+use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
 use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
 use crate::viewer::generic::View;
@@ -15,8 +13,7 @@ use crate::viewer::generic::View;
 /// [`choose`] to construct one.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Interact<E> {
-    id: Id,
-    pub(crate) editor: E,
+    pub(in crate::task) editor: E,
 }
 
 /// Have the user enter a value. To use a custom editor, see [`edit_with`].
@@ -40,10 +37,7 @@ where
 /// Have the user enter a value, through a custom editor.
 #[inline]
 pub fn edit_with<E>(editor: E) -> Interact<E> {
-    Interact {
-        id: Id::INVALID,
-        editor,
-    }
+    Interact { editor }
 }
 
 /// Have the user select a value out of a list of options. To use a custom viewer for the options,
@@ -60,7 +54,6 @@ where
 #[inline]
 pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
     Interact {
-        id: Id::INVALID,
         editor: ChoiceEditor::new(options),
     }
 }
@@ -72,22 +65,10 @@ where
 {
     type Value = E::Value;
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        self.id = ctx.gen.next();
-        self.editor.start(&mut ctx.gen);
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+        self.editor.start(gen);
 
-        let id = self.id;
-        let editor = self.editor.to_html();
-        let html = html! {r#"
-            <div id="{id}" class="section">
-                {editor}
-            </div>
-        "#};
-        let feedback = Feedback::Insert { id: Id::ROOT, html };
-
-        ctx.feedback.send(feedback).await?;
-
-        Ok(())
+        Ok(self.editor.to_html())
     }
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
@@ -98,11 +79,5 @@ where
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }
-    }
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError> {
-        ctx.feedback.send(Feedback::Remove { id: self.id }).await?;
-
-        Ok(())
     }
 }

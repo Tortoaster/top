@@ -4,6 +4,7 @@ use thiserror::Error;
 use crate::html::event::handler::{FeedbackError, FeedbackHandler};
 use crate::html::event::Event;
 use crate::html::id::Generator;
+use crate::html::Html;
 
 pub mod inspect;
 pub mod interact;
@@ -18,18 +19,16 @@ pub type TaskResult<T> = std::result::Result<TaskValue<T>, TaskError>;
 pub trait Task: Send {
     type Value;
 
-    async fn start(&mut self, ctx: &mut Context) -> Result<(), TaskError>;
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError>;
 
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value>;
-
-    async fn finish(&mut self, ctx: &mut Context) -> Result<(), TaskError>;
 }
 
 /// A context for [`Task`]s to interact with their environment.
 #[derive(Debug)]
 pub struct Context {
-    feedback: FeedbackHandler,
-    gen: Generator,
+    pub feedback: FeedbackHandler,
+    pub gen: Generator,
 }
 
 impl Context {
@@ -49,6 +48,8 @@ pub enum TaskError {
     Serialize(#[from] serde_json::Error),
     #[error("failed to parse integer: {0}")]
     ParseInt(#[from] std::num::ParseIntError),
+    #[error("task is in invalid state")]
+    State,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

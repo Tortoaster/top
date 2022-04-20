@@ -16,7 +16,8 @@ use tower_http::services::ServeFile;
 use tower_service::Service;
 
 use crate::html::event::handler::FeedbackHandler;
-use crate::html::event::{Event, EventError, EventHandler};
+use crate::html::event::{Event, EventError, EventHandler, Feedback};
+use crate::html::id::Id;
 use crate::task::{Context, Task};
 
 #[derive(Clone, Debug)]
@@ -103,8 +104,13 @@ where
 
         let mut ctx = Context::new(FeedbackHandler::new(sender));
 
-        if let Err(error) = task.start(&mut ctx).await {
-            error!("failed to start task: {error}")
+        match task.start(&mut ctx.gen).await {
+            Ok(html) => ctx
+                .feedback
+                .send(Feedback::Insert { id: Id::ROOT, html })
+                .await
+                .unwrap_or_else(|error| error!("failed to send feedback: {error}")),
+            Err(error) => error!("failed to start task: {error}"),
         }
 
         while let Some(result) = receiver.receive().await {
