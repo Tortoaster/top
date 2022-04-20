@@ -44,7 +44,7 @@ macro_rules! impl_to_html {
             impl ToHtml for OutputViewer<$ty> {
                 fn to_html(&self) -> Html {
                     html! {r#"
-                        <span style="color: {self.tuner.color};">{self.value}</span>
+                        <span style="color: {self.tuner.color};">{self.value}</span><br/>
                     "#}
                 }
             }
@@ -57,6 +57,7 @@ impl_to_html!(
     String
 );
 
+// TODO: Improve viewer for bools
 // impl ToHtml for OutputViewer<bool> {
 //     fn to_html(&self) -> Html {
 //         let checked = self

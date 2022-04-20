@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 
 use async_trait::async_trait;
 use either::Either;
@@ -104,6 +104,15 @@ where
             }
             Either::Right(task) => task.on_event(event, ctx).await,
         }
+    }
+}
+
+impl<T, B> Debug for Sequential<T, B>
+where
+    T: Task,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Sequential {{ id: {:?} }}", self.id)
     }
 }
 
@@ -224,10 +233,40 @@ where
     T: Task + 'static,
 {
     move |value| {
-        value.into_option().map(|x| {
+        Option::from(value).map(|x| {
             let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
             result
         })
+    }
+}
+
+pub fn if_stable<A, T>(
+    f: impl Fn(A) -> T,
+) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+where
+    T: Task + 'static,
+{
+    move |value| match value {
+        TaskValue::Stable(x) => {
+            let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
+            Some(result)
+        }
+        _ => None,
+    }
+}
+
+pub fn if_unstable<A, T>(
+    f: impl Fn(A) -> T,
+) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+where
+    T: Task + 'static,
+{
+    move |value| match value {
+        TaskValue::Unstable(x) => {
+            let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
+            Some(result)
+        }
+        _ => None,
     }
 }
 
@@ -241,7 +280,7 @@ where
     T: Task + 'static,
 {
     move |value| {
-        value.into_option().and_then(|x| {
+        Option::from(value).and_then(|x| {
             f(&x).then(|| {
                 let result: Box<dyn Task<Value = T::Value>> = Box::new(g(x));
                 result

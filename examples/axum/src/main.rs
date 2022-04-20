@@ -3,13 +3,19 @@ use log::info;
 
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
+use top::task::sequential::if_stable;
 
 async fn name() -> impl Task {
     enter::<u32>()
+        // TODO: Shorthand for single actions
         .steps()
         .on_action(Action::OK, has_value(|n: u32| view(n)))
         .finish()
-        .and(view("Hello, world!"))
+        .left(view("Hello, world!"))
+        // TODO: Make it work without action
+        .steps()
+        .on_action(Action::OK, if_stable(|n: u32| view(n)))
+        .finish()
 }
 
 const HOST: &str = "0.0.0.0:3000";

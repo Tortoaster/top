@@ -7,7 +7,7 @@ use top_derive::html;
 use crate::html::event::Event;
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, OptionExt, Task, TaskError, TaskResult};
+use crate::task::{Context, Task, TaskError, TaskResult};
 
 #[derive(Debug)]
 pub struct Left;
@@ -51,12 +51,8 @@ where
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
         let a = self.tasks.0.on_event(event.clone(), ctx).await?;
         let b = self.tasks.1.on_event(event, ctx).await?;
-        let combined = a
-            .into_option()
-            .and_then(|a| b.into_option().map(|b| (a, b)))
-            .into_unstable();
 
-        Ok(combined)
+        Ok(a.and(b))
     }
 }
 
@@ -139,9 +135,8 @@ where
     async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
         let a = self.tasks.0.on_event(event.clone(), ctx).await?;
         let b = self.tasks.1.on_event(event, ctx).await?;
-        let combined = a.into_option().or(b.into_option()).into_unstable();
 
-        Ok(combined)
+        Ok(a.or(b))
     }
 }
 

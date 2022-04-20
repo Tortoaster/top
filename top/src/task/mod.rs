@@ -54,16 +54,42 @@ pub enum TaskError {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum TaskValue<T> {
+    /// The task's value is stable, meaning it cannot be changed by the user anymore.
     Stable(T),
+    /// The task's value is unstable, meaning the user can still change it.
     Unstable(T),
+    /// The task has no value yet.
     Empty,
 }
 
 impl<T> TaskValue<T> {
-    pub fn into_option(self) -> Option<T> {
+    pub fn and<U>(self, other: TaskValue<U>) -> TaskValue<(T, U)> {
         match self {
-            TaskValue::Stable(t) => Some(t),
-            TaskValue::Unstable(t) => Some(t),
+            TaskValue::Stable(a) => match other {
+                TaskValue::Stable(b) => TaskValue::Stable((a, b)),
+                TaskValue::Unstable(b) => TaskValue::Unstable((a, b)),
+                TaskValue::Empty => TaskValue::Empty,
+            },
+            TaskValue::Unstable(a) => match other {
+                TaskValue::Stable(b) | TaskValue::Unstable(b) => TaskValue::Unstable((a, b)),
+                TaskValue::Empty => TaskValue::Empty,
+            },
+            TaskValue::Empty => TaskValue::Empty,
+        }
+    }
+
+    pub fn or(self, other: TaskValue<T>) -> TaskValue<T> {
+        match self {
+            TaskValue::Empty => other,
+            _ => self,
+        }
+    }
+}
+
+impl<T> From<TaskValue<T>> for Option<T> {
+    fn from(value: TaskValue<T>) -> Self {
+        match value {
+            TaskValue::Stable(x) | TaskValue::Unstable(x) => Some(x),
             TaskValue::Empty => None,
         }
     }
@@ -72,27 +98,5 @@ impl<T> TaskValue<T> {
 impl<T> Default for TaskValue<T> {
     fn default() -> Self {
         TaskValue::Empty
-    }
-}
-
-pub trait OptionExt<T> {
-    fn into_stable(self) -> TaskValue<T>;
-
-    fn into_unstable(self) -> TaskValue<T>;
-}
-
-impl<T> OptionExt<T> for Option<T> {
-    fn into_stable(self) -> TaskValue<T> {
-        match self {
-            None => TaskValue::Empty,
-            Some(value) => TaskValue::Stable(value),
-        }
-    }
-
-    fn into_unstable(self) -> TaskValue<T> {
-        match self {
-            None => TaskValue::Empty,
-            Some(value) => TaskValue::Unstable(value),
-        }
     }
 }
