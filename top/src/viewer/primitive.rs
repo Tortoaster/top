@@ -1,5 +1,6 @@
 use top_derive::html;
 
+use crate::html::icon::Icon;
 use crate::html::{Html, ToHtml};
 use crate::task::tune::{OutputTuner, Tune};
 use crate::viewer::Viewer;
@@ -53,24 +54,15 @@ macro_rules! impl_to_html {
 }
 
 impl_to_html!(
-    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, char, &str,
-    String
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, char, &str, String
 );
 
-// TODO: Improve viewer for bools
-// impl ToHtml for OutputViewer<bool> {
-//     fn to_html(&self) -> Html {
-//         let checked = self
-//             .value
-//             .as_ref()
-//             .copied()
-//             .unwrap_or_default()
-//             .then(|| "checked");
-//         html! {r#"
-//             <label class="checkbox">
-//                 <input id="{self.id}" type="checkbox" onclick="update(this, this.checked.toString())" {checked}>
-//                 {self.tuner.label}
-//             </label>
-//         "#}
-//     }
-// }
+impl ToHtml for OutputViewer<bool> {
+    fn to_html(&self) -> Html {
+        if self.value {
+            Icon::Check.to_html()
+        } else {
+            Icon::XMark.to_html()
+        }
+    }
+}
