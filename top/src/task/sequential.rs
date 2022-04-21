@@ -48,7 +48,7 @@ where
 impl<T, B> Task for Sequential<T, B>
 where
     T: Task + Debug + Send,
-    T::Value: Clone + Send,
+    T::Value: Clone + Send + Debug,
     B: Send,
 {
     type Value = B;
@@ -92,7 +92,6 @@ where
         match &mut self.current {
             Either::Left(task) => {
                 let value = task.on_event(event.clone(), ctx).await?;
-
                 let next = self.continuations.iter().find_map(|cont| match cont {
                     Continuation::OnValue(f) => f(value.clone()),
                     Continuation::OnAction(action, f) => {
@@ -108,25 +107,29 @@ where
                     }
                 });
 
-                if let Some(mut next) = next {
-                    let task = next.start(&mut ctx.gen).await?;
+                match next {
+                    None => Ok(TaskValue::Empty),
+                    Some(mut next) => {
+                        let task = next.start(&mut ctx.gen).await?;
+                        let value = next.on_event(event, ctx).await;
 
-                    self.continuations.clear();
-                    self.current = Either::Right(next);
+                        self.continuations.clear();
+                        self.current = Either::Right(next);
 
-                    let id = self.id;
-                    let html = html! {r#"
-                        <div id={id}>
-                            {task}
-                        </div>
-                    "#};
+                        let id = self.id;
+                        let html = html! {r#"
+                            <div id={id}>
+                                {task}
+                            </div>
+                        "#};
 
-                    ctx.feedback
-                        .send(Feedback::Replace { id: self.id, html })
-                        .await?;
+                        ctx.feedback
+                            .send(Feedback::Replace { id: self.id, html })
+                            .await?;
+
+                        value
+                    }
                 }
-
-                Ok(TaskValue::Empty)
             }
             Either::Right(task) => task.on_event(event, ctx).await,
         }

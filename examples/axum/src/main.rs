@@ -6,13 +6,14 @@ use top::prelude::*;
 use top::task::sequential::if_stable;
 
 async fn name() -> impl Task {
-    enter::<u32>()
+    choose(vec!["Option A", "Option B", "Option C"])
         .then()
-        .on_action(Action::OK, has_value(|n: u32| view(n)))
-        .left(view("Hello, world!"))
+        .on_action(
+            Action::OK,
+            has_value(|x: Option<&str>| view(x.unwrap_or("No option"))),
+        )
         .then()
-        // TODO: Make it work without action
-        .on_action(Action::OK, if_stable(|n: u32| view(n)))
+        .on_value(if_stable(|x| view(format!("Stable {x}!"))))
 }
 
 const HOST: &str = "0.0.0.0:3000";
