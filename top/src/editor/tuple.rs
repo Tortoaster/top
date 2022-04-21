@@ -19,11 +19,11 @@ impl Editor for UnitEditor {
 
     fn start(&mut self, _gen: &mut Generator) {}
 
-    fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Option<Feedback> {
-        None
+    fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Feedback {
+        Feedback::new()
     }
 
-    fn finish(&self) -> Result<Self::Value, EditorError> {
+    fn value(&self) -> Result<Self::Value, EditorError> {
         Ok(())
     }
 }

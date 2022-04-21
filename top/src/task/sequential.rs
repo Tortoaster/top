@@ -5,10 +5,10 @@ use either::Either;
 
 use top_derive::html;
 
-use crate::html::event::{Event, Feedback};
+use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
+use crate::task::{Context, Result, Task, TaskError, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
@@ -17,7 +17,7 @@ where
     T: Task,
 {
     id: Id,
-    current: Either<T, Box<dyn Task<Value = B>>>,
+    current: Either<T, Box<dyn Task<Value = B> + Send + Sync>>,
     continuations: Vec<Continuation<T::Value, B>>,
 }
 
@@ -27,7 +27,7 @@ where
 {
     pub fn on_value(
         mut self,
-        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
+        f: impl Fn(TaskValue<T::Value>) -> Option<DynTask<B>> + Send + Sync + 'static,
     ) -> Self {
         self.continuations.push(Continuation::OnValue(Box::new(f)));
         self
@@ -36,7 +36,7 @@ where
     pub fn on_action(
         mut self,
         action: Action,
-        f: impl Fn(TaskValue<T::Value>) -> Option<Box<dyn Task<Value = B>>> + Send + 'static,
+        f: impl Fn(TaskValue<T::Value>) -> Option<DynTask<B>> + Send + Sync + 'static,
     ) -> Self {
         self.continuations
             .push(Continuation::OnAction(action, Box::new(f)));
@@ -47,13 +47,12 @@ where
 #[async_trait]
 impl<T, B> Task for Sequential<T, B>
 where
-    T: Task + Debug + Send,
-    T::Value: Clone + Send + Debug,
-    B: Send,
+    T: Task + Send + Sync,
+    T::Value: Clone + Send,
 {
     type Value = B;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         self.id = gen.next();
 
         let task = self
@@ -88,10 +87,11 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
         match &mut self.current {
             Either::Left(task) => {
-                let value = task.on_event(event.clone(), ctx).await?;
+                let feedback = task.on_event(event.clone(), ctx).await?;
+                let value = task.value().await?;
                 let next = self.continuations.iter().find_map(|cont| match cont {
                     Continuation::OnValue(f) => f(value.clone()),
                     Continuation::OnAction(action, f) => {
@@ -108,30 +108,25 @@ where
                 });
 
                 match next {
-                    None => Ok(TaskValue::Empty),
+                    None => Ok(feedback),
                     Some(mut next) => {
-                        let task = next.start(&mut ctx.gen).await?;
-                        let value = next.on_event(event, ctx).await;
+                        let html = next.start(&mut ctx.gen).await?;
 
                         self.continuations.clear();
                         self.current = Either::Right(next);
 
-                        let id = self.id;
-                        let html = html! {r#"
-                            <div id={id}>
-                                {task}
-                            </div>
-                        "#};
-
-                        ctx.feedback
-                            .send(Feedback::Replace { id: self.id, html })
-                            .await?;
-
-                        value
+                        Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
                     }
                 }
             }
             Either::Right(task) => task.on_event(event, ctx).await,
+        }
+    }
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+        match &self.current {
+            Either::Left(_) => Ok(TaskValue::Empty),
+            Either::Right(t) => t.value().await,
         }
     }
 }
@@ -145,17 +140,18 @@ where
     }
 }
 
+type DynTask<B> = Box<dyn Task<Value = B> + Send + Sync>;
+
+type Transform<A, B> = Box<dyn Fn(TaskValue<A>) -> Option<DynTask<B>> + Send + Sync>;
+
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
 /// construct the next task.
-pub enum Continuation<A, B> {
+enum Continuation<A, B> {
     /// Consume the current task as soon as the value satisfies the predicate.
-    OnValue(Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>),
+    OnValue(Transform<A, B>),
     /// Consume the current task as soon as the user performs and action and the value satisfies the
     /// predicate.
-    OnAction(
-        Action,
-        Box<dyn Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = B>>> + Send>,
-    ),
+    OnAction(Action, Transform<A, B>),
 }
 
 /// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
@@ -213,44 +209,38 @@ impl<T> TaskSequentialExt for T where T: Task {}
 
 /// Utility function to turn a simple mapping function into the type of closure a
 /// [`Continuation`] requires.
-pub fn has_value<A, T>(
-    f: impl Fn(A) -> T,
-) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+pub fn has_value<A, T>(f: impl Fn(A) -> T) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
 where
-    T: Task + 'static,
+    T: Task + Send + Sync + 'static,
 {
     move |value| {
         Option::from(value).map(|x| {
-            let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
+            let result: DynTask<T::Value> = Box::new(f(x));
             result
         })
     }
 }
 
-pub fn if_stable<A, T>(
-    f: impl Fn(A) -> T,
-) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+pub fn if_stable<A, T>(f: impl Fn(A) -> T) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
 where
-    T: Task + 'static,
+    T: Task + Send + Sync + 'static,
 {
     move |value| match value {
         TaskValue::Stable(x) => {
-            let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
+            let result: DynTask<T::Value> = Box::new(f(x));
             Some(result)
         }
         _ => None,
     }
 }
 
-pub fn if_unstable<A, T>(
-    f: impl Fn(A) -> T,
-) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+pub fn if_unstable<A, T>(f: impl Fn(A) -> T) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
 where
-    T: Task + 'static,
+    T: Task + Send + Sync + 'static,
 {
     move |value| match value {
         TaskValue::Unstable(x) => {
-            let result: Box<dyn Task<Value = T::Value>> = Box::new(f(x));
+            let result: DynTask<T::Value> = Box::new(f(x));
             Some(result)
         }
         _ => None,
@@ -262,14 +252,14 @@ where
 pub fn if_value<A, T>(
     f: impl Fn(&A) -> bool,
     g: impl Fn(A) -> T,
-) -> impl Fn(TaskValue<A>) -> Option<Box<dyn Task<Value = T::Value>>>
+) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
 where
-    T: Task + 'static,
+    T: Task + Send + Sync + 'static,
 {
     move |value| {
         Option::from(value).and_then(|x| {
             f(&x).then(|| {
-                let result: Box<dyn Task<Value = T::Value>> = Box::new(g(x));
+                let result: DynTask<T::Value> = Box::new(g(x));
                 result
             })
         })

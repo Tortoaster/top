@@ -5,7 +5,7 @@ use std::str::FromStr;
 use top_derive::html;
 
 use crate::editor::{Editor, EditorError};
-use crate::html::event::{Event, Feedback};
+use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
 use crate::task::tune::{InputTuner, Tune};
@@ -45,23 +45,23 @@ where
         self.id = gen.next();
     }
 
-    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Feedback {
         match event {
             Event::Update { id, value } if id == self.id => match value.parse::<T>() {
                 Ok(value) => {
                     self.value = Ok(value);
-                    Some(Feedback::Valid { id })
+                    Feedback::from(Change::Valid { id })
                 }
                 Err(_) => {
                     self.value = Err(EditorError::Invalid);
-                    Some(Feedback::Invalid { id })
+                    Feedback::from(Change::Invalid { id })
                 }
             },
-            _ => None,
+            _ => Feedback::new(),
         }
     }
 
-    fn finish(&self) -> Result<Self::Value, EditorError> {
+    fn value(&self) -> Result<Self::Value, EditorError> {
         self.value.clone()
     }
 }

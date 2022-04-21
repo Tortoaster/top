@@ -5,7 +5,6 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::html::{Html, ToHtml};
 
-// TODO: Allow identifying containing form, and disable any buttons while syncing or invalid
 /// Unique html identifier.
 #[derive(
     Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, SerializeDisplay, DeserializeFromStr,

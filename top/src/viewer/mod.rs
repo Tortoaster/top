@@ -9,5 +9,5 @@ pub trait Viewer {
 
     // TODO: Allow borrow and consume
     /// Get the current value of this viewer.
-    fn finish(&self) -> Self::Value;
+    fn value(&self) -> Self::Value;
 }

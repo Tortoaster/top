@@ -3,10 +3,10 @@ use async_trait::async_trait;
 use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
-use crate::html::event::Event;
+use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Task, TaskError, TaskResult, TaskValue};
+use crate::task::{Context, Result, Task, TaskValue};
 use crate::viewer::generic::View;
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
@@ -61,21 +61,22 @@ pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
 #[async_trait]
 impl<E> Task for Interact<E>
 where
-    E: Editor + ToHtml + Send,
+    E: Editor + ToHtml + Send + Sync,
 {
     type Value = E::Value;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         self.editor.start(gen);
 
         Ok(self.editor.to_html())
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
-        if let Some(feedback) = self.editor.on_event(event, &mut ctx.gen) {
-            ctx.feedback.send(feedback).await?;
-        }
-        match self.editor.finish() {
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
+        Ok(self.editor.on_event(event, &mut ctx.gen))
+    }
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+        match self.editor.value() {
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }

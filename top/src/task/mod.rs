@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::html::event::handler::{FeedbackError, FeedbackHandler};
-use crate::html::event::Event;
+use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::Html;
 
@@ -12,29 +11,28 @@ pub mod parallel;
 pub mod sequential;
 pub mod tune;
 
-pub type TaskResult<T> = std::result::Result<TaskValue<T>, TaskError>;
+pub type Result<T> = std::result::Result<T, TaskError>;
 
-// TODO: Merge methods into one executor (requires keeping event queue)
 #[async_trait]
-pub trait Task: Send {
+pub trait Task {
     type Value;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError>;
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html>;
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value>;
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback>;
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>>;
 }
 
 /// A context for [`Task`]s to interact with their environment.
 #[derive(Debug)]
 pub struct Context {
-    pub feedback: FeedbackHandler,
     pub gen: Generator,
 }
 
 impl Context {
-    pub fn new(feedback: FeedbackHandler) -> Self {
+    pub fn new() -> Self {
         Context {
-            feedback,
             gen: Generator::new(),
         }
     }
@@ -42,14 +40,14 @@ impl Context {
 
 #[derive(Debug, Error)]
 pub enum TaskError {
-    #[error("event handler failure: {0}")]
-    Handler(#[from] FeedbackError),
     #[error("error during serialization: {0}")]
     Serialize(#[from] serde_json::Error),
     #[error("failed to parse integer: {0}")]
     ParseInt(#[from] std::num::ParseIntError),
     #[error("task is in invalid state")]
     State,
+    #[error("inconsistent feedback")]
+    Feedback,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

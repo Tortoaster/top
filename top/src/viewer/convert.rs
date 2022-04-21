@@ -35,7 +35,7 @@ where
 {
     type Value = T;
 
-    fn finish(&self) -> Self::Value {
+    fn value(&self) -> Self::Value {
         self.value.clone()
     }
 }
@@ -78,7 +78,7 @@ where
 {
     type Value = T;
 
-    fn finish(&self) -> Self::Value {
+    fn value(&self) -> Self::Value {
         self.value.clone()
     }
 }

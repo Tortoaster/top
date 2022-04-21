@@ -3,7 +3,6 @@ use log::info;
 
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::task::sequential::if_stable;
 
 async fn name() -> impl Task {
     choose(vec!["Option A", "Option B", "Option C"])

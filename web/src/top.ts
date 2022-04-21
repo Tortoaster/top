@@ -17,10 +17,8 @@ function connect() {
  * @param {string} value The new value.
  */
 function update(input: HTMLInputElement, value: string = input.value) {
-  if(input.classList.contains('is-success'))
-    input.classList.remove('is-success');
-  if(input.classList.contains('is-danger'))
-    input.classList.remove('is-danger');
+  input.classList.remove('is-success');
+  input.classList.remove('is-danger');
   input.classList.add('is-loading');
   const message = JSON.stringify({
     update: {
@@ -58,32 +56,32 @@ function onOpen(ev: Event) {
 function onMessage(ev: MessageEvent) {
   console.log(`received: ${ev.data}`);
   const data = JSON.parse(ev.data);
-  if(data.replace != null) {
-    const template = document.createElement('template');
-    template.innerHTML = data.replace.html;
-
-    const element = document.getElementById(data.replace.id);
-    element?.replaceWith(template.content);
-  } else if(data.insert != null) {
-    const template = document.createElement('template');
-    template.innerHTML = data.insert.html;
-
-    const element = document.getElementById(data.insert.id);
-    element?.appendChild(template.content);
-  } else if(data.remove != null) {
-    const element = document.getElementById(data.remove.id);
-    element?.parentElement?.removeChild(element);
-  } else if(data.valid != null) {
-    const id = data.valid.id;
-    const input = document.getElementById(id);
-    input?.classList.remove('is-loading');
-    input?.classList.add('is-success');
-  } else if(data.invalid != null) {
-    const id = data.invalid.id;
-    const input = document.getElementById(id);
-    input?.classList.remove('is-loading');
-    input?.classList.add('is-danger');
-  }
+  data.forEach((change: any) => {
+    if (change.replaceContent != null) {
+      const element = document.getElementById(change.replaceContent.id);
+      if (element != null) {
+        element.innerHTML = change.replaceContent.html;
+      }
+    } else if (change.appendContent != null) {
+      const template = document.createElement('template');
+      template.innerHTML = change.appendContent.html;
+      const element = document.getElementById(change.appendContent.id);
+      element?.appendChild(template.content);
+    } else if (change.remove != null) {
+      const element = document.getElementById(change.remove.id);
+      element?.parentElement?.removeChild(element);
+    } else if (change.valid != null) {
+      const id = change.valid.id;
+      const input = document.getElementById(id);
+      input?.classList.remove('is-loading');
+      input?.classList.add('is-success');
+    } else if (change.invalid != null) {
+      const id = change.invalid.id;
+      const input = document.getElementById(id);
+      input?.classList.remove('is-loading');
+      input?.classList.add('is-danger');
+    }
+  });
 }
 
 /**
@@ -91,7 +89,7 @@ function onMessage(ev: MessageEvent) {
  */
 function onError(ev: Event) {
   console.log(`connection error`);
-  alert('Failed to connect to the server')
+  alert('Failed to connect to the server');
 }
 
 /**
@@ -99,5 +97,5 @@ function onError(ev: Event) {
  */
 function onClose(ev: CloseEvent) {
   console.log(`lost connection: ${ev.reason}`);
-  alert('Lost connection')
+  alert('Lost connection');
 }

@@ -1,8 +1,9 @@
+pub use top_derive::Edit;
+
 use crate::editor::container::{OptionEditor, VecEditor};
 use crate::editor::primitive::InputEditor;
-use crate::editor::Editor;
-// use crate::editor::container::{OptionEditor, VecEditor};
 use crate::editor::tuple::*;
+use crate::editor::Editor;
 use crate::html::ToHtml;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as

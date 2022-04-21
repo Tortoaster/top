@@ -55,12 +55,12 @@ where
         self.editor.start(gen)
     }
 
-    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback {
         self.editor.on_event(event, gen)
     }
 
-    fn finish(&self) -> Result<Self::Value, EditorError> {
-        self.editor.finish()
+    fn value(&self) -> Result<Self::Value, EditorError> {
+        self.editor.value()
     }
 }
 

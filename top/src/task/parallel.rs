@@ -4,10 +4,10 @@ use async_trait::async_trait;
 
 use top_derive::html;
 
-use crate::html::event::Event;
+use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Task, TaskError, TaskResult};
+use crate::task::{Context, Result, Task, TaskError, TaskValue};
 
 #[derive(Debug)]
 pub struct Left;
@@ -18,7 +18,6 @@ pub struct Right;
 #[derive(Debug)]
 pub struct Both;
 
-// TODO: Useful?
 #[derive(Debug)]
 pub struct Either;
 
@@ -31,13 +30,13 @@ pub struct Parallel<T1, T2, F> {
 #[async_trait]
 impl<T1, T2> Task for Parallel<T1, T2, Both>
 where
-    T1: Task,
-    T2: Task,
+    T1: Task + Send + Sync,
+    T2: Task + Send + Sync,
     T1::Value: Send,
 {
     type Value = (T1::Value, T2::Value);
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
         let right = self.tasks.1.start(gen).await?;
         let html = html! {r#"
@@ -48,9 +47,16 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
         let a = self.tasks.0.on_event(event.clone(), ctx).await?;
         let b = self.tasks.1.on_event(event, ctx).await?;
+
+        a.merged_with(b).map_err(|_| TaskError::Feedback)
+    }
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+        let a = self.tasks.0.value().await?;
+        let b = self.tasks.1.value().await?;
 
         Ok(a.and(b))
     }
@@ -59,13 +65,12 @@ where
 #[async_trait]
 impl<T1, T2> Task for Parallel<T1, T2, Left>
 where
-    T1: Task,
-    T2: Task,
-    T1::Value: Send,
+    T1: Task + Send + Sync,
+    T2: Task + Send + Sync,
 {
     type Value = T1::Value;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
         let right = self.tasks.1.start(gen).await?;
         let html = html! {r#"
@@ -76,24 +81,27 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
         let a = self.tasks.0.on_event(event.clone(), ctx).await?;
-        let _ = self.tasks.1.on_event(event, ctx).await?;
+        let b = self.tasks.1.on_event(event, ctx).await?;
 
-        Ok(a)
+        a.merged_with(b).map_err(|_| TaskError::Feedback)
+    }
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+        self.tasks.0.value().await
     }
 }
 
 #[async_trait]
 impl<T1, T2> Task for Parallel<T1, T2, Right>
 where
-    T1: Task,
-    T2: Task,
-    T1::Value: Send,
+    T1: Task + Send + Sync,
+    T2: Task + Send + Sync,
 {
     type Value = T2::Value;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
         let right = self.tasks.1.start(gen).await?;
         let html = html! {r#"
@@ -104,24 +112,28 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
-        let _ = self.tasks.0.on_event(event.clone(), ctx).await?;
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone(), ctx).await?;
         let b = self.tasks.1.on_event(event, ctx).await?;
 
-        Ok(b)
+        a.merged_with(b).map_err(|_| TaskError::Feedback)
+    }
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+        self.tasks.1.value().await
     }
 }
 
 #[async_trait]
 impl<T1, T2> Task for Parallel<T1, T2, Either>
 where
-    T1: Task,
-    T2: Task<Value = T1::Value>,
+    T1: Task + Send + Sync,
+    T2: Task<Value = T1::Value> + Send + Sync,
     T1::Value: Send,
 {
     type Value = T1::Value;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html, TaskError> {
+    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
         let right = self.tasks.1.start(gen).await?;
         let html = html! {r#"
@@ -132,9 +144,16 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> TaskResult<Self::Value> {
+    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
         let a = self.tasks.0.on_event(event.clone(), ctx).await?;
         let b = self.tasks.1.on_event(event, ctx).await?;
+
+        a.merged_with(b).map_err(|_| TaskError::Feedback)
+    }
+
+    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+        let a = self.tasks.0.value().await?;
+        let b = self.tasks.1.value().await?;
 
         Ok(a.or(b))
     }

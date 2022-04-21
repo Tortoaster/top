@@ -1,7 +1,7 @@
 use top_derive::html;
 
 use crate::editor::{Editor, EditorError};
-use crate::html::event::{Event, Feedback};
+use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
 use crate::task::tune::{ContentTune, Tune};
@@ -55,23 +55,23 @@ where
         self.id = gen.next();
     }
 
-    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Feedback {
         match event {
             Event::Update { id, value } if self.id == id => match value.parse() {
                 Ok(usize) => {
                     self.choice = Some(usize);
-                    Some(Feedback::Valid { id })
+                    Feedback::from(Change::Valid { id })
                 }
-                Err(_) => Some(Feedback::Invalid { id }),
+                Err(_) => Feedback::from(Change::Invalid { id }),
             },
-            _ => None,
+            _ => Feedback::new(),
         }
     }
 
-    fn finish(&self) -> Result<Self::Value, EditorError> {
+    fn value(&self) -> Result<Self::Value, EditorError> {
         let choice = self
             .choice
-            .and_then(|index| self.choices.get(index).map(|choice| choice.finish()));
+            .and_then(|index| self.choices.get(index).map(|choice| choice.value()));
 
         Ok(choice)
     }

@@ -1,7 +1,7 @@
 use top_derive::html;
 
 use crate::editor::{Editor, EditorError};
-use crate::html::event::{Event, Feedback};
+use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
@@ -72,7 +72,7 @@ where
         }
     }
 
-    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback {
         match event {
             Event::Press { id } if id == self.add_id => {
                 // Add a new row
@@ -84,7 +84,7 @@ where
                 self.editors.push(editor);
                 self.rows.push(row);
 
-                Some(Feedback::Insert {
+                Feedback::from(Change::AppendContent {
                     id: self.group_id,
                     html,
                 })
@@ -95,20 +95,24 @@ where
                 let Row { id, .. } = self.rows.remove(index);
                 self.editors.remove(index);
 
-                Some(Feedback::Remove { id })
+                Feedback::from(Change::Remove { id })
             }
             _ => self
                 .editors
                 .iter_mut()
-                .find_map(|editor| editor.on_event(event.clone(), gen)),
+                .find_map(|editor| {
+                    let feedback = editor.on_event(event.clone(), gen);
+                    (!feedback.is_empty()).then(|| feedback)
+                })
+                .unwrap_or_default(),
         }
     }
 
-    fn finish(&self) -> Result<Self::Value, EditorError> {
+    fn value(&self) -> Result<Self::Value, EditorError> {
         // TODO: Return all errors
         self.editors
             .iter()
-            .map(|editor| editor.finish())
+            .map(|editor| editor.value())
             .collect::<Result<Vec<_>, _>>()
     }
 }
@@ -129,10 +133,11 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionEditor<E> {
-    /// Represents the row containing the editor and the minus button if a value is present.
-    row: Row,
+    id: Id,
     /// Represents the plus button if there is no value present.
     add_id: Id,
+    /// Represents the row containing the editor and the minus button if a value is present.
+    row: Row,
     editor: E,
     /// True if this editor contains a value, false otherwise.
     enabled: bool,
@@ -144,11 +149,12 @@ where
 {
     pub fn new(editor: E, enabled: bool) -> Self {
         OptionEditor {
+            id: Id::INVALID,
+            add_id: Id::INVALID,
             row: Row {
                 id: Id::INVALID,
                 sub_id: Id::INVALID,
             },
-            add_id: Id::INVALID,
             editor,
             enabled,
         }
@@ -160,11 +166,17 @@ where
     E: ToHtml,
 {
     fn to_html(&self) -> Html {
-        if self.enabled {
+        let content = if self.enabled {
             self.row.to_html(&self.editor)
         } else {
             Row::add_button(self.add_id).to_html()
-        }
+        };
+
+        html! {r#"
+            <div id="{self.id}">
+                {content}
+            </div>
+        "#}
     }
 }
 
@@ -175,40 +187,40 @@ where
     type Value = Option<E::Value>;
 
     fn start(&mut self, gen: &mut Generator) {
-        self.row = Row::new(gen);
+        self.id = gen.next();
         self.add_id = gen.next();
+        self.row = Row::new(gen);
 
         self.editor.start(gen);
     }
 
-    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback> {
+    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback {
         match event {
             Event::Press { id } if id == self.add_id && !self.enabled => {
                 // Add value
-                let id = self.add_id;
                 let html = self.row.to_html(&mut self.editor);
                 self.enabled = true;
 
-                Some(Feedback::Replace { id, html })
+                Feedback::from(Change::ReplaceContent { id: self.id, html })
             }
             Event::Press { id } if id == self.row.sub_id && self.enabled => {
                 // Remove value
-                let id = self.row.id;
+
                 let html = Row::add_button(self.add_id).to_html();
                 self.enabled = false;
 
-                Some(Feedback::Replace { id, html })
+                Feedback::from(Change::ReplaceContent { id: self.id, html })
             }
             _ => self
                 .enabled
                 .then(|| self.editor.on_event(event, gen))
-                .flatten(),
+                .unwrap_or_default(),
         }
     }
 
-    fn finish(&self) -> Result<Self::Value, EditorError> {
+    fn value(&self) -> Result<Self::Value, EditorError> {
         if self.enabled {
-            Ok(Some(self.editor.finish()?))
+            Ok(Some(self.editor.value()?))
         } else {
             Ok(None)
         }

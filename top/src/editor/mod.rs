@@ -22,11 +22,11 @@ pub trait Editor {
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Option<Feedback>;
+    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.
-    fn finish(&self) -> Result<Self::Value, EditorError>;
+    fn value(&self) -> Result<Self::Value, EditorError>;
 }
 
 /// Common error type for [`Editor`]s.
