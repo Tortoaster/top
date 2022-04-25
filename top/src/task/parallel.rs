@@ -7,7 +7,7 @@ use top_derive::html;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Result, Task, TaskError, TaskValue};
+use crate::task::{Result, Task, TaskError, TaskValue};
 
 #[derive(Debug)]
 pub struct Left;
@@ -47,9 +47,9 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), ctx).await?;
-        let b = self.tasks.1.on_event(event, ctx).await?;
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone(), gen).await?;
+        let b = self.tasks.1.on_event(event, gen).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
@@ -81,9 +81,9 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), ctx).await?;
-        let b = self.tasks.1.on_event(event, ctx).await?;
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone(), gen).await?;
+        let b = self.tasks.1.on_event(event, gen).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
@@ -112,9 +112,9 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), ctx).await?;
-        let b = self.tasks.1.on_event(event, ctx).await?;
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone(), gen).await?;
+        let b = self.tasks.1.on_event(event, gen).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
@@ -144,9 +144,9 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), ctx).await?;
-        let b = self.tasks.1.on_event(event, ctx).await?;
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone(), gen).await?;
+        let b = self.tasks.1.on_event(event, gen).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }

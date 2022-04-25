@@ -6,7 +6,7 @@ use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Result, Task, TaskValue};
+use crate::task::{Result, Task, TaskValue};
 use crate::viewer::generic::View;
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
@@ -71,8 +71,8 @@ where
         Ok(self.editor.to_html())
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
-        Ok(self.editor.on_event(event, &mut ctx.gen))
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
+        Ok(self.editor.on_event(event, gen))
     }
 
     async fn value(&self) -> Result<TaskValue<Self::Value>> {

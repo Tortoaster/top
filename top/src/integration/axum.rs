@@ -15,8 +15,8 @@ use tower_http::services::ServeFile;
 use tower_service::Service;
 
 use crate::html::event::{Change, Feedback};
-use crate::html::id::Id;
-use crate::task::{Context, Task};
+use crate::html::id::{Generator, Id};
+use crate::task::Task;
 
 #[derive(Clone, Debug)]
 pub struct TopService(MethodRouter);
@@ -99,9 +99,9 @@ where
     ws.on_upgrade(|socket| async move {
         let (mut sender, mut receiver) = socket.split();
         let mut task = handler().await;
-        let mut ctx = Context::new();
+        let mut gen = Generator::new();
 
-        match task.start(&mut ctx.gen).await {
+        match task.start(&mut gen).await {
             Ok(html) => {
                 let feedback = Feedback::from(Change::AppendContent { id: Id::ROOT, html });
                 send_feedback(&mut sender, feedback).await;
@@ -112,7 +112,7 @@ where
         while let Some(Ok(message)) = receiver.next().await {
             match message.into_text() {
                 Ok(text) => match serde_json::from_str(&text) {
-                    Ok(event) => match task.on_event(event, &mut ctx).await {
+                    Ok(event) => match task.on_event(event, &mut gen).await {
                         Ok(feedback) => {
                             if !feedback.is_empty() {
                                 send_feedback(&mut sender, feedback).await;

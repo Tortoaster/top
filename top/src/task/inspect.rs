@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Result, Task, TaskValue};
+use crate::task::{Result, Task, TaskValue};
 use crate::viewer::generic::View;
 use crate::viewer::Viewer;
 
@@ -41,7 +41,7 @@ where
         Ok(self.viewer.to_html())
     }
 
-    async fn on_event(&mut self, _event: Event, _ctx: &mut Context) -> Result<Feedback> {
+    async fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Result<Feedback> {
         Ok(Feedback::new())
     }
 

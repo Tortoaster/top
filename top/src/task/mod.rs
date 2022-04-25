@@ -19,23 +19,9 @@ pub trait Task {
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html>;
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback>;
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback>;
 
     async fn value(&self) -> Result<TaskValue<Self::Value>>;
-}
-
-/// A context for [`Task`]s to interact with their environment.
-#[derive(Debug)]
-pub struct Context {
-    pub gen: Generator,
-}
-
-impl Context {
-    pub fn new() -> Self {
-        Context {
-            gen: Generator::new(),
-        }
-    }
 }
 
 #[derive(Debug, Error)]

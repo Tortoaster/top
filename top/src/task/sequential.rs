@@ -8,7 +8,7 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
-use crate::task::{Context, Result, Task, TaskError, TaskValue};
+use crate::task::{Result, Task, TaskError, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
@@ -87,10 +87,10 @@ where
         Ok(html)
     }
 
-    async fn on_event(&mut self, event: Event, ctx: &mut Context) -> Result<Feedback> {
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
         match &mut self.current {
             Either::Left(task) => {
-                let feedback = task.on_event(event.clone(), ctx).await?;
+                let feedback = task.on_event(event.clone(), gen).await?;
                 let value = task.value().await?;
                 let next = self.continuations.iter().find_map(|cont| match cont {
                     Continuation::OnValue(f) => f(value.clone()),
@@ -110,7 +110,7 @@ where
                 match next {
                     None => Ok(feedback),
                     Some(mut next) => {
-                        let html = next.start(&mut ctx.gen).await?;
+                        let html = next.start(gen).await?;
 
                         self.continuations.clear();
                         self.current = Either::Right(next);
@@ -119,7 +119,7 @@ where
                     }
                 }
             }
-            Either::Right(task) => task.on_event(event, ctx).await,
+            Either::Right(task) => task.on_event(event, gen).await,
         }
     }
 
