@@ -26,10 +26,6 @@ pub trait Task {
 
 #[derive(Debug, Error)]
 pub enum TaskError {
-    #[error("error during serialization: {0}")]
-    Serialize(#[from] serde_json::Error),
-    #[error("failed to parse integer: {0}")]
-    ParseInt(#[from] std::num::ParseIntError),
     #[error("task is in invalid state")]
     State,
     #[error("inconsistent feedback")]
