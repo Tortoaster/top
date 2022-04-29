@@ -7,12 +7,11 @@ use top::prelude::*;
 async fn name() -> impl Task {
     choose(vec!["Option A", "Option B", "Option C"])
         .then()
-        .on_action(
-            Action::OK,
-            has_value(|x: Option<&str>| view(x.unwrap_or("No option"))),
-        )
+        .on_value(Trigger::Button(Button::OK), |x| {
+            view(x.unwrap_or("No option"))
+        })
         .then()
-        .on_value(if_stable(|x| view(format!("Stable {x}!"))))
+        .on_stable(Trigger::Update, |x| view(format!("Stable {x}!")))
 }
 
 const HOST: &str = "0.0.0.0:3000";

@@ -25,21 +25,92 @@ impl<T, B> Sequential<T, B>
 where
     T: Task,
 {
-    pub fn on_value(
+    pub fn on_value<T2>(
         mut self,
-        f: impl Fn(TaskValue<T::Value>) -> Option<DynTask<B>> + Send + Sync + 'static,
-    ) -> Self {
-        self.continuations.push(Continuation::OnValue(Box::new(f)));
+        trigger: Trigger,
+        f: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+    ) -> Self
+    where
+        T2: Task<Value = B> + Send + Sync + 'static,
+    {
+        let transform = Box::new(move |value| {
+            Option::from(value).map(|x| {
+                let result: DynTask<B> = Box::new(f(x));
+                result
+            })
+        });
+        self.continuations.push(Continuation { trigger, transform });
         self
     }
 
-    pub fn on_action(
+    pub fn on_stable<T2>(
         mut self,
-        action: Action,
+        trigger: Trigger,
+        f: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+    ) -> Self
+    where
+        T2: Task<Value = B> + Send + Sync + 'static,
+    {
+        let transform = Box::new(move |value| match value {
+            TaskValue::Stable(x) => {
+                let result: DynTask<B> = Box::new(f(x));
+                Some(result)
+            }
+            _ => None,
+        });
+        self.continuations.push(Continuation { trigger, transform });
+        self
+    }
+
+    pub fn on_unstable<T2>(
+        mut self,
+        trigger: Trigger,
+        f: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+    ) -> Self
+    where
+        T2: Task<Value = B> + Send + Sync + 'static,
+    {
+        let transform = Box::new(move |value| match value {
+            TaskValue::Unstable(x) => {
+                let result: DynTask<B> = Box::new(f(x));
+                Some(result)
+            }
+            _ => None,
+        });
+        self.continuations.push(Continuation { trigger, transform });
+        self
+    }
+
+    pub fn if_value<T2>(
+        mut self,
+        trigger: Trigger,
+        f: impl Fn(&T::Value) -> bool + Send + Sync + 'static,
+        g: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+    ) -> Self
+    where
+        T2: Task<Value = B> + Send + Sync + 'static,
+    {
+        let transform = Box::new(move |value| {
+            Option::from(value).and_then(|x| {
+                f(&x).then(|| {
+                    let result: DynTask<B> = Box::new(g(x));
+                    result
+                })
+            })
+        });
+        self.continuations.push(Continuation { trigger, transform });
+        self
+    }
+
+    pub fn on(
+        mut self,
+        trigger: Trigger,
         f: impl Fn(TaskValue<T::Value>) -> Option<DynTask<B>> + Send + Sync + 'static,
     ) -> Self {
-        self.continuations
-            .push(Continuation::OnAction(action, Box::new(f)));
+        self.continuations.push(Continuation {
+            trigger,
+            transform: Box::new(f),
+        });
         self
     }
 }
@@ -67,7 +138,7 @@ where
             .continuations
             .iter_mut()
             .flat_map(|cont| {
-                if let Continuation::OnAction(action, _) = cont {
+                if let Trigger::Button(action) = &mut cont.trigger {
                     action.1 = gen.next();
                     Some(action.to_html())
                 } else {
@@ -92,20 +163,23 @@ where
             Either::Left(task) => {
                 let feedback = task.on_event(event.clone(), gen).await?;
                 let value = task.value().await?;
-                let next = self.continuations.iter().find_map(|cont| match cont {
-                    Continuation::OnValue(f) => f(value.clone()),
-                    Continuation::OnAction(action, f) => {
-                        if let Event::Press { id } = &event {
-                            if action.1 == *id {
-                                f(value.clone())
+                let next = self
+                    .continuations
+                    .iter()
+                    .find_map(|cont| match &cont.trigger {
+                        Trigger::Update => (cont.transform)(value.clone()),
+                        Trigger::Button(action) => {
+                            if let Event::Press { id } = &event {
+                                if action.1 == *id {
+                                    (cont.transform)(value.clone())
+                                } else {
+                                    None
+                                }
                             } else {
                                 None
                             }
-                        } else {
-                            None
                         }
-                    }
-                });
+                    });
 
                 match next {
                     None => Ok(feedback),
@@ -140,47 +214,51 @@ where
     }
 }
 
+pub enum Trigger {
+    /// Trigger as soon as possible.
+    Update,
+    /// Trigger when the user presses a button.
+    Button(Button),
+}
+
 type DynTask<B> = Box<dyn Task<Value = B> + Send + Sync>;
 
 type Transform<A, B> = Box<dyn Fn(TaskValue<A>) -> Option<DynTask<B>> + Send + Sync>;
 
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
 /// construct the next task.
-enum Continuation<A, B> {
-    /// Consume the current task as soon as the value satisfies the predicate.
-    OnValue(Transform<A, B>),
-    /// Consume the current task as soon as the user performs and action and the value satisfies the
-    /// predicate.
-    OnAction(Action, Transform<A, B>),
+struct Continuation<A, B> {
+    trigger: Trigger,
+    transform: Transform<A, B>,
 }
 
 /// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
 /// the user presses the associated button, and the associated predicate in the continuation is met,
 /// the current task is consumed and the next task will be created from the resulting value.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Action(&'static str, Id);
+pub struct Button(&'static str, Id);
 
-impl Action {
-    pub const OK: Self = Action::new("Ok");
-    pub const CANCEL: Self = Action::new("Cancel");
-    pub const YES: Self = Action::new("Yes");
-    pub const NO: Self = Action::new("No");
-    pub const NEXT: Self = Action::new("Next");
-    pub const PREVIOUS: Self = Action::new("Previous");
-    pub const FINISH: Self = Action::new("Finish");
-    pub const CONTINUE: Self = Action::new("Continue");
-    pub const NEW: Self = Action::new("New");
-    pub const EDIT: Self = Action::new("Edit");
-    pub const DELETE: Self = Action::new("Delete");
-    pub const REFRESH: Self = Action::new("Refresh");
-    pub const CLOSE: Self = Action::new("Close");
+impl Button {
+    pub const OK: Self = Button::new("Ok");
+    pub const CANCEL: Self = Button::new("Cancel");
+    pub const YES: Self = Button::new("Yes");
+    pub const NO: Self = Button::new("No");
+    pub const NEXT: Self = Button::new("Next");
+    pub const PREVIOUS: Self = Button::new("Previous");
+    pub const FINISH: Self = Button::new("Finish");
+    pub const CONTINUE: Self = Button::new("Continue");
+    pub const NEW: Self = Button::new("New");
+    pub const EDIT: Self = Button::new("Edit");
+    pub const DELETE: Self = Button::new("Delete");
+    pub const REFRESH: Self = Button::new("Refresh");
+    pub const CLOSE: Self = Button::new("Close");
 
     pub const fn new(label: &'static str) -> Self {
-        Action(label, Id::INVALID)
+        Button(label, Id::INVALID)
     }
 }
 
-impl ToHtml for Action {
+impl ToHtml for Button {
     fn to_html(&self) -> Html {
         html! {r#"
             <button id="{self.1}" class="button is-link" type="button" onclick="press(this)">
@@ -206,62 +284,3 @@ pub trait TaskSequentialExt: Task {
 }
 
 impl<T> TaskSequentialExt for T where T: Task {}
-
-/// Utility function to turn a simple mapping function into the type of closure a
-/// [`Continuation`] requires.
-pub fn has_value<A, T>(f: impl Fn(A) -> T) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
-where
-    T: Task + Send + Sync + 'static,
-{
-    move |value| {
-        Option::from(value).map(|x| {
-            let result: DynTask<T::Value> = Box::new(f(x));
-            result
-        })
-    }
-}
-
-pub fn if_stable<A, T>(f: impl Fn(A) -> T) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
-where
-    T: Task + Send + Sync + 'static,
-{
-    move |value| match value {
-        TaskValue::Stable(x) => {
-            let result: DynTask<T::Value> = Box::new(f(x));
-            Some(result)
-        }
-        _ => None,
-    }
-}
-
-pub fn if_unstable<A, T>(f: impl Fn(A) -> T) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
-where
-    T: Task + Send + Sync + 'static,
-{
-    move |value| match value {
-        TaskValue::Unstable(x) => {
-            let result: DynTask<T::Value> = Box::new(f(x));
-            Some(result)
-        }
-        _ => None,
-    }
-}
-
-/// Utility function to turn a simple mapping function into the type of closure a
-/// [`Continuation`] requires, but only if its value satisfies the predicate `f`.
-pub fn if_value<A, T>(
-    f: impl Fn(&A) -> bool,
-    g: impl Fn(A) -> T,
-) -> impl Fn(TaskValue<A>) -> Option<DynTask<T::Value>>
-where
-    T: Task + Send + Sync + 'static,
-{
-    move |value| {
-        Option::from(value).and_then(|x| {
-            f(&x).then(|| {
-                let result: DynTask<T::Value> = Box::new(g(x));
-                result
-            })
-        })
-    }
-}
