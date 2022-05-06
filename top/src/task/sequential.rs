@@ -12,26 +12,26 @@ use crate::task::{Result, Task, TaskError, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
-pub struct Sequential<T, B>
+pub struct Sequential<'a, T, B>
 where
     T: Task,
 {
     id: Id,
-    current: Either<T, Box<dyn Task<Value = B> + Send + Sync>>,
-    continuations: Vec<Continuation<T::Value, B>>,
+    current: Either<T, DynTask<'a, B>>,
+    continuations: Vec<Continuation<'a, T::Value, B>>,
 }
 
-impl<T, B> Sequential<T, B>
+impl<'a, T, B> Sequential<'a, T, B>
 where
     T: Task,
 {
     pub fn on_value<T2>(
         mut self,
         trigger: Trigger,
-        f: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+        f: impl Fn(T::Value) -> T2 + Send + Sync + 'a,
     ) -> Self
     where
-        T2: Task<Value = B> + Send + Sync + 'static,
+        T2: Task<Value = B> + Send + Sync + 'a,
     {
         let transform = Box::new(move |value| {
             Option::from(value).map(|x| {
@@ -46,10 +46,10 @@ where
     pub fn on_stable<T2>(
         mut self,
         trigger: Trigger,
-        f: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+        f: impl Fn(T::Value) -> T2 + Send + Sync + 'a,
     ) -> Self
     where
-        T2: Task<Value = B> + Send + Sync + 'static,
+        T2: Task<Value = B> + Send + Sync + 'a,
     {
         let transform = Box::new(move |value| match value {
             TaskValue::Stable(x) => {
@@ -65,10 +65,10 @@ where
     pub fn on_unstable<T2>(
         mut self,
         trigger: Trigger,
-        f: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+        f: impl Fn(T::Value) -> T2 + Send + Sync + 'a,
     ) -> Self
     where
-        T2: Task<Value = B> + Send + Sync + 'static,
+        T2: Task<Value = B> + Send + Sync + 'a,
     {
         let transform = Box::new(move |value| match value {
             TaskValue::Unstable(x) => {
@@ -84,11 +84,11 @@ where
     pub fn if_value<T2>(
         mut self,
         trigger: Trigger,
-        f: impl Fn(&T::Value) -> bool + Send + Sync + 'static,
-        g: impl Fn(T::Value) -> T2 + Send + Sync + 'static,
+        f: impl Fn(&T::Value) -> bool + Send + Sync + 'a,
+        g: impl Fn(T::Value) -> T2 + Send + Sync + 'a,
     ) -> Self
     where
-        T2: Task<Value = B> + Send + Sync + 'static,
+        T2: Task<Value = B> + Send + Sync + 'a,
     {
         let transform = Box::new(move |value| {
             Option::from(value).and_then(|x| {
@@ -105,7 +105,7 @@ where
     pub fn on(
         mut self,
         trigger: Trigger,
-        f: impl Fn(TaskValue<T::Value>) -> Option<DynTask<B>> + Send + Sync + 'static,
+        f: impl Fn(TaskValue<T::Value>) -> Option<DynTask<'a, B>> + Send + Sync + 'a,
     ) -> Self {
         self.continuations.push(Continuation {
             trigger,
@@ -116,7 +116,7 @@ where
 }
 
 #[async_trait]
-impl<T, B> Task for Sequential<T, B>
+impl<T, B> Task for Sequential<'_, T, B>
 where
     T: Task + Send + Sync,
     T::Value: Clone + Send,
@@ -205,7 +205,7 @@ where
     }
 }
 
-impl<T, B> Debug for Sequential<T, B>
+impl<T, B> Debug for Sequential<'_, T, B>
 where
     T: Task,
 {
@@ -221,15 +221,15 @@ pub enum Trigger {
     Button(Button),
 }
 
-type DynTask<B> = Box<dyn Task<Value = B> + Send + Sync>;
+type DynTask<'a, B> = Box<dyn Task<Value = B> + Send + Sync + 'a>;
 
-type Transform<A, B> = Box<dyn Fn(TaskValue<A>) -> Option<DynTask<B>> + Send + Sync>;
+type Transform<'a, A, B> = Box<dyn Fn(TaskValue<A>) -> Option<DynTask<'a, B>> + Send + Sync + 'a>;
 
 /// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
 /// construct the next task.
-struct Continuation<A, B> {
+struct Continuation<'a, A, B> {
     trigger: Trigger,
-    transform: Transform<A, B>,
+    transform: Transform<'a, A, B>,
 }
 
 /// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
@@ -271,7 +271,7 @@ impl ToHtml for Button {
 /// Adds the [`steps`] method to any task, allowing it to become a sequential task through the
 /// [`Steps`] builder.
 pub trait TaskSequentialExt: Task {
-    fn then<B>(self) -> Sequential<Self, B>
+    fn then<'a, B>(self) -> Sequential<'a, Self, B>
     where
         Self: Sized,
     {
