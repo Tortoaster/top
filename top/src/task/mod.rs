@@ -43,6 +43,34 @@ pub enum TaskValue<T> {
 }
 
 impl<T> TaskValue<T> {
+    pub fn unwrap(self) -> T {
+        match self {
+            TaskValue::Stable(value) | TaskValue::Unstable(value) => value,
+            TaskValue::Empty => panic!("called `TaskValue::unwrap` on an `Empty` value"),
+        }
+    }
+
+    pub fn is_stable(&self) -> bool {
+        match self {
+            TaskValue::Stable(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_unstable(&self) -> bool {
+        match self {
+            TaskValue::Unstable(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_value(&self) -> bool {
+        match self {
+            TaskValue::Empty => false,
+            _ => true,
+        }
+    }
+
     pub fn and<U>(self, other: TaskValue<U>) -> TaskValue<(T, U)> {
         match self {
             TaskValue::Stable(a) => match other {

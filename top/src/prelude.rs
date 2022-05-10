@@ -4,7 +4,7 @@ pub use crate::task::interact::{choose, choose_with, edit, edit_with, enter};
 pub use crate::task::parallel::TaskParallelExt;
 pub use crate::task::sequential::{Button, TaskSequentialExt, Trigger};
 pub use crate::task::tune::{Color, InputTuner, OutputTuner};
-pub use crate::task::Task;
+pub use crate::task::{Task, TaskValue};
 pub use crate::viewer::convert::{DebugViewer, DisplayViewer};
 
 pub mod derive {
