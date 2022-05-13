@@ -5,13 +5,7 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    choose(vec!["Option A", "Option B", "Option C"])
-        .then(Trigger::Button(Button::OK), TaskValue::has_value, |value| {
-            view(value.unwrap().unwrap_or("No option"))
-        })
-        .then(Trigger::Update, TaskValue::is_stable, |value| {
-            view(format!("Stable {}!", value.unwrap()))
-        })
+    view("Hello, world!")
 }
 
 const HOST: &str = "0.0.0.0:3000";

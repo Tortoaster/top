@@ -1,6 +1,6 @@
 pub use top_derive::Edit;
 
-use crate::editor::container::{OptionEditor, VecEditor};
+use crate::editor::container::OptionEditor;
 use crate::editor::primitive::InputEditor;
 use crate::editor::tuple::*;
 use crate::editor::Editor;
@@ -94,24 +94,24 @@ macro_rules! impl_edit_for_tuple {
 // impl_edit_for_tuple!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
 // impl_edit_for_tuple!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
 
-impl<T> Edit for Vec<T>
-where
-    T: Edit,
-    T::Editor: ToHtml + Clone,
-{
-    type Editor = VecEditor<T::Editor>;
-
-    fn edit(value: Option<Self>) -> Self::Editor {
-        VecEditor::new(
-            value
-                .into_iter()
-                .flatten()
-                .map(|value| T::edit(Some(value)))
-                .collect(),
-            T::edit(None),
-        )
-    }
-}
+// impl<T> Edit for Vec<T>
+// where
+//     T: Edit,
+//     T::Editor: ToHtml + Clone,
+// {
+//     type Editor = VecEditor<T::Editor>;
+//
+//     fn edit(value: Option<Self>) -> Self::Editor {
+//         VecEditor::new(
+//             value
+//                 .into_iter()
+//                 .flatten()
+//                 .map(|value| T::edit(Some(value)))
+//                 .collect(),
+//             T::edit(None),
+//         )
+//     }
+// }
 
 impl<T> Edit for Option<T>
 where

@@ -1,13 +1,11 @@
 use async_trait::async_trait;
 
-use crate::editor::choice::ChoiceEditor;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
 use crate::task::{Result, Task, TaskValue};
-use crate::viewer::generic::View;
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
 /// [`choose`] to construct one.
@@ -40,23 +38,23 @@ pub fn edit_with<E>(editor: E) -> Interact<E> {
     Interact { editor }
 }
 
-/// Have the user select a value out of a list of options. To use a custom viewer for the options,
-/// see [`choose_with`].
-#[inline]
-pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
-where
-    T: View,
-{
-    choose_with(options.into_iter().map(T::view).collect())
-}
-
-/// Have the user select a value out of a list of options, using a custom viewer.
-#[inline]
-pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
-    Interact {
-        editor: ChoiceEditor::new(options),
-    }
-}
+// /// Have the user select a value out of a list of options. To use a custom viewer for the options,
+// /// see [`choose_with`].
+// #[inline]
+// pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
+// where
+//     T: View,
+// {
+//     choose_with(options.into_iter().map(T::view).collect())
+// }
+//
+// /// Have the user select a value out of a list of options, using a custom viewer.
+// #[inline]
+// pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
+//     Interact {
+//         editor: ChoiceEditor::new(options),
+//     }
+// }
 
 #[async_trait]
 impl<E> Task for Interact<E>
