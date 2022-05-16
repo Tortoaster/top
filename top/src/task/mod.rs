@@ -4,6 +4,7 @@ use thiserror::Error;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::Html;
+use crate::share::ShareValue;
 
 pub mod inspect;
 pub mod interact;
@@ -16,12 +17,15 @@ pub type Result<T> = std::result::Result<T, TaskError>;
 #[async_trait]
 pub trait Task {
     type Value;
+    type Share: ShareValue;
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html>;
 
     async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback>;
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>>;
+    async fn share(&self) -> Self::Share;
+
+    async fn value(self) -> Result<TaskValue<Self::Value>>;
 }
 
 #[derive(Debug, Error)]
@@ -43,10 +47,44 @@ pub enum TaskValue<T> {
 }
 
 impl<T> TaskValue<T> {
+    pub fn as_ref(&self) -> TaskValue<&T> {
+        match *self {
+            TaskValue::Stable(ref x) | TaskValue::Unstable(ref x) => TaskValue::Unstable(x),
+            TaskValue::Empty => TaskValue::Empty,
+        }
+    }
+
+    pub fn map<U, F>(self, f: F) -> TaskValue<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        match self {
+            TaskValue::Stable(x) | TaskValue::Unstable(x) => TaskValue::Unstable(f(x)),
+            TaskValue::Empty => TaskValue::Empty,
+        }
+    }
+
     pub fn unwrap(self) -> T {
         match self {
             TaskValue::Stable(value) | TaskValue::Unstable(value) => value,
             TaskValue::Empty => panic!("called `TaskValue::unwrap` on an `Empty` value"),
+        }
+    }
+
+    pub fn unwrap_or(self, default: T) -> T {
+        match self {
+            TaskValue::Stable(x) | TaskValue::Unstable(x) => x,
+            TaskValue::Empty => default,
+        }
+    }
+
+    pub fn unwrap_or_default(self) -> T
+    where
+        T: Default,
+    {
+        match self {
+            TaskValue::Stable(x) | TaskValue::Unstable(x) => x,
+            TaskValue::Empty => Default::default(),
         }
     }
 
@@ -106,5 +144,31 @@ impl<T> From<TaskValue<T>> for Option<T> {
 impl<T> Default for TaskValue<T> {
     fn default() -> Self {
         TaskValue::Empty
+    }
+}
+
+pub trait OptionExt {
+    type Value;
+
+    fn into_stable(self) -> TaskValue<Self::Value>;
+
+    fn into_unstable(self) -> TaskValue<Self::Value>;
+}
+
+impl<T> OptionExt for Option<T> {
+    type Value = T;
+
+    fn into_stable(self) -> TaskValue<Self::Value> {
+        match self {
+            None => TaskValue::Empty,
+            Some(value) => TaskValue::Stable(value),
+        }
+    }
+
+    fn into_unstable(self) -> TaskValue<Self::Value> {
+        match self {
+            None => TaskValue::Empty,
+            Some(value) => TaskValue::Unstable(value),
+        }
     }
 }

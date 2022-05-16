@@ -2,11 +2,12 @@ use async_trait::async_trait;
 
 use top_derive::html;
 
-use crate::editor::{Editor, EditorError};
+use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
+use crate::prelude::TaskValue;
 use crate::task::tune::{ContentTune, Tune};
 
 // #[derive(Clone, Debug, Eq, PartialEq)]
@@ -187,9 +188,10 @@ where
 impl<E> Editor for OptionEditor<E>
 where
     E: Editor + ToHtml + Send + Sync,
+    E::Share: Sync,
 {
     type Value = Option<E::Value>;
-    type Share = Option<E::Share>;
+    type Share = E::Share;
 
     fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
@@ -227,18 +229,14 @@ where
     }
 
     fn share(&self) -> Self::Share {
-        if self.enabled {
-            Some(self.editor.share())
-        } else {
-            None
-        }
+        self.editor.share()
     }
 
-    fn value(self) -> Result<Self::Value, EditorError> {
+    async fn value(self) -> TaskValue<Self::Value> {
         if self.enabled {
-            Ok(Some(self.editor.value()?))
+            self.editor.value().await.map(Option::Some)
         } else {
-            Ok(None)
+            TaskValue::Empty
         }
     }
 }

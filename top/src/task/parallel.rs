@@ -7,6 +7,7 @@ use top_derive::html;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
+use crate::share::ShareValue;
 use crate::task::{Result, Task, TaskError, TaskValue};
 
 #[derive(Debug)]
@@ -33,8 +34,12 @@ where
     T1: Task + Send + Sync,
     T2: Task + Send + Sync,
     T1::Value: Send,
+    T1::Share: Send + Sync,
+    T2::Share: Send + Sync,
+    <T1::Share as ShareValue>::Value: Send,
 {
     type Value = (T1::Value, T2::Value);
+    type Share = (T1::Share, T2::Share);
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
@@ -54,7 +59,14 @@ where
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+    async fn share(&self) -> Self::Share {
+        let a = self.tasks.0.share().await;
+        let b = self.tasks.1.share().await;
+
+        (a, b)
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
         let a = self.tasks.0.value().await?;
         let b = self.tasks.1.value().await?;
 
@@ -69,6 +81,7 @@ where
     T2: Task + Send + Sync,
 {
     type Value = T1::Value;
+    type Share = T1::Share;
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
@@ -88,7 +101,11 @@ where
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+    async fn share(&self) -> Self::Share {
+        self.tasks.0.share().await
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
         self.tasks.0.value().await
     }
 }
@@ -100,6 +117,7 @@ where
     T2: Task + Send + Sync,
 {
     type Value = T2::Value;
+    type Share = T2::Share;
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
@@ -119,7 +137,11 @@ where
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+    async fn share(&self) -> Self::Share {
+        self.tasks.1.share().await
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
         self.tasks.1.value().await
     }
 }
@@ -128,10 +150,11 @@ where
 impl<T1, T2> Task for Parallel<T1, T2, Either>
 where
     T1: Task + Send + Sync,
-    T2: Task<Value = T1::Value> + Send + Sync,
+    T2: Task<Value = T1::Value, Share = T1::Share> + Send + Sync,
     T1::Value: Send,
 {
     type Value = T1::Value;
+    type Share = ();
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         let left = self.tasks.0.start(gen).await?;
@@ -151,7 +174,11 @@ where
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+    async fn share(&self) -> Self::Share {
+        ()
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
         let a = self.tasks.0.value().await?;
         let b = self.tasks.1.value().await?;
 

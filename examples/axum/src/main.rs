@@ -5,7 +5,7 @@ use top::integration::axum::{task, TopService};
 use top::prelude::*;
 
 async fn name() -> impl Task {
-    view("Hello, world!")
+    edit("Hello, world!".to_owned())
 }
 
 const HOST: &str = "0.0.0.0:3000";

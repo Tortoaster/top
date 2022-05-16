@@ -10,7 +10,7 @@ pub use crate::viewer::convert::{DebugViewer, DisplayViewer};
 
 pub mod derive {
     pub use crate::editor::generic::Edit;
-    pub use crate::editor::{Editor, EditorError};
+    pub use crate::editor::Editor;
     pub use crate::html::event::{Change, Event};
     pub use crate::html::id::{Generator, Id};
 }

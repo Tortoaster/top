@@ -8,6 +8,8 @@ use serde::Serialize;
 
 use top_derive::html;
 
+use crate::task::TaskValue;
+
 pub mod event;
 pub mod icon;
 pub mod id;
@@ -107,6 +109,19 @@ where
         match self {
             Ok(value) => value.to_html().await,
             Err(_) => Html::default(),
+        }
+    }
+}
+
+#[async_trait]
+impl<T> ToHtml for TaskValue<T>
+where
+    T: ToHtml + Sync,
+{
+    async fn to_html(&self) -> Html {
+        match self {
+            TaskValue::Stable(value) | TaskValue::Unstable(value) => value.to_html().await,
+            TaskValue::Empty => Html::default(),
         }
     }
 }

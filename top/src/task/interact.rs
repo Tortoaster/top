@@ -62,6 +62,7 @@ where
     E: Editor + ToHtml + Send + Sync,
 {
     type Value = E::Value;
+    type Share = E::Share;
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         self.editor.start(gen);
@@ -73,10 +74,11 @@ where
         Ok(self.editor.on_event(event, gen).await)
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
-        match self.editor.share() {
-            Ok(value) => Ok(TaskValue::Unstable(value)),
-            Err(_) => Ok(TaskValue::Empty),
-        }
+    async fn share(&self) -> Self::Share {
+        self.editor.share()
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
+        Ok(self.editor.value().await)
     }
 }

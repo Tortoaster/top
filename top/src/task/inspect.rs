@@ -36,6 +36,7 @@ where
     V: Viewer + ToHtml + Send + Sync,
 {
     type Value = V::Value;
+    type Share = ();
 
     async fn start(&mut self, _gen: &mut Generator) -> Result<Html> {
         Ok(self.viewer.to_html().await)
@@ -45,7 +46,11 @@ where
         Ok(Feedback::new())
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
+    async fn share(&self) -> Self::Share {
+        todo!()
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
         Ok(TaskValue::Stable(self.viewer.value()))
     }
 }

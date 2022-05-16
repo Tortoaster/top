@@ -1,10 +1,11 @@
 //! This module contains functionality for the interaction between the user and the server.
 
 use async_trait::async_trait;
-use thiserror::Error;
 
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
+use crate::prelude::TaskValue;
+use crate::share::ShareValue;
 
 pub mod choice;
 pub mod container;
@@ -18,7 +19,7 @@ pub mod tuple;
 pub trait Editor {
     /// The type of data this editor can produce.
     type Value;
-    type Share;
+    type Share: ShareValue;
 
     // TODO: Turn into constructor?
     fn start(&mut self, gen: &mut Generator);
@@ -30,14 +31,5 @@ pub trait Editor {
     /// Get the current value of this editor.
     fn share(&self) -> Self::Share;
 
-    fn value(self) -> Result<Self::Value, EditorError>;
-}
-
-/// Common error type for [`Editor`]s.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Error)]
-pub enum EditorError {
-    #[error("no value entered")]
-    Empty,
-    #[error("something is wrong with the value")]
-    Invalid,
+    async fn value(self) -> TaskValue<Self::Value>;
 }

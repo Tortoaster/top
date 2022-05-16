@@ -6,6 +6,7 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
+use crate::share::ShareValue;
 use crate::task::{Result, Task, TaskError, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
@@ -22,11 +23,13 @@ impl<T1, T2, C, F> Task for Sequential<T1, T2, C, F>
 where
     T1: Task + Send + Sync,
     T1::Value: Clone + Send,
+    T1::Share: Send + Sync,
     T2: Task + Send + Sync,
-    C: Fn(&TaskValue<T1::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<T1::Value>) -> T2 + Send + Sync,
+    C: Fn(&T1::Share) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T1::Share as ShareValue>::Value>) -> T2 + Send + Sync,
 {
     type Value = T2::Value;
+    type Share = ();
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         self.id = gen.next();
@@ -61,12 +64,12 @@ where
         match &mut self.current {
             Either::Left(task) => {
                 let feedback = task.on_event(event.clone(), gen).await?;
-                let value = task.value().await?;
+                let share = task.share().await;
 
                 match &self.continuation.trigger {
                     Trigger::Update => {
-                        if (self.continuation.condition)(&value) {
-                            let mut next = (self.continuation.transform)(value);
+                        if (self.continuation.condition)(&share) {
+                            let mut next = (self.continuation.transform)(share.clone_value().await);
                             let html = next.start(gen).await?;
                             self.current = Either::Right(next);
                             Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
@@ -77,8 +80,9 @@ where
                     Trigger::Button(action) => {
                         if let Event::Press { id } = &event {
                             if action.1 == *id {
-                                if (self.continuation.condition)(&value) {
-                                    let mut next = (self.continuation.transform)(value);
+                                if (self.continuation.condition)(&share) {
+                                    let mut next =
+                                        (self.continuation.transform)(share.clone_value().await);
                                     let html = next.start(gen).await?;
                                     self.current = Either::Right(next);
                                     Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
@@ -98,8 +102,12 @@ where
         }
     }
 
-    async fn value(&self) -> Result<TaskValue<Self::Value>> {
-        match &self.current {
+    async fn share(&self) -> Self::Share {
+        ()
+    }
+
+    async fn value(self) -> Result<TaskValue<Self::Value>> {
+        match self.current {
             Either::Left(_) => Ok(TaskValue::Empty),
             Either::Right(t) => t.value().await,
         }

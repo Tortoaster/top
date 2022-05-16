@@ -104,6 +104,7 @@ impl<T> Edit for Option<T>
 where
     T: Edit,
     T::Editor: ToHtml + Send + Sync,
+    <T::Editor as Editor>::Share: Sync,
 {
     type Editor = OptionEditor<T::Editor>;
 

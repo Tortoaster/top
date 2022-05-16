@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use paste::paste;
 
-use crate::editor::{Editor, EditorError};
+use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
+use crate::prelude::TaskValue;
 use crate::share::Share;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,7 +21,7 @@ impl ToHtml for UnitEditor {
 #[async_trait]
 impl Editor for UnitEditor {
     type Value = ();
-    type Share = Share<Result<Self::Value, EditorError>>;
+    type Share = Share<Self::Value>;
 
     fn start(&mut self, _gen: &mut Generator) {}
 
@@ -29,11 +30,11 @@ impl Editor for UnitEditor {
     }
 
     fn share(&self) -> Self::Share {
-        Share::new(Ok(()))
+        Share::new(TaskValue::Stable(()))
     }
 
-    fn value(self) -> Result<Self::Value, EditorError> {
-        Ok(())
+    async fn value(self) -> TaskValue<Self::Value> {
+        TaskValue::Stable(())
     }
 }
 
