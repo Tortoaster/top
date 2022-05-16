@@ -189,6 +189,7 @@ where
     E: Editor + ToHtml + Send + Sync,
 {
     type Value = Option<E::Value>;
+    type Share = Option<E::Share>;
 
     fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
@@ -225,7 +226,15 @@ where
         }
     }
 
-    fn value(&self) -> Result<Self::Value, EditorError> {
+    fn share(&self) -> Self::Share {
+        if self.enabled {
+            Some(self.editor.share())
+        } else {
+            None
+        }
+    }
+
+    fn value(self) -> Result<Self::Value, EditorError> {
         if self.enabled {
             Ok(Some(self.editor.value()?))
         } else {

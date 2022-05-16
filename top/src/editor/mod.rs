@@ -18,6 +18,7 @@ pub mod tuple;
 pub trait Editor {
     /// The type of data this editor can produce.
     type Value;
+    type Share;
 
     // TODO: Turn into constructor?
     fn start(&mut self, gen: &mut Generator);
@@ -26,9 +27,10 @@ pub trait Editor {
     /// presses a button.
     async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback;
 
-    // TODO: Allow borrow and consume
     /// Get the current value of this editor.
-    fn value(&self) -> Result<Self::Value, EditorError>;
+    fn share(&self) -> Self::Share;
+
+    fn value(self) -> Result<Self::Value, EditorError>;
 }
 
 /// Common error type for [`Editor`]s.

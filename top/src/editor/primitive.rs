@@ -10,12 +10,13 @@ use crate::editor::{Editor, EditorError};
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
+use crate::share::Share;
 use crate::task::tune::{InputTuner, Tune};
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug)]
 pub struct InputEditor<T> {
     pub(in crate::editor) id: Id,
-    pub(in crate::editor) value: Result<T, EditorError>,
+    pub(in crate::editor) value: Share<Result<T, EditorError>>,
     pub(in crate::editor) tuner: InputTuner,
 }
 
@@ -23,7 +24,7 @@ impl<T> InputEditor<T> {
     pub fn new(value: Option<T>) -> Self {
         InputEditor {
             id: Id::INVALID,
-            value: value.ok_or(EditorError::Empty),
+            value: Share::new(value.ok_or(EditorError::Empty)),
             tuner: InputTuner::default(),
         }
     }
@@ -35,6 +36,7 @@ where
     T: Clone + FromStr + Send,
 {
     type Value = T;
+    type Share = Share<Result<Self::Value, EditorError>>;
 
     fn start(&mut self, gen: &mut Generator) {
         self.id = gen.next();
@@ -44,11 +46,11 @@ where
         match event {
             Event::Update { id, value } if id == self.id => match value.parse::<T>() {
                 Ok(value) => {
-                    self.value = Ok(value);
+                    self.value.write(Ok(value));
                     Feedback::from(Change::Valid { id })
                 }
                 Err(_) => {
-                    self.value = Err(EditorError::Invalid);
+                    self.value.write(Err(EditorError::Invalid));
                     Feedback::from(Change::Invalid { id })
                 }
             },
@@ -56,8 +58,12 @@ where
         }
     }
 
-    fn value(&self) -> Result<Self::Value, EditorError> {
+    fn share(&self) -> Self::Share {
         self.value.clone()
+    }
+
+    fn value(self) -> Result<Self::Value, EditorError> {
+        self.value.into_inner()
     }
 }
 
@@ -74,7 +80,7 @@ impl ToHtml for InputEditor<String> {
     async fn to_html(&self) -> Html {
         html! {r#"
             <label for="{self.id}" class="label">{self.tuner.label}</label>
-            <input id="{self.id}" class="input" value="{self.value}" onblur="update(this)"/>
+            <input id="{self.id}" class="input" value="{self.value.read().await}" onblur="update(this)"/>
         "#}
     }
 }
@@ -85,7 +91,12 @@ macro_rules! impl_to_html_for_number {
             #[async_trait]
             impl ToHtml for InputEditor<$ty> {
                 async fn to_html(&self) -> Html {
-                    let value = self.value.as_ref().map(ToString::to_string);
+                    let value = self
+                        .value
+                        .read()
+                        .await
+                        .as_ref()
+                        .map(ToString::to_string);
                     html! {r#"
                         <label for="{self.id}" class="label">{self.tuner.label}</label>
                         <input id="{self.id}" type="number" class="input" value="{value}" onblur="update(this)"/>
@@ -103,8 +114,8 @@ impl ToHtml for InputEditor<bool> {
     async fn to_html(&self) -> Html {
         let checked = self
             .value
-            .as_ref()
-            .copied()
+            .read()
+            .await
             .unwrap_or_default()
             .then(|| "checked");
         html! {r#"
@@ -121,6 +132,8 @@ impl ToHtml for InputEditor<char> {
     async fn to_html(&self) -> Html {
         let value = self
             .value
+            .read()
+            .await
             .as_ref()
             .map(ToString::to_string)
             .unwrap_or_default();

@@ -5,6 +5,7 @@ use crate::editor::{Editor, EditorError};
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
+use crate::share::Share;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
@@ -19,6 +20,7 @@ impl ToHtml for UnitEditor {
 #[async_trait]
 impl Editor for UnitEditor {
     type Value = ();
+    type Share = Share<Result<Self::Value, EditorError>>;
 
     fn start(&mut self, _gen: &mut Generator) {}
 
@@ -26,7 +28,11 @@ impl Editor for UnitEditor {
         Feedback::new()
     }
 
-    fn value(&self) -> Result<Self::Value, EditorError> {
+    fn share(&self) -> Self::Share {
+        Share::new(Ok(()))
+    }
+
+    fn value(self) -> Result<Self::Value, EditorError> {
         Ok(())
     }
 }

@@ -74,7 +74,7 @@ where
     }
 
     async fn value(&self) -> Result<TaskValue<Self::Value>> {
-        match self.editor.value() {
+        match self.editor.share() {
             Ok(value) => Ok(TaskValue::Unstable(value)),
             Err(_) => Ok(TaskValue::Empty),
         }
