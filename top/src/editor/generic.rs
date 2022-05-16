@@ -15,46 +15,33 @@ pub trait Edit: Sized {
     fn edit(value: Option<Self>) -> Self::Editor;
 }
 
-impl Edit for String {
-    type Editor = InputEditor<String>;
-
-    fn edit(value: Option<Self>) -> Self::Editor {
-        InputEditor::new(value.unwrap_or_default())
-    }
-}
-
-macro_rules! impl_edit_for_number {
+/// For some types, the HTML-representation starts with a valid value by default. For example, a
+/// number input starts at 0, which is a valid number, and a text field starts empty, which is a
+/// valid string. In these cases, the editor should be initialized with a default value, rather than
+/// [`EditorError::Empty`].
+macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
                 type Editor = InputEditor<$ty>;
 
                 fn edit(value: Option<Self>) -> Self::Editor {
-                    InputEditor::new(value.unwrap_or_default())
+                    InputEditor::new(Some(value.unwrap_or_default()))
                 }
             }
         )*
     };
 }
 
-impl_edit_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
-
-impl Edit for bool {
-    type Editor = InputEditor<bool>;
-
-    fn edit(value: Option<Self>) -> Self::Editor {
-        InputEditor::new(value.unwrap_or_default())
-    }
-}
+impl_edit_for_default!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, String
+);
 
 impl Edit for char {
     type Editor = InputEditor<char>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        match value {
-            None => InputEditor::empty(),
-            Some(value) => InputEditor::new(value),
-        }
+        InputEditor::new(value)
     }
 }
 

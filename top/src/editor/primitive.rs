@@ -18,18 +18,10 @@ pub struct InputEditor<T> {
 }
 
 impl<T> InputEditor<T> {
-    pub fn new(value: T) -> Self {
+    pub fn new(value: Option<T>) -> Self {
         InputEditor {
             id: Id::INVALID,
-            value: Ok(value),
-            tuner: InputTuner::default(),
-        }
-    }
-
-    pub fn empty() -> Self {
-        InputEditor {
-            id: Id::INVALID,
-            value: Err(EditorError::Empty),
+            value: value.ok_or(EditorError::Empty),
             tuner: InputTuner::default(),
         }
     }
@@ -71,12 +63,6 @@ impl<T> Tune for InputEditor<T> {
 
     fn tune(&mut self, tuner: Self::Tuner) {
         self.tuner = tuner;
-    }
-}
-
-impl<T> Default for InputEditor<T> {
-    fn default() -> Self {
-        InputEditor::empty()
     }
 }
 
