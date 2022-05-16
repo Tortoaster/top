@@ -1,5 +1,6 @@
 //! This module contains functionality for the interaction between the user and the server.
 
+use async_trait::async_trait;
 use thiserror::Error;
 
 use crate::html::event::{Event, Feedback};
@@ -13,6 +14,7 @@ pub mod primitive;
 pub mod tuple;
 
 /// Editors describe how tasks should respond to user input, and how data can be retrieved from it.
+#[async_trait]
 pub trait Editor {
     /// The type of data this editor can produce.
     type Value;
@@ -22,7 +24,7 @@ pub trait Editor {
 
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback;
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback;
 
     // TODO: Allow borrow and consume
     /// Get the current value of this editor.

@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use crate::html::{Html, ToHtml};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -8,8 +10,9 @@ pub enum Icon {
     XMark,
 }
 
+#[async_trait]
 impl ToHtml for Icon {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         let html = match self {
             Icon::Plus => r#"<i class="fas fa-plus"></i>"#,
             Icon::Minus => r#"<i class="fas fa-minus"></i>"#,

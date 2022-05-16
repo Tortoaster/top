@@ -41,7 +41,7 @@ where
 
         let buttons = if let Trigger::Button(action) = &mut self.continuation.trigger {
             action.1 = gen.next();
-            action.to_html()
+            action.to_html().await
         } else {
             Html::default()
         };
@@ -149,8 +149,9 @@ impl Button {
     }
 }
 
+#[async_trait]
 impl ToHtml for Button {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         html! {r#"
             <button id="{self.1}" class="button is-link" type="button" onclick="press(this)">
                 {self.0}

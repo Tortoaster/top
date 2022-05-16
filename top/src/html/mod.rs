@@ -2,6 +2,8 @@
 
 use std::fmt::{Display, Formatter};
 
+use async_trait::async_trait;
+use futures::future;
 use serde::Serialize;
 
 use top_derive::html;
@@ -15,7 +17,7 @@ pub mod id;
 pub struct Html(pub String);
 
 impl Html {
-    pub fn wrapper(title: &str) -> Html {
+    pub async fn wrapper(title: &str) -> Html {
         html! {r#"
             <!DOCTYPE html>
             <html lang="en">
@@ -52,15 +54,17 @@ impl FromIterator<Html> for Html {
     }
 }
 
+#[async_trait]
 pub trait ToHtml {
-    fn to_html(&self) -> Html;
+    async fn to_html(&self) -> Html;
 }
 
 macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(
+            #[async_trait]
             impl ToHtml for $ty {
-                fn to_html(&self) -> Html {
+                async fn to_html(&self) -> Html {
                     Html(self.to_string())
                 }
             }
@@ -73,35 +77,49 @@ impl_to_html!(
     String
 );
 
+#[async_trait]
 impl ToHtml for Html {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         self.clone()
     }
 }
 
+#[async_trait]
 impl<T> ToHtml for Option<T>
 where
-    T: ToHtml,
+    T: ToHtml + Sync,
 {
-    fn to_html(&self) -> Html {
-        self.as_ref().map(ToHtml::to_html).unwrap_or_default()
+    async fn to_html(&self) -> Html {
+        match self {
+            None => Html::default(),
+            Some(value) => value.to_html().await,
+        }
     }
 }
 
+#[async_trait]
 impl<T, E> ToHtml for Result<T, E>
 where
-    T: ToHtml,
+    T: ToHtml + Sync,
+    E: Sync,
 {
-    fn to_html(&self) -> Html {
-        self.as_ref().map(ToHtml::to_html).unwrap_or_default()
+    async fn to_html(&self) -> Html {
+        match self {
+            Ok(value) => value.to_html().await,
+            Err(_) => Html::default(),
+        }
     }
 }
 
+#[async_trait]
 impl<T> ToHtml for Vec<T>
 where
-    T: ToHtml,
+    T: ToHtml + Sync,
 {
-    fn to_html(&self) -> Html {
-        self.iter().map(ToHtml::to_html).collect()
+    async fn to_html(&self) -> Html {
+        future::join_all(self.iter().map(ToHtml::to_html))
+            .await
+            .into_iter()
+            .collect()
     }
 }

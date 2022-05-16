@@ -36,7 +36,7 @@ fn split(content: &str) -> (String, String) {
     while let Some(index) = content[pos..].find('{').map(|index| index + pos) {
         let close = content[pos..].find('}').expect("no closing bracket") + pos;
         format = format + &content[pos..=index] + "}";
-        args = args + ", " + &content[index + 1..close] + ".to_html()";
+        args = args + ", " + &content[index + 1..close] + ".to_html().await";
         pos = close + 1;
     }
     format += &content[pos..];

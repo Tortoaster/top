@@ -38,7 +38,7 @@ where
     type Value = V::Value;
 
     async fn start(&mut self, _gen: &mut Generator) -> Result<Html> {
-        Ok(self.viewer.to_html())
+        Ok(self.viewer.to_html().await)
     }
 
     async fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Result<Feedback> {

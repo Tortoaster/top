@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Display};
 
+use async_trait::async_trait;
+
 use crate::html::{Html, ToHtml};
 use crate::task::tune::Tune;
 use crate::viewer::primitive::OutputViewer;
@@ -23,9 +25,13 @@ impl<T> DisplayViewer<T> {
     }
 }
 
-impl<T> ToHtml for DisplayViewer<T> {
-    fn to_html(&self) -> Html {
-        self.viewer.to_html()
+#[async_trait]
+impl<T> ToHtml for DisplayViewer<T>
+where
+    T: Send + Sync,
+{
+    async fn to_html(&self) -> Html {
+        self.viewer.to_html().await
     }
 }
 
@@ -66,9 +72,13 @@ impl<T> DebugViewer<T> {
     }
 }
 
-impl<T> ToHtml for DebugViewer<T> {
-    fn to_html(&self) -> Html {
-        self.viewer.to_html()
+#[async_trait]
+impl<T> ToHtml for DebugViewer<T>
+where
+    T: Send + Sync,
+{
+    async fn to_html(&self) -> Html {
+        self.viewer.to_html().await
     }
 }
 

@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use top_derive::html;
 
 use crate::html::icon::Icon;
@@ -42,8 +44,9 @@ impl<T> Tune for OutputViewer<T> {
 macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(
+            #[async_trait]
             impl ToHtml for OutputViewer<$ty> {
-                fn to_html(&self) -> Html {
+                async fn to_html(&self) -> Html {
                     html! {r#"
                         <span style="color: {self.tuner.color};">{self.value}</span><br/>
                     "#}
@@ -57,12 +60,13 @@ impl_to_html!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, char, &str, String
 );
 
+#[async_trait]
 impl ToHtml for OutputViewer<bool> {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         if self.value {
-            Icon::Check.to_html()
+            Icon::Check.to_html().await
         } else {
-            Icon::XMark.to_html()
+            Icon::XMark.to_html().await
         }
     }
 }

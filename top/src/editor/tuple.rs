@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use paste::paste;
 
 use crate::editor::{Editor, EditorError};
@@ -8,18 +9,20 @@ use crate::html::{Html, ToHtml};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
 
+#[async_trait]
 impl ToHtml for UnitEditor {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         Html::default()
     }
 }
 
+#[async_trait]
 impl Editor for UnitEditor {
     type Value = ();
 
     fn start(&mut self, _gen: &mut Generator) {}
 
-    fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Feedback {
+    async fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Feedback {
         Feedback::new()
     }
 

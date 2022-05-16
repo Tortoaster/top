@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+use async_trait::async_trait;
+
 use top_derive::html;
 
 use crate::editor::{Editor, EditorError};
@@ -27,9 +29,10 @@ impl<T> InputEditor<T> {
     }
 }
 
+#[async_trait]
 impl<T> Editor for InputEditor<T>
 where
-    T: Clone + FromStr,
+    T: Clone + FromStr + Send,
 {
     type Value = T;
 
@@ -37,7 +40,7 @@ where
         self.id = gen.next();
     }
 
-    fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Feedback {
+    async fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Feedback {
         match event {
             Event::Update { id, value } if id == self.id => match value.parse::<T>() {
                 Ok(value) => {
@@ -66,8 +69,9 @@ impl<T> Tune for InputEditor<T> {
     }
 }
 
+#[async_trait]
 impl ToHtml for InputEditor<String> {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         html! {r#"
             <label for="{self.id}" class="label">{self.tuner.label}</label>
             <input id="{self.id}" class="input" value="{self.value}" onblur="update(this)"/>
@@ -78,8 +82,9 @@ impl ToHtml for InputEditor<String> {
 macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
+            #[async_trait]
             impl ToHtml for InputEditor<$ty> {
-                fn to_html(&self) -> Html {
+                async fn to_html(&self) -> Html {
                     let value = self.value.as_ref().map(ToString::to_string);
                     html! {r#"
                         <label for="{self.id}" class="label">{self.tuner.label}</label>
@@ -93,8 +98,9 @@ macro_rules! impl_to_html_for_number {
 
 impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
+#[async_trait]
 impl ToHtml for InputEditor<bool> {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         let checked = self
             .value
             .as_ref()
@@ -110,8 +116,9 @@ impl ToHtml for InputEditor<bool> {
     }
 }
 
+#[async_trait]
 impl ToHtml for InputEditor<char> {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         let value = self
             .value
             .as_ref()

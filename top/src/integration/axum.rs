@@ -87,7 +87,7 @@ impl Service<Request<Body>> for TaskRouter {
 }
 
 async fn wrapper() -> impl IntoResponse {
-    Html(crate::html::Html::wrapper("Top Axum").to_string())
+    Html(crate::html::Html::wrapper("Top Axum").await.to_string())
 }
 
 async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoResponse

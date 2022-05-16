@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use async_trait::async_trait;
+
 use crate::html::{Html, ToHtml};
 use crate::task::inspect::Inspect;
 use crate::task::interact::Interact;
@@ -54,8 +56,9 @@ impl Default for Color {
     }
 }
 
+#[async_trait]
 impl ToHtml for Color {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         match self {
             Color::Black => Html("black".to_owned()),
             Color::White => Html("white".to_owned()),

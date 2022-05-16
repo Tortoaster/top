@@ -103,7 +103,7 @@ macro_rules! impl_edit_for_tuple {
 impl<T> Edit for Option<T>
 where
     T: Edit,
-    T::Editor: ToHtml,
+    T::Editor: ToHtml + Send + Sync,
 {
     type Editor = OptionEditor<T::Editor>;
 

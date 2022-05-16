@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
+use async_trait::async_trait;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::html::{Html, ToHtml};
@@ -17,8 +18,9 @@ impl Id {
     pub const INVALID: Id = Id(u32::MAX);
 }
 
+#[async_trait]
 impl ToHtml for Id {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         Html(self.to_string())
     }
 }

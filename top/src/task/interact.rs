@@ -66,11 +66,11 @@ where
     async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
         self.editor.start(gen);
 
-        Ok(self.editor.to_html())
+        Ok(self.editor.to_html().await)
     }
 
     async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
-        Ok(self.editor.on_event(event, gen))
+        Ok(self.editor.on_event(event, gen).await)
     }
 
     async fn value(&self) -> Result<TaskValue<Self::Value>> {

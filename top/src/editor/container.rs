@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use top_derive::html;
 
 use crate::editor::{Editor, EditorError};
@@ -161,15 +163,16 @@ where
     }
 }
 
+#[async_trait]
 impl<E> ToHtml for OptionEditor<E>
 where
-    E: ToHtml,
+    E: ToHtml + Send + Sync,
 {
-    fn to_html(&self) -> Html {
+    async fn to_html(&self) -> Html {
         let content = if self.enabled {
-            self.row.to_html(&self.editor)
+            self.row.to_html(&self.editor).await
         } else {
-            Row::add_button(self.add_id).to_html()
+            Row::add_button(self.add_id).await
         };
 
         html! {r#"
@@ -180,9 +183,10 @@ where
     }
 }
 
+#[async_trait]
 impl<E> Editor for OptionEditor<E>
 where
-    E: Editor + ToHtml,
+    E: Editor + ToHtml + Send + Sync,
 {
     type Value = Option<E::Value>;
 
@@ -194,11 +198,11 @@ where
         self.editor.start(gen);
     }
 
-    fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback {
+    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback {
         match event {
             Event::Press { id } if id == self.add_id && !self.enabled => {
                 // Add value
-                let html = self.row.to_html(&mut self.editor);
+                let html = self.row.to_html(&mut self.editor).await;
                 self.enabled = true;
 
                 Feedback::from(Change::ReplaceContent { id: self.id, html })
@@ -206,15 +210,18 @@ where
             Event::Press { id } if id == self.row.sub_id && self.enabled => {
                 // Remove value
 
-                let html = Row::add_button(self.add_id).to_html();
+                let html = Row::add_button(self.add_id).await;
                 self.enabled = false;
 
                 Feedback::from(Change::ReplaceContent { id: self.id, html })
             }
-            _ => self
-                .enabled
-                .then(|| self.editor.on_event(event, gen))
-                .unwrap_or_default(),
+            _ => {
+                if self.enabled {
+                    self.editor.on_event(event, gen).await
+                } else {
+                    Feedback::new()
+                }
+            }
         }
     }
 
@@ -253,7 +260,7 @@ impl Row {
     }
 
     /// Creates a row consisting of the editor and a button to remove it.
-    fn to_html<E>(&self, editor: &E) -> Html
+    async fn to_html<E>(&self, editor: &E) -> Html
     where
         E: ToHtml,
     {
@@ -267,7 +274,7 @@ impl Row {
         "#}
     }
 
-    fn add_button(id: Id) -> Html {
+    async fn add_button(id: Id) -> Html {
         html! {r#"
             <button id="{id}" class="button is-outlined" type="button" onclick="press(this)">
                 {Icon::Plus}
