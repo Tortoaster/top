@@ -14,7 +14,7 @@ use log::{error, warn};
 use tower_http::services::ServeFile;
 use tower_service::Service;
 
-use crate::html::event::{Change, Feedback};
+use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::task::Task;
 
@@ -113,7 +113,16 @@ where
             match message.into_text() {
                 Ok(text) => match serde_json::from_str(&text) {
                     Ok(event) => match task.on_event(event, &mut gen).await {
-                        Ok(feedback) => {
+                        Ok(mut feedback) => {
+                            let mut shares = feedback.shares().clone();
+                            while !shares.is_empty() {
+                                let first = *shares.iter().next().unwrap();
+                                let id = shares.take(&first).unwrap();
+                                match task.on_event(Event::Redraw { id }, &mut gen).await {
+                                    Ok(new) => feedback = feedback.merged_with(new).unwrap(),
+                                    Err(error) => error!("failed to handle event: {error}"),
+                                }
+                            }
                             if !feedback.is_empty() {
                                 send_feedback(&mut sender, feedback).await;
                             }

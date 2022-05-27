@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::html::id::Id;
 use crate::html::Html;
@@ -11,6 +12,7 @@ use crate::html::Html;
 pub enum Event {
     Update { id: Id, value: String },
     Press { id: Id },
+    Redraw { id: Uuid },
 }
 
 /// Changes to the user interface in response to [`Event`]s, such as confirming a value is valid, or
@@ -28,6 +30,9 @@ pub enum Change {
     Valid { id: Id },
     /// The value of this html is invalid.
     Invalid { id: Id },
+
+    /// Change the value of an input.
+    UpdateValue { id: Id, value: String },
 }
 
 impl Change {
@@ -37,7 +42,8 @@ impl Change {
             | Change::AppendContent { id, .. }
             | Change::Remove { id, .. }
             | Change::Valid { id, .. }
-            | Change::Invalid { id, .. } => *id,
+            | Change::Invalid { id, .. }
+            | Change::UpdateValue { id, .. } => *id,
         }
     }
 
@@ -47,28 +53,42 @@ impl Change {
                 Change::ReplaceContent { html: other, .. } => *html = other,
                 Change::AppendContent { html: other, .. } => html.0.push_str(&other.0),
                 Change::Remove { .. } => *self = other,
-                Change::Valid { .. } | Change::Invalid { .. } => return Err(()),
+                Change::Valid { .. } | Change::Invalid { .. } | Change::UpdateValue { .. } => {
+                    return Err(());
+                }
             },
             Change::AppendContent { html, .. } => match other {
                 Change::ReplaceContent { .. } | Change::Remove { .. } => *self = other,
                 Change::AppendContent { html: other, .. } => html.0.push_str(&other.0),
-                Change::Valid { .. } | Change::Invalid { .. } => return Err(()),
+                Change::Valid { .. } | Change::Invalid { .. } | Change::UpdateValue { .. } => {
+                    return Err(());
+                }
             },
             Change::Remove { .. } => match other {
                 Change::ReplaceContent { .. } | Change::AppendContent { .. } => return Err(()),
                 Change::Remove { .. } => {}
-                Change::Valid { .. } | Change::Invalid { .. } => return Err(()),
+                Change::Valid { .. } | Change::Invalid { .. } | Change::UpdateValue { .. } => {
+                    return Err(());
+                }
             },
             Change::Valid { .. } | Change::Invalid { .. } => *self = other,
+            Change::UpdateValue { value, .. } => match other {
+                Change::ReplaceContent { .. } | Change::AppendContent { .. } => return Err(()),
+                Change::Remove { .. } => *self = other,
+                Change::Valid { .. } | Change::Invalid { .. } => {}
+                Change::UpdateValue { value: other, .. } => *value = other,
+            },
         }
 
         Ok(())
     }
 }
 
+#[must_use]
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Feedback {
     changes: BTreeMap<Id, Change>,
+    shares: BTreeSet<Uuid>,
 }
 
 impl Feedback {
@@ -76,6 +96,16 @@ impl Feedback {
     pub fn new() -> Self {
         Feedback {
             changes: BTreeMap::new(),
+            shares: BTreeSet::new(),
+        }
+    }
+
+    pub fn update_share(share: Uuid) -> Self {
+        let mut shares = BTreeSet::new();
+        shares.insert(share);
+        Feedback {
+            changes: BTreeMap::new(),
+            shares,
         }
     }
 
@@ -83,7 +113,7 @@ impl Feedback {
     /// feedback inserts something in an element while [`other`] removes that element, it gets
     /// removed. The other way around (first removing, then inserting) makes no sense and will
     /// result in an error.
-    pub fn merged_with(mut self, other: Self) -> Result<Self, ()> {
+    pub fn merged_with(mut self, mut other: Self) -> Result<Self, ()> {
         for (id, other) in other.changes {
             match self.changes.get_mut(&id) {
                 None => {
@@ -92,12 +122,17 @@ impl Feedback {
                 Some(change) => change.merge_with(other)?,
             }
         }
+        self.shares.append(&mut other.shares);
 
         Ok(self)
     }
 
     pub fn changes(self) -> Vec<Change> {
         self.changes.into_values().collect()
+    }
+
+    pub fn shares(&self) -> &BTreeSet<Uuid> {
+        &self.shares
     }
 
     pub fn is_empty(&self) -> bool {
@@ -109,6 +144,9 @@ impl From<Change> for Feedback {
     fn from(change: Change) -> Self {
         let mut changes = BTreeMap::new();
         changes.insert(change.id(), change);
-        Feedback { changes }
+        Feedback {
+            changes,
+            shares: BTreeSet::new(),
+        }
     }
 }

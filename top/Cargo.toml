@@ -12,14 +12,14 @@ axum_integration = ["axum", "futures", "tower-http", "tower-service"]
 async-trait = "0.1.52"
 either = "1.6"
 lazy_static = "1.4"
+log = "0.4.14"
 paste = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "1.12"
 thiserror = "1.0"
 top_derive = { path = "../top_derive" }
-
-log = "0.4.14"
+uuid = { version = "1.1.0", features = ["fast-rng", "serde", "v4"] }
 
 # Axum integration
 axum = { version = "0.4.8", features = ["ws"], optional = true }

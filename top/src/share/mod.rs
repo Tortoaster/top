@@ -2,11 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::lock::{Mutex, MutexGuard};
+use uuid::Uuid;
 
+use crate::html::event::Feedback;
 use crate::prelude::TaskValue;
 
 #[derive(Clone, Debug)]
 pub struct Share<T> {
+    id: Uuid,
     value: Arc<Mutex<TaskValue<T>>>,
 }
 
@@ -16,6 +19,7 @@ where
 {
     pub fn new(value: TaskValue<T>) -> Self {
         Share {
+            id: Uuid::new_v4(),
             value: Arc::new(Mutex::new(value)),
         }
     }
@@ -24,8 +28,13 @@ where
         self.value.lock().await
     }
 
-    pub async fn write(&self, value: TaskValue<T>) {
+    pub async fn write(&self, value: TaskValue<T>) -> Feedback {
         *self.value.lock().await = value;
+        Feedback::update_share(self.id)
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
     }
 }
 

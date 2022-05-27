@@ -1,8 +1,10 @@
 //! This module contains basic editors for primitive types.
 
+use std::ops::Deref;
 use std::str::FromStr;
 
 use async_trait::async_trait;
+use serde::Serialize;
 
 use top_derive::html;
 
@@ -26,9 +28,13 @@ where
     T: Clone,
 {
     pub fn new(value: Option<T>) -> Self {
+        InputEditor::new_shared(Share::new(value.into_unstable()))
+    }
+
+    pub fn new_shared(share: Share<T>) -> Self {
         InputEditor {
             id: Id::INVALID,
-            share: Share::new(value.into_unstable()),
+            share,
             tuner: InputTuner::default(),
         }
     }
@@ -37,7 +43,7 @@ where
 #[async_trait]
 impl<T> Editor for InputEditor<T>
 where
-    T: Clone + FromStr + Send,
+    T: Clone + FromStr + Serialize + Send,
     T::Err: Send,
 {
     type Value = T;
@@ -51,14 +57,29 @@ where
         match event {
             Event::Update { id, value } if id == self.id => match value.parse::<T>() {
                 Ok(value) => {
-                    self.share.write(TaskValue::Unstable(value)).await;
+                    let feedback = self.share.write(TaskValue::Unstable(value)).await;
                     Feedback::from(Change::Valid { id })
+                        .merged_with(feedback)
+                        .unwrap()
                 }
                 Err(_) => {
-                    self.share.write(TaskValue::Empty).await;
+                    let feedback = self.share.write(TaskValue::Empty).await;
                     Feedback::from(Change::Invalid { id })
+                        .merged_with(feedback)
+                        .unwrap()
                 }
             },
+            Event::Redraw { id } if self.share.id() == id => {
+                match self.share.read().await.deref() {
+                    TaskValue::Stable(value) | TaskValue::Unstable(value) => {
+                        Feedback::from(Change::UpdateValue {
+                            id: self.id,
+                            value: serde_json::to_string(value).unwrap(),
+                        })
+                    }
+                    TaskValue::Empty => Feedback::from(Change::Invalid { id: self.id }),
+                }
+            }
             _ => Feedback::new(),
         }
     }

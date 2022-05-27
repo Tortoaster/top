@@ -80,6 +80,12 @@ function onMessage(ev: MessageEvent) {
       const input = document.getElementById(id);
       input?.classList.remove('is-loading');
       input?.classList.add('is-danger');
+    } else if (change.updateValue != null) {
+      const id = change.updateValue.id;
+      const input = document.getElementById(id) as HTMLInputElement;
+      input.value = JSON.parse(change.updateValue.value);
+      input?.classList.remove('is-danger');
+      input?.classList.add('is-success');
     }
   });
 }
