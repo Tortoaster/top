@@ -5,6 +5,7 @@ use crate::editor::primitive::InputEditor;
 use crate::editor::tuple::*;
 use crate::editor::Editor;
 use crate::html::ToHtml;
+use crate::share::Share;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
@@ -23,7 +24,7 @@ macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Editor = InputEditor<$ty>;
+                type Editor = InputEditor<Share<$ty>, $ty>;
 
                 fn edit(value: Option<Self>) -> Self::Editor {
                     InputEditor::new(Some(value.unwrap_or_default()))
@@ -38,7 +39,7 @@ impl_edit_for_default!(
 );
 
 impl Edit for char {
-    type Editor = InputEditor<char>;
+    type Editor = InputEditor<Share<char>, char>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
         InputEditor::new(value)

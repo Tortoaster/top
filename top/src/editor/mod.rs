@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::prelude::TaskValue;
-use crate::share::ShareValue;
+use crate::share::SharedValue;
 
 pub mod choice;
 pub mod container;
@@ -19,7 +19,7 @@ pub mod tuple;
 pub trait Editor {
     /// The type of data this editor can produce.
     type Value;
-    type Share: ShareValue;
+    type Share: SharedValue;
 
     // TODO: Turn into constructor?
     fn start(&mut self, gen: &mut Generator);

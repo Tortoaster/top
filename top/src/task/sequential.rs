@@ -6,7 +6,7 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
-use crate::share::ShareValue;
+use crate::share::SharedValue;
 use crate::task::{Result, Task, TaskError, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
@@ -26,7 +26,7 @@ where
     T1::Share: Send + Sync,
     T2: Task + Send + Sync,
     C: Fn(&T1::Share) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as ShareValue>::Value>) -> T2 + Send + Sync,
+    F: Fn(TaskValue<<T1::Share as SharedValue>::Value>) -> T2 + Send + Sync,
 {
     type Value = T2::Value;
     type Share = ();

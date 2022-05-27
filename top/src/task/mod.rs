@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::html::event::{Event, Feedback};
 use crate::html::id::Generator;
 use crate::html::Html;
-use crate::share::ShareValue;
+use crate::share::SharedValue;
 
 pub mod inspect;
 pub mod interact;
@@ -17,7 +17,7 @@ pub type Result<T> = std::result::Result<T, TaskError>;
 #[async_trait]
 pub trait Task {
     type Value;
-    type Share: ShareValue;
+    type Share: SharedValue;
 
     async fn start(&mut self, gen: &mut Generator) -> Result<Html>;
 

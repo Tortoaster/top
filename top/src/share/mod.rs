@@ -7,6 +7,24 @@ use uuid::Uuid;
 use crate::html::event::Feedback;
 use crate::prelude::TaskValue;
 
+#[async_trait]
+pub trait SharedRead {
+    type Value;
+
+    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>>;
+}
+
+#[async_trait]
+pub trait SharedWrite {
+    type Value;
+
+    async fn write(&self, value: TaskValue<Self::Value>) -> Feedback;
+}
+
+pub trait SharedId {
+    fn id(&self) -> Uuid;
+}
+
 #[derive(Clone, Debug)]
 pub struct Share<T> {
     id: Uuid,
@@ -23,30 +41,48 @@ where
             value: Arc::new(Mutex::new(value)),
         }
     }
+}
 
-    pub async fn read(&self) -> MutexGuard<'_, TaskValue<T>> {
+#[async_trait]
+impl<T> SharedRead for Share<T>
+where
+    T: Send,
+{
+    type Value = T;
+
+    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>> {
         self.value.lock().await
     }
+}
 
-    pub async fn write(&self, value: TaskValue<T>) -> Feedback {
+#[async_trait]
+impl<T> SharedWrite for Share<T>
+where
+    T: Send,
+{
+    type Value = T;
+
+    async fn write(&self, value: TaskValue<Self::Value>) -> Feedback {
         *self.value.lock().await = value;
         Feedback::update_share(self.id)
     }
+}
 
-    pub fn id(&self) -> Uuid {
+impl<T> SharedId for Share<T> {
+    fn id(&self) -> Uuid {
         self.id
     }
 }
 
 #[async_trait]
-pub trait ShareValue {
+pub trait SharedValue {
     type Value;
 
     async fn clone_value(&self) -> TaskValue<Self::Value>;
 }
 
 #[async_trait]
-impl<T> ShareValue for Share<T>
+impl<T> SharedValue for Share<T>
 where
     T: Clone + Send,
 {
@@ -58,10 +94,10 @@ where
 }
 
 #[async_trait]
-impl<T, U> ShareValue for (T, U)
+impl<T, U> SharedValue for (T, U)
 where
-    T: ShareValue + Send + Sync,
-    U: ShareValue + Send + Sync,
+    T: SharedValue + Send + Sync,
+    U: SharedValue + Send + Sync,
     T::Value: Send,
 {
     type Value = (T::Value, U::Value);
@@ -75,7 +111,7 @@ where
 }
 
 #[async_trait]
-impl ShareValue for () {
+impl SharedValue for () {
     type Value = ();
 
     async fn clone_value(&self) -> TaskValue<Self::Value> {
