@@ -1,11 +1,11 @@
 use async_trait::async_trait;
+use uuid::Uuid;
 
 use top_derive::html;
 
 use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
-use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
 use crate::prelude::TaskValue;
 use crate::task::tune::{ContentTune, Tune};
@@ -136,9 +136,9 @@ use crate::task::tune::{ContentTune, Tune};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionEditor<E> {
-    id: Id,
+    id: Uuid,
     /// Represents the plus button if there is no value present.
-    add_id: Id,
+    add_id: Uuid,
     /// Represents the row containing the editor and the minus button if a value is present.
     row: Row,
     editor: E,
@@ -152,12 +152,9 @@ where
 {
     pub fn new(editor: E, enabled: bool) -> Self {
         OptionEditor {
-            id: Id::INVALID,
-            add_id: Id::INVALID,
-            row: Row {
-                id: Id::INVALID,
-                sub_id: Id::INVALID,
-            },
+            id: Uuid::new_v4(),
+            add_id: Uuid::new_v4(),
+            row: Row::new(),
             editor,
             enabled,
         }
@@ -193,15 +190,7 @@ where
     type Value = Option<E::Value>;
     type Share = E::Share;
 
-    fn start(&mut self, gen: &mut Generator) {
-        self.id = gen.next();
-        self.add_id = gen.next();
-        self.row = Row::new(gen);
-
-        self.editor.start(gen);
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback {
+    async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
             Event::Press { id } if id == self.add_id && !self.enabled => {
                 // Add value
@@ -220,7 +209,7 @@ where
             }
             _ => {
                 if self.enabled {
-                    self.editor.on_event(event, gen).await
+                    self.editor.on_event(event).await
                 } else {
                     Feedback::new()
                 }
@@ -254,15 +243,15 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Row {
-    id: Id,
-    sub_id: Id,
+    id: Uuid,
+    sub_id: Uuid,
 }
 
 impl Row {
-    fn new(gen: &mut Generator) -> Self {
+    fn new() -> Self {
         Row {
-            id: gen.next(),
-            sub_id: gen.next(),
+            id: Uuid::new_v4(),
+            sub_id: Uuid::new_v4(),
         }
     }
 
@@ -281,7 +270,7 @@ impl Row {
         "#}
     }
 
-    async fn add_button(id: Id) -> Html {
+    async fn add_button(id: Uuid) -> Html {
         html! {r#"
             <button id="{id}" class="button is-outlined" type="button" onclick="press(this)">
                 {Icon::Plus}

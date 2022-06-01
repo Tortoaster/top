@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use crate::editor::generic::Edit;
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
 use crate::task::{Result, Task, TaskValue};
 
@@ -57,6 +56,16 @@ pub fn edit_with<E>(editor: E) -> Interact<E> {
 // }
 
 #[async_trait]
+impl<E> ToHtml for Interact<E>
+where
+    E: ToHtml + Send + Sync,
+{
+    async fn to_html(&self) -> Html {
+        self.editor.to_html().await
+    }
+}
+
+#[async_trait]
 impl<E> Task for Interact<E>
 where
     E: Editor + ToHtml + Send + Sync,
@@ -64,14 +73,8 @@ where
     type Value = E::Value;
     type Share = E::Share;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
-        self.editor.start(gen);
-
-        Ok(self.editor.to_html().await)
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
-        Ok(self.editor.on_event(event, gen).await)
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        Ok(self.editor.on_event(event).await)
     }
 
     async fn share(&self) -> Self::Share {

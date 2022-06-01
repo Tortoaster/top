@@ -1,21 +1,53 @@
 use async_trait::async_trait;
 use either::Either;
+use uuid::Uuid;
 
 use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
 use crate::share::SharedValue;
-use crate::task::{Result, Task, TaskError, TaskValue};
+use crate::task::{Result, Task, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
 #[derive(Debug)]
 pub struct Sequential<T1, T2, C, F> {
-    id: Id,
+    id: Uuid,
     current: Either<T1, T2>,
     continuation: Continuation<C, F>,
+}
+
+#[async_trait]
+impl<T1, T2, C, F> ToHtml for Sequential<T1, T2, C, F>
+where
+    T1: ToHtml + Send + Sync,
+    T2: ToHtml + Send + Sync,
+    C: Send + Sync,
+    F: Send + Sync,
+{
+    async fn to_html(&self) -> Html {
+        match &self.current {
+            Either::Left(task) => {
+                let task = task.to_html().await;
+
+                let buttons = match &self.continuation.trigger {
+                    Trigger::Button(button) => button.to_html().await,
+                    _ => Html::default(),
+                };
+
+                let id = self.id;
+
+                html! {r#"
+                    <div id={id}>
+                        {task}
+                        {buttons}
+                    </div>
+                "#}
+            }
+            Either::Right(task) => task.to_html().await,
+        }
+    }
 }
 
 #[async_trait]
@@ -31,46 +63,17 @@ where
     type Value = T2::Value;
     type Share = ();
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
-        self.id = gen.next();
-
-        let task = self
-            .current
-            .as_mut()
-            .left()
-            .ok_or(TaskError::State)?
-            .start(gen)
-            .await?;
-
-        let buttons = if let Trigger::Button(action) = &mut self.continuation.trigger {
-            action.1 = gen.next();
-            action.to_html().await
-        } else {
-            Html::default()
-        };
-
-        let id = self.id;
-        let html = html! {r#"
-            <div id={id}>
-                {task}
-                {buttons}
-            </div>
-        "#};
-
-        Ok(html)
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
         match &mut self.current {
             Either::Left(task) => {
-                let feedback = task.on_event(event.clone(), gen).await?;
+                let feedback = task.on_event(event.clone()).await?;
                 let share = task.share().await;
 
                 match &self.continuation.trigger {
                     Trigger::Update => {
                         if (self.continuation.condition)(&share) {
-                            let mut next = (self.continuation.transform)(share.clone_value().await);
-                            let html = next.start(gen).await?;
+                            let next = (self.continuation.transform)(share.clone_value().await);
+                            let html = next.to_html().await;
                             self.current = Either::Right(next);
                             Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
                         } else {
@@ -81,9 +84,9 @@ where
                         if let Event::Press { id } = &event {
                             if action.1 == *id {
                                 if (self.continuation.condition)(&share) {
-                                    let mut next =
+                                    let next =
                                         (self.continuation.transform)(share.clone_value().await);
-                                    let html = next.start(gen).await?;
+                                    let html = next.to_html().await;
                                     self.current = Either::Right(next);
                                     Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
                                 } else {
@@ -98,7 +101,7 @@ where
                     }
                 }
             }
-            Either::Right(task) => task.on_event(event, gen).await,
+            Either::Right(task) => task.on_event(event).await,
         }
     }
 
@@ -135,25 +138,11 @@ struct Continuation<C, F> {
 /// the user presses the associated button, and the associated predicate in the continuation is met,
 /// the current task is consumed and the next task will be created from the resulting value.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Button(&'static str, Id);
+pub struct Button(&'static str, Uuid);
 
 impl Button {
-    pub const OK: Self = Button::new("Ok");
-    pub const CANCEL: Self = Button::new("Cancel");
-    pub const YES: Self = Button::new("Yes");
-    pub const NO: Self = Button::new("No");
-    pub const NEXT: Self = Button::new("Next");
-    pub const PREVIOUS: Self = Button::new("Previous");
-    pub const FINISH: Self = Button::new("Finish");
-    pub const CONTINUE: Self = Button::new("Continue");
-    pub const NEW: Self = Button::new("New");
-    pub const EDIT: Self = Button::new("Edit");
-    pub const DELETE: Self = Button::new("Delete");
-    pub const REFRESH: Self = Button::new("Refresh");
-    pub const CLOSE: Self = Button::new("Close");
-
-    pub const fn new(label: &'static str) -> Self {
-        Button(label, Id::INVALID)
+    pub fn new(label: &'static str) -> Self {
+        Button(label, Uuid::new_v4())
     }
 }
 
@@ -188,7 +177,7 @@ pub trait TaskSequentialExt: Task + Sized {
         };
 
         Sequential {
-            id: Id::INVALID,
+            id: Uuid::new_v4(),
             current: Either::Left(self),
             continuation,
         }

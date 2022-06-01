@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
 use crate::share::SharedValue;
 use crate::task::{Result, Task, TaskError, TaskValue};
@@ -29,6 +28,24 @@ pub struct Parallel<T1, T2, F> {
 }
 
 #[async_trait]
+impl<T1, T2, F> ToHtml for Parallel<T1, T2, F>
+where
+    T1: ToHtml + Send + Sync,
+    T2: ToHtml + Send + Sync,
+    F: Send + Sync,
+{
+    async fn to_html(&self) -> Html {
+        let left = self.tasks.0.to_html().await;
+        let right = self.tasks.1.to_html().await;
+
+        html! {r#"
+            {left}
+            {right}
+        "#}
+    }
+}
+
+#[async_trait]
 impl<T1, T2> Task for Parallel<T1, T2, Both>
 where
     T1: Task + Send + Sync,
@@ -41,20 +58,9 @@ where
     type Value = (T1::Value, T2::Value);
     type Share = (T1::Share, T2::Share);
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
-        let left = self.tasks.0.start(gen).await?;
-        let right = self.tasks.1.start(gen).await?;
-        let html = html! {r#"
-            {left}
-            {right}
-        "#};
-
-        Ok(html)
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), gen).await?;
-        let b = self.tasks.1.on_event(event, gen).await?;
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone()).await?;
+        let b = self.tasks.1.on_event(event).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
@@ -83,20 +89,9 @@ where
     type Value = T1::Value;
     type Share = T1::Share;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
-        let left = self.tasks.0.start(gen).await?;
-        let right = self.tasks.1.start(gen).await?;
-        let html = html! {r#"
-            {left}
-            {right}
-        "#};
-
-        Ok(html)
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), gen).await?;
-        let b = self.tasks.1.on_event(event, gen).await?;
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone()).await?;
+        let b = self.tasks.1.on_event(event).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
@@ -119,20 +114,9 @@ where
     type Value = T2::Value;
     type Share = T2::Share;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
-        let left = self.tasks.0.start(gen).await?;
-        let right = self.tasks.1.start(gen).await?;
-        let html = html! {r#"
-            {left}
-            {right}
-        "#};
-
-        Ok(html)
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), gen).await?;
-        let b = self.tasks.1.on_event(event, gen).await?;
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone()).await?;
+        let b = self.tasks.1.on_event(event).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }
@@ -156,20 +140,9 @@ where
     type Value = T1::Value;
     type Share = ();
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html> {
-        let left = self.tasks.0.start(gen).await?;
-        let right = self.tasks.1.start(gen).await?;
-        let html = html! {r#"
-            {left}
-            {right}
-        "#};
-
-        Ok(html)
-    }
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone(), gen).await?;
-        let b = self.tasks.1.on_event(event, gen).await?;
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone()).await?;
+        let b = self.tasks.1.on_event(event).await?;
 
         a.merged_with(b).map_err(|_| TaskError::Feedback)
     }

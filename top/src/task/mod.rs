@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use thiserror::Error;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Generator;
-use crate::html::Html;
+use crate::html::ToHtml;
 use crate::share::SharedValue;
 
 pub mod inspect;
@@ -15,13 +14,11 @@ pub mod tune;
 pub type Result<T> = std::result::Result<T, TaskError>;
 
 #[async_trait]
-pub trait Task {
+pub trait Task: ToHtml {
     type Value;
     type Share: SharedValue;
 
-    async fn start(&mut self, gen: &mut Generator) -> Result<Html>;
-
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Result<Feedback>;
+    async fn on_event(&mut self, event: Event) -> Result<Feedback>;
 
     async fn share(&self) -> Self::Share;
 

@@ -5,6 +5,7 @@ use std::fmt::{Display, Formatter};
 use async_trait::async_trait;
 use futures::future;
 use serde::Serialize;
+use uuid::Uuid;
 
 use top_derive::html;
 
@@ -12,7 +13,6 @@ use crate::task::TaskValue;
 
 pub mod event;
 pub mod icon;
-pub mod id;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
@@ -34,7 +34,7 @@ impl Html {
                 <body>
                     <section class="section">
                         <div class="container">
-                            <div id="top-0"></div>
+                            <div id="00000000-0000-0000-0000-000000000000"></div>
                         </div>
                     </section>
                 </body>
@@ -76,7 +76,7 @@ macro_rules! impl_to_html {
 
 impl_to_html!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, char, &str,
-    String
+    String, Uuid
 );
 
 #[async_trait]

@@ -6,12 +6,12 @@ use std::str::FromStr;
 
 use async_trait::async_trait;
 use serde::Serialize;
+use uuid::Uuid;
 
 use top_derive::html;
 
 use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::id::{Generator, Id};
 use crate::html::{Html, ToHtml};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
 use crate::task::tune::{InputTuner, Tune};
@@ -19,7 +19,7 @@ use crate::task::{OptionExt, TaskValue};
 
 #[derive(Clone, Debug)]
 pub struct InputEditor<S, T> {
-    pub(in crate::editor) id: Id,
+    pub(in crate::editor) id: Uuid,
     pub(in crate::editor) share: S,
     // Necessary for the `ToHtml` impls.
     _type: PhantomData<T>,
@@ -38,7 +38,7 @@ where
 impl<S, T> InputEditor<S, T> {
     pub fn new_shared(share: S) -> Self {
         InputEditor {
-            id: Id::INVALID,
+            id: Uuid::new_v4(),
             share,
             _type: PhantomData,
             tuner: InputTuner::default(),
@@ -62,11 +62,7 @@ where
     type Value = T;
     type Share = S;
 
-    fn start(&mut self, gen: &mut Generator) {
-        self.id = gen.next();
-    }
-
-    async fn on_event(&mut self, event: Event, _gen: &mut Generator) -> Feedback {
+    async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
             Event::Update { id, value } if id == self.id => match value.parse::<T>() {
                 Ok(value) => {

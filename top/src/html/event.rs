@@ -3,15 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::html::id::Id;
 use crate::html::Html;
 
 /// Interaction events from the user, such as checking a checkbox or pressing a button.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Event {
-    Update { id: Id, value: String },
-    Press { id: Id },
+    Update { id: Uuid, value: String },
+    Press { id: Uuid },
     Redraw { id: Uuid },
 }
 
@@ -21,22 +20,22 @@ pub enum Event {
 #[serde(rename_all = "camelCase")]
 pub enum Change {
     /// Replace this element with new html.
-    ReplaceContent { id: Id, html: Html },
+    ReplaceContent { id: Uuid, html: Html },
     /// Add html to this element.
-    AppendContent { id: Id, html: Html },
+    AppendContent { id: Uuid, html: Html },
     /// Remove this element.
-    Remove { id: Id },
+    Remove { id: Uuid },
     /// The value of this html is valid.
-    Valid { id: Id },
+    Valid { id: Uuid },
     /// The value of this html is invalid.
-    Invalid { id: Id },
+    Invalid { id: Uuid },
 
     /// Change the value of an input.
-    UpdateValue { id: Id, value: String },
+    UpdateValue { id: Uuid, value: String },
 }
 
 impl Change {
-    fn id(&self) -> Id {
+    fn id(&self) -> Uuid {
         match self {
             Change::ReplaceContent { id, .. }
             | Change::AppendContent { id, .. }
@@ -87,7 +86,7 @@ impl Change {
 #[must_use]
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Feedback {
-    changes: BTreeMap<Id, Change>,
+    changes: BTreeMap<Uuid, Change>,
     shares: BTreeSet<Uuid>,
 }
 

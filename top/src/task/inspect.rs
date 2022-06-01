@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
 use crate::task::{Result, Task, TaskValue};
 use crate::viewer::generic::View;
@@ -31,6 +30,16 @@ pub fn view_with<V>(viewer: V) -> Inspect<V> {
 }
 
 #[async_trait]
+impl<V> ToHtml for Inspect<V>
+where
+    V: ToHtml + Send + Sync,
+{
+    async fn to_html(&self) -> Html {
+        self.viewer.to_html().await
+    }
+}
+
+#[async_trait]
 impl<V> Task for Inspect<V>
 where
     V: Viewer + ToHtml + Send + Sync,
@@ -38,11 +47,7 @@ where
     type Value = V::Value;
     type Share = ();
 
-    async fn start(&mut self, _gen: &mut Generator) -> Result<Html> {
-        Ok(self.viewer.to_html().await)
-    }
-
-    async fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Result<Feedback> {
+    async fn on_event(&mut self, _event: Event) -> Result<Feedback> {
         Ok(Feedback::new())
     }
 

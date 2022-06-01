@@ -3,7 +3,6 @@
 use async_trait::async_trait;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Generator;
 use crate::prelude::TaskValue;
 use crate::share::SharedValue;
 
@@ -21,12 +20,9 @@ pub trait Editor {
     type Value;
     type Share: SharedValue;
 
-    // TODO: Turn into constructor?
-    fn start(&mut self, gen: &mut Generator);
-
     /// React to interaction events from the user, such as when the user checks a checkbox or
     /// presses a button.
-    async fn on_event(&mut self, event: Event, gen: &mut Generator) -> Feedback;
+    async fn on_event(&mut self, event: Event) -> Feedback;
 
     /// Get the current value of this editor.
     fn share(&self) -> Self::Share;

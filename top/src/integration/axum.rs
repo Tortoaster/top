@@ -13,9 +13,9 @@ use futures::{SinkExt, StreamExt};
 use log::{error, warn};
 use tower_http::services::ServeFile;
 use tower_service::Service;
+use uuid::Uuid;
 
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::id::{Generator, Id};
 use crate::task::Task;
 
 #[derive(Clone, Debug)]
@@ -61,7 +61,7 @@ pub fn task<H, Fut, T>(handler: H) -> TaskRouter
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: Task + Send + 'static,
+    T: Task + Send + Sync + 'static,
 {
     let wrapper = get(wrapper);
     let connect = get(|ws| connect(ws, handler));
@@ -94,31 +94,29 @@ async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoRespon
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: Task + Send + 'static,
+    T: Task + Send + Sync + 'static,
 {
     ws.on_upgrade(|socket| async move {
         let (mut sender, mut receiver) = socket.split();
         let mut task = handler().await;
-        let mut gen = Generator::new();
 
-        match task.start(&mut gen).await {
-            Ok(html) => {
-                let feedback = Feedback::from(Change::AppendContent { id: Id::ROOT, html });
-                send_feedback(&mut sender, feedback).await;
-            }
-            Err(error) => error!("failed to start task: {error}"),
-        }
+        let html = task.to_html().await;
+        let feedback = Feedback::from(Change::AppendContent {
+            id: Uuid::nil(),
+            html,
+        });
+        send_feedback(&mut sender, feedback).await;
 
         while let Some(Ok(message)) = receiver.next().await {
             match message.into_text() {
                 Ok(text) => match serde_json::from_str(&text) {
-                    Ok(event) => match task.on_event(event, &mut gen).await {
+                    Ok(event) => match task.on_event(event).await {
                         Ok(mut feedback) => {
                             let mut shares = feedback.shares().clone();
                             while !shares.is_empty() {
                                 let first = *shares.iter().next().unwrap();
                                 let id = shares.take(&first).unwrap();
-                                match task.on_event(Event::Redraw { id }, &mut gen).await {
+                                match task.on_event(Event::Redraw { id }).await {
                                     Ok(new) => feedback = feedback.merged_with(new).unwrap(),
                                     Err(error) => error!("failed to handle event: {error}"),
                                 }

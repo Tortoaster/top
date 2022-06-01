@@ -3,7 +3,6 @@ use paste::paste;
 
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
-use crate::html::id::Generator;
 use crate::html::{Html, ToHtml};
 use crate::prelude::TaskValue;
 use crate::share::Share;
@@ -23,9 +22,7 @@ impl Editor for UnitEditor {
     type Value = ();
     type Share = Share<Self::Value>;
 
-    fn start(&mut self, _gen: &mut Generator) {}
-
-    async fn on_event(&mut self, _event: Event, _gen: &mut Generator) -> Feedback {
+    async fn on_event(&mut self, _event: Event) -> Feedback {
         Feedback::new()
     }
 
