@@ -19,8 +19,10 @@ pub enum Event {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Change {
-    /// Replace this element with new html.
+    /// Replace the contents of this element with new html.
     ReplaceContent { id: Uuid, html: Html },
+    /// Replace this element with new html.
+    Replace { id: Uuid, html: Html },
     /// Add html to this element.
     AppendContent { id: Uuid, html: Html },
     /// Remove this element.
@@ -38,6 +40,7 @@ impl Change {
     fn id(&self) -> Uuid {
         match self {
             Change::ReplaceContent { id, .. }
+            | Change::Replace { id, .. }
             | Change::AppendContent { id, .. }
             | Change::Remove { id, .. }
             | Change::Valid { id, .. }
@@ -50,21 +53,35 @@ impl Change {
         match self {
             Change::ReplaceContent { html, .. } => match other {
                 Change::ReplaceContent { html: other, .. } => *html = other,
+                Change::Replace { .. } | Change::Remove { .. } => *self = other,
                 Change::AppendContent { html: other, .. } => html.0.push_str(&other.0),
-                Change::Remove { .. } => *self = other,
                 Change::Valid { .. } | Change::Invalid { .. } | Change::UpdateValue { .. } => {
                     return Err(());
                 }
             },
+            Change::Replace { .. } => match other {
+                Change::ReplaceContent { .. }
+                | Change::AppendContent { .. }
+                | Change::Valid { .. }
+                | Change::Invalid { .. }
+                | Change::UpdateValue { .. } => {
+                    return Err(());
+                }
+                Change::Replace { .. } | Change::Remove { .. } => *self = other,
+            },
             Change::AppendContent { html, .. } => match other {
-                Change::ReplaceContent { .. } | Change::Remove { .. } => *self = other,
+                Change::Replace { .. } | Change::ReplaceContent { .. } | Change::Remove { .. } => {
+                    *self = other
+                }
                 Change::AppendContent { html: other, .. } => html.0.push_str(&other.0),
                 Change::Valid { .. } | Change::Invalid { .. } | Change::UpdateValue { .. } => {
                     return Err(());
                 }
             },
             Change::Remove { .. } => match other {
-                Change::ReplaceContent { .. } | Change::AppendContent { .. } => return Err(()),
+                Change::Replace { .. }
+                | Change::ReplaceContent { .. }
+                | Change::AppendContent { .. } => return Err(()),
                 Change::Remove { .. } => {}
                 Change::Valid { .. } | Change::Invalid { .. } | Change::UpdateValue { .. } => {
                     return Err(());
@@ -72,7 +89,9 @@ impl Change {
             },
             Change::Valid { .. } | Change::Invalid { .. } => *self = other,
             Change::UpdateValue { value, .. } => match other {
-                Change::ReplaceContent { .. } | Change::AppendContent { .. } => return Err(()),
+                Change::ReplaceContent { .. }
+                | Change::Replace { .. }
+                | Change::AppendContent { .. } => return Err(()),
                 Change::Remove { .. } => *self = other,
                 Change::Valid { .. } | Change::Invalid { .. } => {}
                 Change::UpdateValue { value: other, .. } => *value = other,

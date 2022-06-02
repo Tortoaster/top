@@ -26,10 +26,7 @@ pub struct InputEditor<S, T> {
     pub(in crate::editor) tuner: InputTuner,
 }
 
-impl<T> InputEditor<Share<T>, T>
-where
-    T: Clone,
-{
+impl<T> InputEditor<Share<T>, T> {
     pub fn new(value: Option<T>) -> Self {
         InputEditor::new_shared(Share::new(value.into_unstable()))
     }
@@ -119,7 +116,7 @@ where
         let value = self.share.read().await;
         html! {r#"
             <label for="{self.id}" class="label">{self.tuner.label}</label>
-            <input id="{self.id}" class="input" value="{value}" onblur="update(this)"/>
+            <input id="{self.id}" class="input" value="{value}" oninput="update(this)"/>
         "#}
     }
 }
@@ -137,7 +134,7 @@ macro_rules! impl_to_html_for_number {
                     let number = value.as_ref().map(ToString::to_string);
                     html! {r#"
                         <label for="{self.id}" class="label">{self.tuner.label}</label>
-                        <input id="{self.id}" type="number" class="input" value="{number}" onblur="update(this)"/>
+                        <input id="{self.id}" type="number" class="input" value="{number}" oninput="update(this)"/>
                     "#}
                 }
             }
@@ -179,7 +176,7 @@ where
             .unwrap_or_default();
         html! {r#"
             <label for="{self.id}" class="label">{self.tuner.label}</label>
-            <input id="{self.id}" class="input" value="{value}" onblur="update(this)" maxlength="1"/>
+            <input id="{self.id}" class="input" value="{value}" oninput="update(this)" maxlength="1"/>
         "#}
     }
 }

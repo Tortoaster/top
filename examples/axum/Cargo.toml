@@ -11,3 +11,4 @@ env_logger = "0.8"
 log = "0.4"
 tokio = { version = "1", features = ["full"] }
 top = { path = "../../top", features = ["axum_integration"] }
+uwuify = "0.2.2"

@@ -62,6 +62,11 @@ function onMessage(ev: MessageEvent) {
       if (element != null) {
         element.innerHTML = change.replaceContent.html;
       }
+    } else if (change.replace != null) {
+      const element = document.getElementById(change.replace.id);
+      const template = document.createElement('template');
+      template.innerHTML = change.replace.html;
+      element?.parentElement?.replaceChild(template.content, element);
     } else if (change.appendContent != null) {
       const template = document.createElement('template');
       template.innerHTML = change.appendContent.html;

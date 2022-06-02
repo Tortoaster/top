@@ -4,12 +4,16 @@ use log::info;
 use top::editor::primitive::InputEditor;
 use top::integration::axum::{task, TopService};
 use top::prelude::*;
-use top::share::Share;
+use top::viewer::primitive::OutputViewer;
 
 async fn name() -> impl Task {
-    let share = Share::new(TaskValue::Unstable(5));
+    let share: Share<String> = Share::new(TaskValue::Empty);
+    let uwuified = share
+        .clone()
+        .map(|s| s.map(|s| uwuifier::uwuify_str_sse(s.as_str())))
+        .await;
 
-    edit_with(InputEditor::new_shared(share.clone())).and(edit_with(InputEditor::new_shared(share)))
+    edit_with(InputEditor::new_shared(share)).and(view_with(OutputViewer::new_shared(uwuified)))
 }
 
 const HOST: &str = "0.0.0.0:3000";

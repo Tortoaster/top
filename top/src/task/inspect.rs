@@ -45,17 +45,20 @@ where
     V: Viewer + ToHtml + Send + Sync,
 {
     type Value = V::Value;
-    type Share = ();
+    type Share = V::Share;
 
-    async fn on_event(&mut self, _event: Event) -> Result<Feedback> {
-        Ok(Feedback::new())
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        match event {
+            Event::Redraw { id } => Ok(self.viewer.redraw(id).await),
+            _ => Ok(Feedback::new()),
+        }
     }
 
     async fn share(&self) -> Self::Share {
-        todo!()
+        self.viewer.share()
     }
 
     async fn value(self) -> Result<TaskValue<Self::Value>> {
-        Ok(TaskValue::Stable(self.viewer.value()))
+        Ok(self.viewer.value().await)
     }
 }

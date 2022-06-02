@@ -1,3 +1,5 @@
+// pub use crate::viewer::convert::{DebugViewer, DisplayViewer};
+pub use crate::share::{Share, SharedReadMapExt};
 pub use crate::task::{Task, TaskValue};
 // pub use crate::editor::convert::DisplayFromStrEditor;
 pub use crate::task::inspect::{view, view_with};
@@ -6,7 +8,6 @@ pub use crate::task::interact::{edit, edit_with, enter};
 pub use crate::task::parallel::TaskParallelExt;
 pub use crate::task::sequential::{Button, TaskSequentialExt, Trigger};
 pub use crate::task::tune::{Color, InputTuner, OutputTuner};
-pub use crate::viewer::convert::{DebugViewer, DisplayViewer};
 
 pub mod derive {
     pub use crate::editor::generic::Edit;

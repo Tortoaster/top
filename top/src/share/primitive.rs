@@ -15,10 +15,7 @@ pub struct Share<T> {
     value: Arc<Mutex<TaskValue<T>>>,
 }
 
-impl<T> Share<T>
-where
-    T: Clone,
-{
+impl<T> Share<T> {
     pub fn new(value: TaskValue<T>) -> Self {
         Share {
             id: Uuid::new_v4(),
