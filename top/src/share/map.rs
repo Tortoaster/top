@@ -15,24 +15,23 @@ pub struct MappedShare<S, T, F> {
     f: F,
 }
 
-#[async_trait]
-pub trait SharedReadMapExt: SharedRead + Sized + Sync {
-    async fn map<T, F>(self, f: F) -> MappedShare<Self, T, F>
+pub trait SharedReadMapExt: SharedRead + Clone + Sized + Sync {
+    fn map<T, F>(&self, f: F) -> MappedShare<Self, T, F>
     where
         T: Clone,
         F: Fn(TaskValue<Self::Value>) -> TaskValue<T> + Send + Sync,
         Self::Value: Clone,
     {
-        let value = Share::new(f(self.read().await.deref().clone()));
+        let value = Share::new(f(futures::executor::block_on(self.read()).deref().clone()));
         MappedShare {
-            share: self,
+            share: self.clone(),
             value,
             f,
         }
     }
 }
 
-impl<T> SharedReadMapExt for T where T: SharedRead + Sync {}
+impl<T> SharedReadMapExt for T where T: SharedRead + Clone + Sync {}
 
 #[async_trait]
 impl<S, T, F> SharedRead for MappedShare<S, T, F>
