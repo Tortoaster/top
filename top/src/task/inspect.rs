@@ -4,8 +4,9 @@ use async_trait::async_trait;
 
 use crate::html::event::{Event, Feedback};
 use crate::html::{Html, ToHtml};
+use crate::share::SharedRead;
 use crate::task::{Result, Task, TaskValue};
-use crate::viewer::generic::View;
+use crate::viewer::generic::{SharedView, View};
 use crate::viewer::Viewer;
 
 /// Basic inspect (read-only interaction) task. Use [`view`] to construct one.
@@ -27,6 +28,15 @@ where
 #[inline]
 pub fn view_with<V>(viewer: V) -> Inspect<V> {
     Inspect { viewer }
+}
+
+#[inline]
+pub fn view_shared<S>(share: S) -> Inspect<<S::Value as SharedView<S>>::Viewer>
+where
+    S: SharedRead,
+    S::Value: SharedView<S>,
+{
+    view_with(<S::Value>::view_shared(share))
 }
 
 #[async_trait]

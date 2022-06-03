@@ -1,4 +1,4 @@
-use crate::share::Share;
+use crate::share::{Share, SharedId, SharedRead, SharedValue};
 use crate::viewer::primitive::OutputViewer;
 use crate::viewer::Viewer;
 
@@ -25,6 +25,55 @@ macro_rules! impl_view {
 }
 
 impl_view!(
+    u8,
+    u16,
+    u32,
+    u64,
+    u128,
+    usize,
+    i8,
+    i16,
+    i32,
+    i64,
+    i128,
+    isize,
+    f32,
+    f64,
+    bool,
+    char,
+    &'static str,
+    String
+);
+
+pub trait SharedView<S>: Sized {
+    type Viewer: Viewer<Value = Self>;
+
+    fn view_shared(share: S) -> Self::Viewer;
+}
+
+macro_rules! impl_shared_view {
+    ($($ty:ty),*) => {
+        $(
+            impl<S> SharedView<S> for $ty
+            where
+                S: SharedRead<Value = $ty>
+                    + SharedId
+                    + SharedValue<Value = $ty>
+                    + Clone
+                    + Send
+                    + Sync,
+            {
+                type Viewer = OutputViewer<S, $ty>;
+
+                fn view_shared(share: S) -> Self::Viewer {
+                    OutputViewer::new_shared(share)
+                }
+            }
+        )*
+    };
+}
+
+impl_shared_view!(
     u8,
     u16,
     u32,

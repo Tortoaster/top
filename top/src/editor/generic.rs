@@ -5,7 +5,7 @@ use crate::editor::primitive::InputEditor;
 use crate::editor::tuple::*;
 use crate::editor::Editor;
 use crate::html::ToHtml;
-use crate::share::Share;
+use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
@@ -115,3 +115,36 @@ where
         OptionEditor::new(T::edit(value.flatten()), enabled)
     }
 }
+
+pub trait SharedEdit<S>: Sized {
+    type Editor: Editor<Value = Self>;
+
+    fn edit_shared(share: S) -> Self::Editor;
+}
+
+macro_rules! impl_shared_edit {
+    ($($ty:ty),*) => {
+        $(
+            impl<S> SharedEdit<S> for $ty
+            where
+                S: SharedRead<Value = $ty>
+                    + SharedWrite<Value = $ty>
+                    + SharedId
+                    + SharedValue<Value = $ty>
+                    + Clone
+                    + Send
+                    + Sync,
+            {
+                type Editor = InputEditor<S, $ty>;
+
+                fn edit_shared(share: S) -> Self::Editor {
+                    InputEditor::new_shared(share)
+                }
+            }
+        )*
+    };
+}
+
+impl_shared_edit!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, String
+);

@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 
-use crate::editor::generic::Edit;
+use crate::editor::generic::{Edit, SharedEdit};
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Html, ToHtml};
+use crate::share::SharedRead;
 use crate::task::{Result, Task, TaskValue};
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
@@ -35,6 +36,15 @@ where
 #[inline]
 pub fn edit_with<E>(editor: E) -> Interact<E> {
     Interact { editor }
+}
+
+#[inline]
+pub fn edit_shared<S>(share: S) -> Interact<<S::Value as SharedEdit<S>>::Editor>
+where
+    S: SharedRead,
+    S::Value: SharedEdit<S>,
+{
+    edit_with(<S::Value>::edit_shared(share))
 }
 
 // /// Have the user select a value out of a list of options. To use a custom viewer for the options,

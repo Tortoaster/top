@@ -13,7 +13,7 @@ async fn name() -> impl Task {
         .map(|s| s.map(|s| uwuifier::uwuify_str_sse(s.as_str())))
         .await;
 
-    edit_with(InputEditor::new_shared(share)).and(view_with(OutputViewer::new_shared(uwuified)))
+    edit_shared(share).and(view_shared(uwuified))
 }
 
 const HOST: &str = "0.0.0.0:3000";
