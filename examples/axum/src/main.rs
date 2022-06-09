@@ -3,7 +3,7 @@ use axum::routing::get;
 use axum::Router;
 use log::info;
 
-use top::integration::axum::{task, TopService};
+use top::integration::axum::{task, Task, TopService};
 use top::prelude::*;
 
 async fn index() -> Html<&'static str> {

@@ -1,6 +1,7 @@
+use std::ops::Deref;
+
 use async_trait::async_trait;
 use either::Either;
-use std::ops::Deref;
 use uuid::Uuid;
 
 use top_derive::html;
@@ -57,7 +58,7 @@ where
     T1: Task + Send + Sync,
     T1::Value: Clone + Send,
     T1::Share: SharedRead<Value = <T1::Share as SharedValue>::Value> + Clone + Send + Sync,
-    T2: Task + Send + Sync,
+    T2: Task + ToHtml + Send + Sync,
     C: Fn(&TaskValue<<T1::Share as SharedValue>::Value>) -> bool + Send + Sync,
     F: Fn(TaskValue<<T1::Share as SharedValue>::Value>) -> T2 + Send + Sync,
 {
