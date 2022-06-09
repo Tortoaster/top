@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::share::SharedValue;
 use crate::task::{Result, Task, TaskError, TaskValue};
 
@@ -28,15 +28,15 @@ pub struct Parallel<T1, T2, F> {
 }
 
 #[async_trait]
-impl<T1, T2, F> ToHtml for Parallel<T1, T2, F>
+impl<T1, T2, F> ToRepr<Html> for Parallel<T1, T2, F>
 where
-    T1: ToHtml + Send + Sync,
-    T2: ToHtml + Send + Sync,
+    T1: ToRepr<Html> + Send + Sync,
+    T2: ToRepr<Html> + Send + Sync,
     F: Send + Sync,
 {
-    async fn to_html(&self) -> Html {
-        let left = self.tasks.0.to_html().await;
-        let right = self.tasks.1.to_html().await;
+    async fn to_repr(&self) -> Html {
+        let left = self.tasks.0.to_repr().await;
+        let right = self.tasks.1.to_repr().await;
 
         html! {r#"
             {left}

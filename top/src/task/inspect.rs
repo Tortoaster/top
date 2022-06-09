@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::share::SharedRead;
 use crate::task::{Result, Task, TaskValue};
 use crate::viewer::generic::{SharedView, View};
@@ -40,19 +40,19 @@ where
 }
 
 #[async_trait]
-impl<V> ToHtml for Inspect<V>
+impl<V, R> ToRepr<R> for Inspect<V>
 where
-    V: ToHtml + Send + Sync,
+    V: ToRepr<R> + Send + Sync,
 {
-    async fn to_html(&self) -> Html {
-        self.viewer.to_html().await
+    async fn to_repr(&self) -> Html {
+        self.viewer.to_repr().await
     }
 }
 
 #[async_trait]
-impl<V> Task for Inspect<V>
+impl<V, R> Task for Inspect<V>
 where
-    V: Viewer + ToHtml + Send + Sync,
+    V: Viewer + ToRepr<R> + Send + Sync,
 {
     type Value = V::Value;
     type Share = V::Share;

@@ -7,7 +7,7 @@ use uuid::Uuid;
 use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::share::{SharedRead, SharedValue};
 use crate::task::{Result, Task, TaskValue};
 
@@ -21,20 +21,20 @@ pub struct Sequential<T1, T2, C, F> {
 }
 
 #[async_trait]
-impl<T1, T2, C, F> ToHtml for Sequential<T1, T2, C, F>
+impl<T1, T2, C, F> ToRepr<Html> for Sequential<T1, T2, C, F>
 where
-    T1: ToHtml + Send + Sync,
-    T2: ToHtml + Send + Sync,
+    T1: ToRepr<Html> + Send + Sync,
+    T2: ToRepr<Html> + Send + Sync,
     C: Send + Sync,
     F: Send + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         match &self.current {
             Either::Left(task) => {
-                let task = task.to_html().await;
+                let task = task.to_repr().await;
 
                 let buttons = match &self.continuation.trigger {
-                    Trigger::Button(button) => button.to_html().await,
+                    Trigger::Button(button) => button.to_repr().await,
                     _ => Html::default(),
                 };
 
@@ -47,18 +47,18 @@ where
                     </div>
                 "#}
             }
-            Either::Right(task) => task.to_html().await,
+            Either::Right(task) => task.to_repr().await,
         }
     }
 }
 
 #[async_trait]
-impl<T1, T2, C, F> Task for Sequential<T1, T2, C, F>
+impl<T1, T2, C, F, R> Task for Sequential<T1, T2, C, F>
 where
     T1: Task + Send + Sync,
     T1::Value: Clone + Send,
     T1::Share: SharedRead<Value = <T1::Share as SharedValue>::Value> + Clone + Send + Sync,
-    T2: Task + ToHtml + Send + Sync,
+    T2: Task + ToRepr<R> + Send + Sync,
     C: Fn(&TaskValue<<T1::Share as SharedValue>::Value>) -> bool + Send + Sync,
     F: Fn(TaskValue<<T1::Share as SharedValue>::Value>) -> T2 + Send + Sync,
 {
@@ -75,7 +75,7 @@ where
                     Trigger::Update => {
                         if (self.continuation.condition)(share.read().await.deref()) {
                             let next = (self.continuation.transform)(share.clone_value().await);
-                            let html = next.to_html().await;
+                            let html = next.to_repr().await;
                             self.current = Either::Right(next);
                             Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
                         } else {
@@ -88,7 +88,7 @@ where
                                 if (self.continuation.condition)(share.read().await.deref()) {
                                     let next =
                                         (self.continuation.transform)(share.clone_value().await);
-                                    let html = next.to_html().await;
+                                    let html = next.to_repr().await;
                                     self.current = Either::Right(next);
                                     Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
                                 } else {
@@ -149,8 +149,8 @@ impl Button {
 }
 
 #[async_trait]
-impl ToHtml for Button {
-    async fn to_html(&self) -> Html {
+impl ToRepr<Html> for Button {
+    async fn to_repr(&self) -> Html {
         html! {r#"
             <button id="{self.1}" class="button is-link" type="button" onclick="press(this)">
                 {self.0}

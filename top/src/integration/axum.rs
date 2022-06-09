@@ -16,11 +16,11 @@ use tower_service::Service;
 use uuid::Uuid;
 
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::ToHtml;
+use crate::html::ToRepr;
 
-pub trait Task: crate::task::Task + ToHtml {}
+pub trait Task: crate::task::Task + ToRepr<crate::html::Html> {}
 
-impl<T> Task for T where T: crate::task::Task + ToHtml {}
+impl<T> Task for T where T: crate::task::Task + ToRepr<crate::html::Html> {}
 
 #[derive(Clone, Debug)]
 pub struct TopService(MethodRouter);
@@ -65,7 +65,7 @@ pub fn task<H, Fut, T>(handler: H) -> TaskRouter
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: crate::task::Task + ToHtml + Send + Sync + 'static,
+    T: crate::task::Task + ToRepr<crate::html::Html> + Send + Sync + 'static,
 {
     let wrapper = get(wrapper);
     let connect = get(|ws| connect(ws, handler));
@@ -98,13 +98,13 @@ async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoRespon
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: crate::task::Task + ToHtml + Send + Sync + 'static,
+    T: crate::task::Task + ToRepr<crate::html::Html> + Send + Sync + 'static,
 {
     ws.on_upgrade(|socket| async move {
         let (mut sender, mut receiver) = socket.split();
         let mut task = handler().await;
 
-        let html = task.to_html().await;
+        let html = task.to_repr().await;
         let feedback = Feedback::from(Change::AppendContent {
             id: Uuid::nil(),
             html,

@@ -4,7 +4,7 @@ use crate::editor::container::OptionEditor;
 use crate::editor::primitive::InputEditor;
 use crate::editor::tuple::*;
 use crate::editor::Editor;
-use crate::html::ToHtml;
+use crate::html::ToRepr;
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
@@ -101,10 +101,10 @@ macro_rules! impl_edit_for_tuple {
 //     }
 // }
 
-impl<T> Edit for Option<T>
+impl<T, R> Edit for Option<T>
 where
     T: Edit,
-    T::Editor: ToHtml + Send + Sync,
+    T::Editor: ToRepr<R> + Send + Sync,
     <T::Editor as Editor>::Share: Sync,
 {
     type Editor = OptionEditor<T::Editor>;

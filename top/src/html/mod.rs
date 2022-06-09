@@ -57,16 +57,16 @@ impl FromIterator<Html> for Html {
 }
 
 #[async_trait]
-pub trait ToHtml {
-    async fn to_html(&self) -> Html;
+pub trait ToRepr<T> {
+    async fn to_repr(&self) -> T;
 }
 
 macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl ToHtml for $ty {
-                async fn to_html(&self) -> Html {
+            impl ToRepr<Html> for $ty {
+                async fn to_repr(&self) -> Html {
                     Html(self.to_string())
                 }
             }
@@ -80,59 +80,59 @@ impl_to_html!(
 );
 
 #[async_trait]
-impl ToHtml for Html {
-    async fn to_html(&self) -> Html {
+impl ToRepr<Html> for Html {
+    async fn to_repr(&self) -> Html {
         self.clone()
     }
 }
 
 #[async_trait]
-impl<T> ToHtml for Option<T>
+impl<T> ToRepr<Html> for Option<T>
 where
-    T: ToHtml + Sync,
+    T: ToRepr<Html> + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         match self {
             None => Html::default(),
-            Some(value) => value.to_html().await,
+            Some(value) => value.to_repr().await,
         }
     }
 }
 
 #[async_trait]
-impl<T, E> ToHtml for Result<T, E>
+impl<T, E> ToRepr<Html> for Result<T, E>
 where
-    T: ToHtml + Sync,
+    T: ToRepr<Html> + Sync,
     E: Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         match self {
-            Ok(value) => value.to_html().await,
+            Ok(value) => value.to_repr().await,
             Err(_) => Html::default(),
         }
     }
 }
 
 #[async_trait]
-impl<T> ToHtml for TaskValue<T>
+impl<T> ToRepr<Html> for TaskValue<T>
 where
-    T: ToHtml + Sync,
+    T: ToRepr<Html> + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         match self {
-            TaskValue::Stable(value) | TaskValue::Unstable(value) => value.to_html().await,
+            TaskValue::Stable(value) | TaskValue::Unstable(value) => value.to_repr().await,
             TaskValue::Empty => Html::default(),
         }
     }
 }
 
 #[async_trait]
-impl<T> ToHtml for Vec<T>
+impl<T> ToRepr<Html> for Vec<T>
 where
-    T: ToHtml + Sync,
+    T: ToRepr<Html> + Sync,
 {
-    async fn to_html(&self) -> Html {
-        future::join_all(self.iter().map(ToHtml::to_html))
+    async fn to_repr(&self) -> Html {
+        future::join_all(self.iter().map(ToRepr::to_repr))
             .await
             .into_iter()
             .collect()

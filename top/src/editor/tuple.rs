@@ -3,7 +3,7 @@ use paste::paste;
 
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::prelude::TaskValue;
 use crate::share::Share;
 
@@ -11,8 +11,8 @@ use crate::share::Share;
 pub struct UnitEditor;
 
 #[async_trait]
-impl ToHtml for UnitEditor {
-    async fn to_html(&self) -> Html {
+impl ToRepr<Html> for UnitEditor {
+    async fn to_repr(&self) -> Html {
         Html::default()
     }
 }

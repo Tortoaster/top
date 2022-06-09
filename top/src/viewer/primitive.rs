@@ -8,7 +8,7 @@ use top_derive::html;
 
 use crate::html::event::{Change, Feedback};
 use crate::html::icon::Icon;
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::prelude::TaskValue;
 use crate::share::{Share, SharedId, SharedRead, SharedValue};
 use crate::task::tune::{OutputTuner, Tune};
@@ -40,11 +40,11 @@ impl<S, T> OutputViewer<S, T> {
 }
 
 #[async_trait]
-impl<S, T> Viewer for OutputViewer<S, T>
+impl<S, T, R> Viewer for OutputViewer<S, T>
 where
     S: SharedRead<Value = T> + SharedId + SharedValue<Value = T> + Clone + Send + Sync,
     T: Send + Sync,
-    Self: ToHtml,
+    Self: ToRepr<R>,
 {
     type Value = T;
     type Share = S;
@@ -53,7 +53,7 @@ where
         if self.share.id() == id {
             Feedback::from(Change::Replace {
                 id: self.id,
-                html: self.to_html().await,
+                html: self.to_repr().await,
             })
         } else {
             Feedback::new()
@@ -81,11 +81,11 @@ macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for OutputViewer<S, $ty>
+            impl<S> ToRepr<Html> for OutputViewer<S, $ty>
             where
                 S: SharedRead<Value = $ty> + Send + Sync,
             {
-                async fn to_html(&self) -> Html {
+                async fn to_repr(&self) -> Html {
                     let value = self.share.read().await;
                     html! {r#"
                         <div id="{self.id}">
@@ -119,17 +119,17 @@ impl_to_html!(
 );
 
 #[async_trait]
-impl<S> ToHtml for OutputViewer<S, bool>
+impl<S, R> ToRepr<R> for OutputViewer<S, bool>
 where
     S: SharedRead<Value = bool> + Send + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         match self.share.read().await.deref() {
             TaskValue::Stable(b) | TaskValue::Unstable(b) => {
                 if *b {
-                    Icon::Check.to_html().await
+                    Icon::Check.to_repr().await
                 } else {
-                    Icon::XMark.to_html().await
+                    Icon::XMark.to_repr().await
                 }
             }
             TaskValue::Empty => Html::default(),

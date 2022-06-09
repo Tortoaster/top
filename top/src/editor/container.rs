@@ -6,7 +6,7 @@ use top_derive::html;
 use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::prelude::TaskValue;
 use crate::task::tune::{ContentTune, Tune};
 
@@ -162,11 +162,11 @@ where
 }
 
 #[async_trait]
-impl<E> ToHtml for OptionEditor<E>
+impl<E> ToRepr<Html> for OptionEditor<E>
 where
-    E: ToHtml + Send + Sync,
+    E: ToRepr<Html> + Send + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         let content = if self.enabled {
             self.row.to_html(&self.editor).await
         } else {
@@ -184,7 +184,7 @@ where
 #[async_trait]
 impl<E> Editor for OptionEditor<E>
 where
-    E: Editor + ToHtml + Send + Sync,
+    E: Editor + ToRepr<Html> + Send + Sync,
     E::Share: Sync,
 {
     type Value = Option<E::Value>;
@@ -258,7 +258,7 @@ impl Row {
     /// Creates a row consisting of the editor and a button to remove it.
     async fn to_html<E>(&self, editor: &E) -> Html
     where
-        E: ToHtml,
+        E: ToRepr<Html>,
     {
         html! {r#"
             <div id="{self.id}" class="level">

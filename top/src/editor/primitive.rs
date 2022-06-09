@@ -12,7 +12,7 @@ use top_derive::html;
 
 use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Html, ToRepr};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
 use crate::task::tune::{InputTuner, Tune};
 use crate::task::{OptionExt, TaskValue};
@@ -108,11 +108,11 @@ impl<S, T> Tune for InputEditor<S, T> {
 }
 
 #[async_trait]
-impl<S> ToHtml for InputEditor<S, String>
+impl<S> ToRepr<Html> for InputEditor<S, String>
 where
     S: SharedRead<Value = String> + Send + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         let value = self.share.read().await;
         html! {r#"
             <label for="{self.id}" class="label">{self.tuner.label}</label>
@@ -125,11 +125,11 @@ macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for InputEditor<S, $ty>
+            impl<S> ToRepr<Html> for InputEditor<S, $ty>
             where
                 S: SharedRead<Value = $ty> + Send + Sync,
             {
-                async fn to_html(&self) -> Html {
+                async fn to_repr(&self) -> Html {
                     let value = self.share.read().await;
                     let number = value.as_ref().map(ToString::to_string);
                     html! {r#"
@@ -145,11 +145,11 @@ macro_rules! impl_to_html_for_number {
 impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
 #[async_trait]
-impl<S> ToHtml for InputEditor<S, bool>
+impl<S> ToRepr<Html> for InputEditor<S, bool>
 where
     S: SharedRead<Value = bool> + Send + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         let value = self.share.read().await;
         let checked = value.as_ref().unwrap_or(&false).then(|| "checked");
         html! {r#"
@@ -162,11 +162,11 @@ where
 }
 
 #[async_trait]
-impl<S> ToHtml for InputEditor<S, char>
+impl<S> ToRepr<Html> for InputEditor<S, char>
 where
     S: SharedRead<Value = char> + Send + Sync,
 {
-    async fn to_html(&self) -> Html {
+    async fn to_repr(&self) -> Html {
         let value = self
             .share
             .read()
