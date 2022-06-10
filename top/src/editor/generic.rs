@@ -16,6 +16,42 @@ pub trait Edit: Sized {
     fn edit(value: Option<Self>) -> Self::Editor;
 }
 
+/// Have the user enter a value. To use a custom editor, see [`edit_with`].
+#[inline]
+pub fn enter<T>() -> T::Editor
+where
+    T: Edit,
+{
+    T::edit(None)
+}
+
+/// Have the user update a value. To use a custom editor, see [`edit_with`].
+#[inline]
+pub fn edit<T>(value: T) -> T::Editor
+where
+    T: Edit,
+{
+    T::edit(Some(value))
+}
+
+// /// Have the user select a value out of a list of options. To use a custom viewer for the options,
+// /// see [`choose_with`].
+// #[inline]
+// pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
+// where
+//     T: View,
+// {
+//     choose_with(options.into_iter().map(T::view).collect())
+// }
+//
+// /// Have the user select a value out of a list of options, using a custom viewer.
+// #[inline]
+// pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
+//     Interact {
+//         editor: ChoiceEditor::new(options),
+//     }
+// }
+
 /// For some types, the HTML-representation starts with a valid value by default. For example, a
 /// number input starts at 0, which is a valid number, and a text field starts empty, which is a
 /// valid string. In these cases, the editor should be initialized with a default value, rather than
@@ -120,6 +156,15 @@ pub trait SharedEdit<S>: Sized {
     type Editor: Value<Output = Self> + Handler + ToHtml;
 
     fn edit_shared(share: S) -> Self::Editor;
+}
+
+#[inline]
+pub fn edit_shared<S>(share: S) -> <S::Value as SharedEdit<S>>::Editor
+where
+    S: SharedRead,
+    S::Value: SharedEdit<S>,
+{
+    <S::Value>::edit_shared(share)
 }
 
 macro_rules! impl_shared_edit {

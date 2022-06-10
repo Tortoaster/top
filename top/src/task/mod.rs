@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use crate::share::SharedValue;
 
 pub mod inspect;
-pub mod interact;
 pub mod parallel;
 pub mod sequential;
 pub mod tune;
