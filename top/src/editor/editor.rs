@@ -13,37 +13,41 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
-use crate::task::tune::{InputTuner, Tune};
 use crate::task::{OptionExt, TaskValue, Value};
 
 #[derive(Clone, Debug)]
-pub struct InputEditor<S, T> {
-    pub(in crate::editor) id: Uuid,
-    pub(in crate::editor) share: S,
+pub struct Editor<S, T> {
+    id: Uuid,
+    share: S,
+    label: Option<String>,
     // Necessary for the `ToHtml` impls.
     _type: PhantomData<T>,
-    pub(in crate::editor) tuner: InputTuner,
 }
 
-impl<T> InputEditor<Share<T>, T> {
+impl<T> Editor<Share<T>, T> {
     pub fn new(value: Option<T>) -> Self {
-        InputEditor::new_shared(Share::new(value.into_unstable()))
+        Editor::new_shared(Share::new(value.into_unstable()))
     }
 }
 
-impl<S, T> InputEditor<S, T> {
+impl<S, T> Editor<S, T> {
     pub fn new_shared(share: S) -> Self {
-        InputEditor {
+        Editor {
             id: Uuid::new_v4(),
             share,
+            label: None,
             _type: PhantomData,
-            tuner: InputTuner::default(),
         }
+    }
+
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
+        self
     }
 }
 
 #[async_trait]
-impl<S, T> Value for InputEditor<S, T>
+impl<S, T> Value for Editor<S, T>
 where
     S: SharedId
         + SharedRead<Value = T>
@@ -68,7 +72,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Handler for InputEditor<S, T>
+impl<S, T> Handler for Editor<S, T>
 where
     S: SharedId
         + SharedRead<Value = T>
@@ -112,23 +116,15 @@ where
     }
 }
 
-impl<S, T> Tune for InputEditor<S, T> {
-    type Tuner = InputTuner;
-
-    fn tune(&mut self, tuner: Self::Tuner) {
-        self.tuner = tuner;
-    }
-}
-
 #[async_trait]
-impl<S> ToHtml for InputEditor<S, String>
+impl<S> ToHtml for Editor<S, String>
 where
     S: SharedRead<Value = String> + Send + Sync,
 {
     async fn to_html(&self) -> Html {
         let value = self.share.read().await;
         html! {r#"
-            <label for="{self.id}" class="label">{self.tuner.label}</label>
+            <label for="{self.id}" class="label">{self.label}</label>
             <input id="{self.id}" class="input" value="{value}" oninput="update(this)"/>
         "#}
     }
@@ -138,7 +134,7 @@ macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for InputEditor<S, $ty>
+            impl<S> ToHtml for Editor<S, $ty>
             where
                 S: SharedRead<Value = $ty> + Send + Sync,
             {
@@ -146,7 +142,7 @@ macro_rules! impl_to_html_for_number {
                     let value = self.share.read().await;
                     let number = value.as_ref().map(ToString::to_string);
                     html! {r#"
-                        <label for="{self.id}" class="label">{self.tuner.label}</label>
+                        <label for="{self.id}" class="label">{self.label}</label>
                         <input id="{self.id}" type="number" class="input" value="{number}" oninput="update(this)"/>
                     "#}
                 }
@@ -158,7 +154,7 @@ macro_rules! impl_to_html_for_number {
 impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
 #[async_trait]
-impl<S> ToHtml for InputEditor<S, bool>
+impl<S> ToHtml for Editor<S, bool>
 where
     S: SharedRead<Value = bool> + Send + Sync,
 {
@@ -168,14 +164,14 @@ where
         html! {r#"
             <label class="checkbox">
                 <input id="{self.id}" type="checkbox" onclick="update(this, this.checked.toString())" {checked}>
-                {self.tuner.label}
+                {self.label}
             </label>
         "#}
     }
 }
 
 #[async_trait]
-impl<S> ToHtml for InputEditor<S, char>
+impl<S> ToHtml for Editor<S, char>
 where
     S: SharedRead<Value = char> + Send + Sync,
 {
@@ -188,7 +184,7 @@ where
             .map(ToString::to_string)
             .unwrap_or_default();
         html! {r#"
-            <label for="{self.id}" class="label">{self.tuner.label}</label>
+            <label for="{self.id}" class="label">{self.label}</label>
             <input id="{self.id}" class="input" value="{value}" oninput="update(this)" maxlength="1"/>
         "#}
     }

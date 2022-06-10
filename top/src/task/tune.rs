@@ -12,18 +12,6 @@ pub trait Tune {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct InputTuner {
-    pub label: Option<String>,
-}
-
-impl InputTuner {
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(label);
-        self
-    }
-}
-
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct OutputTuner {
     pub color: Color,
 }

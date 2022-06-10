@@ -1,7 +1,7 @@
 pub use top_derive::Edit;
 
 use crate::editor::container::OptionEditor;
-use crate::editor::primitive::InputEditor;
+use crate::editor::editor::Editor;
 use crate::editor::tuple::*;
 use crate::html::{Handler, ToHtml};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
@@ -60,10 +60,10 @@ macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Editor = InputEditor<Share<$ty>, $ty>;
+                type Editor = Editor<Share<$ty>, $ty>;
 
                 fn edit(value: Option<Self>) -> Self::Editor {
-                    InputEditor::new(Some(value.unwrap_or_default()))
+                    Editor::new(Some(value.unwrap_or_default()))
                 }
             }
         )*
@@ -75,10 +75,10 @@ impl_edit_for_default!(
 );
 
 impl Edit for char {
-    type Editor = InputEditor<Share<char>, char>;
+    type Editor = Editor<Share<char>, char>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
-        InputEditor::new(value)
+        Editor::new(value)
     }
 }
 
@@ -180,10 +180,10 @@ macro_rules! impl_shared_edit {
                     + Send
                     + Sync,
             {
-                type Editor = InputEditor<S, $ty>;
+                type Editor = Editor<S, $ty>;
 
                 fn edit_shared(share: S) -> Self::Editor {
-                    InputEditor::new_shared(share)
+                    Editor::new_shared(share)
                 }
             }
         )*
