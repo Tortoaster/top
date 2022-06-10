@@ -12,10 +12,10 @@ use top_derive::html;
 
 use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Handler, Html, ToHtml};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
 use crate::task::tune::{InputTuner, Tune};
-use crate::task::{OptionExt, TaskValue};
+use crate::task::{OptionExt, Task, TaskValue};
 
 #[derive(Clone, Debug)]
 pub struct InputEditor<S, T> {
@@ -44,21 +44,43 @@ impl<S, T> InputEditor<S, T> {
 }
 
 #[async_trait]
-impl<S, T> Editor for InputEditor<S, T>
+impl<S, T> Task for InputEditor<S, T>
 where
-    S: SharedRead<Value = T>
+    S: SharedId
+        + SharedRead<Value = T>
         + SharedWrite<Value = T>
-        + SharedId
         + SharedValue<Value = T>
         + Clone
         + Send
         + Sync,
-    T: Clone + FromStr + Serialize + Send,
+    T: Serialize + FromStr + Clone + Send + Sync,
     T::Err: Send,
 {
     type Value = T;
     type Share = S;
 
+    async fn share(&self) -> Self::Share {
+        self.share.clone()
+    }
+
+    async fn value(self) -> TaskValue<Self::Value> {
+        self.share.clone_value().await
+    }
+}
+
+#[async_trait]
+impl<S, T> Handler for InputEditor<S, T>
+where
+    S: SharedId
+        + SharedRead<Value = T>
+        + SharedWrite<Value = T>
+        + SharedValue<Value = T>
+        + Clone
+        + Send
+        + Sync,
+    T: Serialize + FromStr + Clone + Send,
+    T::Err: Send,
+{
     async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
             Event::Update { id, value } if id == self.id => match value.parse::<T>() {
@@ -89,14 +111,21 @@ where
             _ => Feedback::new(),
         }
     }
+}
 
-    fn share(&self) -> Self::Share {
-        self.share.clone()
-    }
-
-    async fn value(self) -> TaskValue<Self::Value> {
-        self.share.clone_value().await
-    }
+impl<S, T> Editor for InputEditor<S, T>
+where
+    S: SharedId
+        + SharedRead<Value = T>
+        + SharedWrite<Value = T>
+        + SharedValue<Value = T>
+        + Clone
+        + Send
+        + Sync,
+    T: Serialize + FromStr + Clone + Send + Sync,
+    T::Err: Send,
+    Self: ToHtml,
+{
 }
 
 impl<S, T> Tune for InputEditor<S, T> {

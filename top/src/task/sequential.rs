@@ -9,7 +9,7 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::{SharedRead, SharedValue};
-use crate::task::{Result, Task, TaskValue};
+use crate::task::{Task, TaskValue};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
@@ -62,10 +62,10 @@ where
     C: Fn(&TaskValue<<T1::Share as SharedValue>::Value>) -> bool + Send + Sync,
     F: Fn(TaskValue<<T1::Share as SharedValue>::Value>) -> T2 + Send + Sync,
 {
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+    async fn on_event(&mut self, event: Event) -> Feedback {
         match &mut self.current {
             Either::Left(task) => {
-                let feedback = task.on_event(event.clone()).await?;
+                let feedback = task.on_event(event.clone()).await;
                 let share = task.share().await;
 
                 match &self.continuation.trigger {
@@ -74,9 +74,9 @@ where
                             let next = (self.continuation.transform)(share.clone_value().await);
                             let html = next.to_html().await;
                             self.current = Either::Right(next);
-                            Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
+                            Feedback::from(Change::ReplaceContent { id: self.id, html })
                         } else {
-                            Ok(feedback)
+                            feedback
                         }
                     }
                     Trigger::Button(action) => {
@@ -87,15 +87,15 @@ where
                                         (self.continuation.transform)(share.clone_value().await);
                                     let html = next.to_html().await;
                                     self.current = Either::Right(next);
-                                    Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
+                                    Feedback::from(Change::ReplaceContent { id: self.id, html })
                                 } else {
-                                    Ok(feedback)
+                                    feedback
                                 }
                             } else {
-                                Ok(feedback)
+                                feedback
                             }
                         } else {
-                            Ok(feedback)
+                            feedback
                         }
                     }
                 }
@@ -122,9 +122,9 @@ where
         ()
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
+    async fn value(self) -> TaskValue<Self::Value> {
         match self.current {
-            Either::Left(_) => Ok(TaskValue::Empty),
+            Either::Left(_) => TaskValue::Empty,
             Either::Right(t) => t.value().await,
         }
     }

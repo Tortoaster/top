@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedRead;
-use crate::task::{Result, Task, TaskValue};
+use crate::task::{Task, TaskValue};
 use crate::viewer::generic::{SharedView, View};
 use crate::viewer::Viewer;
 
@@ -54,10 +54,10 @@ impl<V> Handler for Inspect<V>
 where
     V: Viewer + Send + Sync,
 {
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+    async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
-            Event::Redraw { id } => Ok(self.viewer.redraw(id).await),
-            _ => Ok(Feedback::new()),
+            Event::Redraw { id } => self.viewer.redraw(id).await,
+            _ => Feedback::new(),
         }
     }
 }
@@ -74,7 +74,7 @@ where
         self.viewer.share()
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
-        Ok(self.viewer.value().await)
+    async fn value(self) -> TaskValue<Self::Value> {
+        self.viewer.value().await
     }
 }

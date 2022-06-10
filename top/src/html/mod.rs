@@ -10,7 +10,7 @@ use uuid::Uuid;
 use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
-use crate::task::{TaskError, TaskValue};
+use crate::task::TaskValue;
 
 pub mod event;
 pub mod icon;
@@ -64,7 +64,7 @@ pub trait ToHtml {
 
 #[async_trait]
 pub trait Handler {
-    async fn on_event(&mut self, event: Event) -> Result<Feedback, TaskError>;
+    async fn on_event(&mut self, event: Event) -> Feedback;
 }
 
 macro_rules! impl_to_html {

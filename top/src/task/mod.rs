@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use thiserror::Error;
 
 use crate::share::SharedValue;
 
@@ -9,8 +8,6 @@ pub mod parallel;
 pub mod sequential;
 pub mod tune;
 
-pub type Result<T> = std::result::Result<T, TaskError>;
-
 #[async_trait]
 pub trait Task {
     type Value;
@@ -18,15 +15,7 @@ pub trait Task {
 
     async fn share(&self) -> Self::Share;
 
-    async fn value(self) -> Result<TaskValue<Self::Value>>;
-}
-
-#[derive(Debug, Error)]
-pub enum TaskError {
-    #[error("task is in invalid state")]
-    State,
-    #[error("inconsistent feedback")]
-    Feedback,
+    async fn value(self) -> TaskValue<Self::Value>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

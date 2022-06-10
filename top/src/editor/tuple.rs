@@ -3,9 +3,10 @@ use paste::paste;
 
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Handler, Html, ToHtml};
 use crate::prelude::TaskValue;
 use crate::share::Share;
+use crate::task::Task;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnitEditor;
@@ -18,15 +19,11 @@ impl ToHtml for UnitEditor {
 }
 
 #[async_trait]
-impl Editor for UnitEditor {
+impl Task for UnitEditor {
     type Value = ();
     type Share = Share<Self::Value>;
 
-    async fn on_event(&mut self, _event: Event) -> Feedback {
-        Feedback::new()
-    }
-
-    fn share(&self) -> Self::Share {
+    async fn share(&self) -> Self::Share {
         Share::new(TaskValue::Stable(()))
     }
 
@@ -34,6 +31,15 @@ impl Editor for UnitEditor {
         TaskValue::Stable(())
     }
 }
+
+#[async_trait]
+impl Handler for UnitEditor {
+    async fn on_event(&mut self, _event: Event) -> Feedback {
+        Feedback::new()
+    }
+}
+
+impl Editor for UnitEditor {}
 
 macro_rules! tuple_editor {
     ($name:ident<$($editor:ident),*>) => {

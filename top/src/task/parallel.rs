@@ -7,7 +7,7 @@ use top_derive::html;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedValue;
-use crate::task::{Result, Task, TaskError, TaskValue};
+use crate::task::{Task, TaskValue};
 
 #[derive(Debug)]
 pub struct Left;
@@ -52,11 +52,11 @@ where
     T2: Handler + Send + Sync,
     F: Send + Sync,
 {
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone()).await?;
-        let b = self.tasks.1.on_event(event).await?;
+    async fn on_event(&mut self, event: Event) -> Feedback {
+        let a = self.tasks.0.on_event(event.clone()).await;
+        let b = self.tasks.1.on_event(event).await;
 
-        a.merged_with(b).map_err(|_| TaskError::Feedback)
+        a.merged_with(b).unwrap()
     }
 }
 
@@ -80,11 +80,11 @@ where
         (a, b)
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
-        let a = self.tasks.0.value().await?;
-        let b = self.tasks.1.value().await?;
+    async fn value(self) -> TaskValue<Self::Value> {
+        let a = self.tasks.0.value().await;
+        let b = self.tasks.1.value().await;
 
-        Ok(a.and(b))
+        a.and(b)
     }
 }
 
@@ -101,7 +101,7 @@ where
         self.tasks.0.share().await
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
+    async fn value(self) -> TaskValue<Self::Value> {
         self.tasks.0.value().await
     }
 }
@@ -119,7 +119,7 @@ where
         self.tasks.1.share().await
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
+    async fn value(self) -> TaskValue<Self::Value> {
         self.tasks.1.value().await
     }
 }
@@ -138,11 +138,11 @@ where
         ()
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
-        let a = self.tasks.0.value().await?;
-        let b = self.tasks.1.value().await?;
+    async fn value(self) -> TaskValue<Self::Value> {
+        let a = self.tasks.0.value().await;
+        let b = self.tasks.1.value().await;
 
-        Ok(a.or(b))
+        a.or(b)
     }
 }
 

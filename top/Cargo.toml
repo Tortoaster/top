@@ -17,7 +17,6 @@ paste = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "1.12"
-thiserror = "1.0"
 top_derive = { path = "../top_derive" }
 uuid = { version = "1.1.0", features = ["fast-rng", "serde", "v4"] }
 

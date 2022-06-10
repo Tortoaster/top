@@ -6,9 +6,10 @@ use top_derive::html;
 use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
-use crate::html::{Html, ToHtml};
+use crate::html::{Handler, Html, ToHtml};
 use crate::prelude::TaskValue;
 use crate::task::tune::{ContentTune, Tune};
+use crate::task::Task;
 
 // #[derive(Clone, Debug, Eq, PartialEq)]
 // pub struct VecEditor<E> {
@@ -182,14 +183,31 @@ where
 }
 
 #[async_trait]
-impl<E> Editor for OptionEditor<E>
+impl<E> Task for OptionEditor<E>
 where
-    E: Editor + ToHtml + Send + Sync,
-    E::Share: Sync,
+    E: Task + Send + Sync,
 {
     type Value = Option<E::Value>;
     type Share = E::Share;
 
+    async fn share(&self) -> Self::Share {
+        self.editor.share().await
+    }
+
+    async fn value(self) -> TaskValue<Self::Value> {
+        if self.enabled {
+            self.editor.value().await.map(Option::Some)
+        } else {
+            TaskValue::Empty
+        }
+    }
+}
+
+#[async_trait]
+impl<E> Handler for OptionEditor<E>
+where
+    E: ToHtml + Handler + Send + Sync,
+{
     async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
             Event::Press { id } if id == self.add_id && !self.enabled => {
@@ -216,19 +234,9 @@ where
             }
         }
     }
-
-    fn share(&self) -> Self::Share {
-        self.editor.share()
-    }
-
-    async fn value(self) -> TaskValue<Self::Value> {
-        if self.enabled {
-            self.editor.value().await.map(Option::Some)
-        } else {
-            TaskValue::Empty
-        }
-    }
 }
+
+impl<E> Editor for OptionEditor<E> where E: Task + Handler + ToHtml + Send + Sync {}
 
 impl<E> ContentTune for OptionEditor<E>
 where

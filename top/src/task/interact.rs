@@ -5,7 +5,7 @@ use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedRead;
-use crate::task::{Result, Task, TaskValue};
+use crate::task::{Task, TaskValue};
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
 /// [`choose`] to construct one.
@@ -80,8 +80,8 @@ impl<E> Handler for Interact<E>
 where
     E: Editor + Send + Sync,
 {
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        Ok(self.editor.on_event(event).await)
+    async fn on_event(&mut self, event: Event) -> Feedback {
+        self.editor.on_event(event).await
     }
 }
 
@@ -94,10 +94,10 @@ where
     type Share = E::Share;
 
     async fn share(&self) -> Self::Share {
-        self.editor.share()
+        self.editor.share().await
     }
 
-    async fn value(self) -> Result<TaskValue<Self::Value>> {
-        Ok(self.editor.value().await)
+    async fn value(self) -> TaskValue<Self::Value> {
+        self.editor.value().await
     }
 }

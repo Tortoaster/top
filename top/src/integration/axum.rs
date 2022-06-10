@@ -114,23 +114,19 @@ where
         while let Some(Ok(message)) = receiver.next().await {
             match message.into_text() {
                 Ok(text) => match serde_json::from_str(&text) {
-                    Ok(event) => match task.on_event(event).await {
-                        Ok(mut feedback) => {
-                            let mut shares = feedback.shares().clone();
-                            while !shares.is_empty() {
-                                let first = *shares.iter().next().unwrap();
-                                let id = shares.take(&first).unwrap();
-                                match task.on_event(Event::Redraw { id }).await {
-                                    Ok(new) => feedback = feedback.merged_with(new).unwrap(),
-                                    Err(error) => error!("failed to handle event: {error}"),
-                                }
-                            }
-                            if !feedback.is_empty() {
-                                send_feedback(&mut sender, feedback).await;
-                            }
+                    Ok(event) => {
+                        let mut feedback = task.on_event(event).await;
+                        let mut shares = feedback.shares().clone();
+                        while !shares.is_empty() {
+                            let first = *shares.iter().next().unwrap();
+                            let id = shares.take(&first).unwrap();
+                            let new = task.on_event(Event::Redraw { id }).await;
+                            feedback = feedback.merged_with(new).unwrap();
                         }
-                        Err(error) => error!("failed to handle event: {error}"),
-                    },
+                        if !feedback.is_empty() {
+                            send_feedback(&mut sender, feedback).await;
+                        }
+                    }
                     Err(_) => warn!("not an event"),
                 },
                 Err(_) => warn!("non-text message"),
