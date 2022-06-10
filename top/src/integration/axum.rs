@@ -18,9 +18,9 @@ use uuid::Uuid;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, ToHtml};
 
-pub trait Task: crate::task::Task + Handler + ToHtml {}
+pub trait Task: crate::task::Value + Handler + ToHtml {}
 
-impl<T> Task for T where T: crate::task::Task + Handler + ToHtml {}
+impl<T> Task for T where T: crate::task::Value + Handler + ToHtml {}
 
 #[derive(Clone, Debug)]
 pub struct TopService(MethodRouter);
@@ -65,7 +65,7 @@ pub fn task<H, Fut, T>(handler: H) -> TaskRouter
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: crate::task::Task + Handler + ToHtml + Send + Sync + 'static,
+    T: crate::task::Value + Handler + ToHtml + Send + Sync + 'static,
 {
     let wrapper = get(wrapper);
     let connect = get(|ws| connect(ws, handler));
@@ -98,7 +98,7 @@ async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoRespon
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: crate::task::Task + Handler + ToHtml + Send + Sync + 'static,
+    T: crate::task::Value + Handler + ToHtml + Send + Sync + 'static,
 {
     ws.on_upgrade(|socket| async move {
         let (mut sender, mut receiver) = socket.split();

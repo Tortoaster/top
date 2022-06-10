@@ -7,7 +7,7 @@ use top_derive::html;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedValue;
-use crate::task::{Task, TaskValue};
+use crate::task::{TaskValue, Value};
 
 #[derive(Debug)]
 pub struct Left;
@@ -61,16 +61,16 @@ where
 }
 
 #[async_trait]
-impl<T1, T2> Task for Parallel<T1, T2, Both>
+impl<T1, T2> Value for Parallel<T1, T2, Both>
 where
-    T1: Task + Send + Sync,
-    T2: Task + Send + Sync,
-    T1::Value: Send,
+    T1: Value + Send + Sync,
+    T2: Value + Send + Sync,
+    T1::Output: Send,
     T1::Share: Send + Sync,
     T2::Share: Send + Sync,
     <T1::Share as SharedValue>::Value: Send,
 {
-    type Value = (T1::Value, T2::Value);
+    type Output = (T1::Output, T2::Output);
     type Share = (T1::Share, T2::Share);
 
     async fn share(&self) -> Self::Share {
@@ -80,7 +80,7 @@ where
         (a, b)
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         let a = self.tasks.0.value().await;
         let b = self.tasks.1.value().await;
 
@@ -89,56 +89,56 @@ where
 }
 
 #[async_trait]
-impl<T1, T2> Task for Parallel<T1, T2, Left>
+impl<T1, T2> Value for Parallel<T1, T2, Left>
 where
-    T1: Task + Send + Sync,
-    T2: Task + Send + Sync,
+    T1: Value + Send + Sync,
+    T2: Value + Send + Sync,
 {
-    type Value = T1::Value;
+    type Output = T1::Output;
     type Share = T1::Share;
 
     async fn share(&self) -> Self::Share {
         self.tasks.0.share().await
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         self.tasks.0.value().await
     }
 }
 
 #[async_trait]
-impl<T1, T2> Task for Parallel<T1, T2, Right>
+impl<T1, T2> Value for Parallel<T1, T2, Right>
 where
-    T1: Task + Send + Sync,
-    T2: Task + Send + Sync,
+    T1: Value + Send + Sync,
+    T2: Value + Send + Sync,
 {
-    type Value = T2::Value;
+    type Output = T2::Output;
     type Share = T2::Share;
 
     async fn share(&self) -> Self::Share {
         self.tasks.1.share().await
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         self.tasks.1.value().await
     }
 }
 
 #[async_trait]
-impl<T1, T2> Task for Parallel<T1, T2, Either>
+impl<T1, T2> Value for Parallel<T1, T2, Either>
 where
-    T1: Task + Send + Sync,
-    T2: Task<Value = T1::Value, Share = T1::Share> + Send + Sync,
-    T1::Value: Send,
+    T1: Value + Send + Sync,
+    T2: Value<Output = T1::Output, Share = T1::Share> + Send + Sync,
+    T1::Output: Send,
 {
-    type Value = T1::Value;
+    type Output = T1::Output;
     type Share = ();
 
     async fn share(&self) -> Self::Share {
         ()
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         let a = self.tasks.0.value().await;
         let b = self.tasks.1.value().await;
 
@@ -146,7 +146,7 @@ where
     }
 }
 
-pub trait TaskParallelExt: Task {
+pub trait TaskParallelExt: Value {
     fn and<T>(self, other: T) -> Parallel<Self, T, Both>
     where
         Self: Sized,
@@ -188,4 +188,4 @@ pub trait TaskParallelExt: Task {
     }
 }
 
-impl<T> TaskParallelExt for T where T: Task {}
+impl<T> TaskParallelExt for T where T: Value {}

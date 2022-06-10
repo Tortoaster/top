@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedRead;
-use crate::task::{Task, TaskValue};
+use crate::task::{TaskValue, Value};
 use crate::viewer::generic::{SharedView, View};
 use crate::viewer::Viewer;
 
@@ -63,18 +63,18 @@ where
 }
 
 #[async_trait]
-impl<V> Task for Inspect<V>
+impl<V> Value for Inspect<V>
 where
     V: Viewer + ToHtml + Send + Sync,
 {
-    type Value = V::Value;
+    type Output = V::Value;
     type Share = V::Share;
 
     async fn share(&self) -> Self::Share {
         self.viewer.share()
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         self.viewer.value().await
     }
 }

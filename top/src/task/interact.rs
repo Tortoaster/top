@@ -1,11 +1,10 @@
 use async_trait::async_trait;
 
 use crate::editor::generic::{Edit, SharedEdit};
-use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedRead;
-use crate::task::{Task, TaskValue};
+use crate::task::{TaskValue, Value};
 
 /// Basic interaction task. Supports both reading and writing. Use [`enter`], [`edit`], or
 /// [`choose`] to construct one.
@@ -78,7 +77,7 @@ where
 #[async_trait]
 impl<E> Handler for Interact<E>
 where
-    E: Editor + Send + Sync,
+    E: Handler + Send + Sync,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
         self.editor.on_event(event).await
@@ -86,18 +85,18 @@ where
 }
 
 #[async_trait]
-impl<E> Task for Interact<E>
+impl<E> Value for Interact<E>
 where
-    E: Editor + ToHtml + Send + Sync,
+    E: Value + Send + Sync,
 {
-    type Value = E::Value;
+    type Output = E::Output;
     type Share = E::Share;
 
     async fn share(&self) -> Self::Share {
         self.editor.share().await
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         self.editor.value().await
     }
 }

@@ -9,13 +9,13 @@ pub mod sequential;
 pub mod tune;
 
 #[async_trait]
-pub trait Task {
-    type Value;
+pub trait Value {
+    type Output;
     type Share: SharedValue;
 
     async fn share(&self) -> Self::Share;
 
-    async fn value(self) -> TaskValue<Self::Value>;
+    async fn value(self) -> TaskValue<Self::Output>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

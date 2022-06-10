@@ -3,13 +3,12 @@ use uuid::Uuid;
 
 use top_derive::html;
 
-use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
 use crate::html::{Handler, Html, ToHtml};
 use crate::prelude::TaskValue;
 use crate::task::tune::{ContentTune, Tune};
-use crate::task::Task;
+use crate::task::Value;
 
 // #[derive(Clone, Debug, Eq, PartialEq)]
 // pub struct VecEditor<E> {
@@ -149,7 +148,7 @@ pub struct OptionEditor<E> {
 
 impl<E> OptionEditor<E>
 where
-    E: Editor,
+    E: Value + Handler + ToHtml,
 {
     pub fn new(editor: E, enabled: bool) -> Self {
         OptionEditor {
@@ -183,18 +182,18 @@ where
 }
 
 #[async_trait]
-impl<E> Task for OptionEditor<E>
+impl<E> Value for OptionEditor<E>
 where
-    E: Task + Send + Sync,
+    E: Value + Send + Sync,
 {
-    type Value = Option<E::Value>;
+    type Output = Option<E::Output>;
     type Share = E::Share;
 
     async fn share(&self) -> Self::Share {
         self.editor.share().await
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         if self.enabled {
             self.editor.value().await.map(Option::Some)
         } else {
@@ -235,8 +234,6 @@ where
         }
     }
 }
-
-impl<E> Editor for OptionEditor<E> where E: Task + Handler + ToHtml + Send + Sync {}
 
 impl<E> ContentTune for OptionEditor<E>
 where

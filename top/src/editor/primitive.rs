@@ -10,12 +10,11 @@ use uuid::Uuid;
 
 use top_derive::html;
 
-use crate::editor::Editor;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
 use crate::task::tune::{InputTuner, Tune};
-use crate::task::{OptionExt, Task, TaskValue};
+use crate::task::{OptionExt, TaskValue, Value};
 
 #[derive(Clone, Debug)]
 pub struct InputEditor<S, T> {
@@ -44,7 +43,7 @@ impl<S, T> InputEditor<S, T> {
 }
 
 #[async_trait]
-impl<S, T> Task for InputEditor<S, T>
+impl<S, T> Value for InputEditor<S, T>
 where
     S: SharedId
         + SharedRead<Value = T>
@@ -56,14 +55,14 @@ where
     T: Serialize + FromStr + Clone + Send + Sync,
     T::Err: Send,
 {
-    type Value = T;
+    type Output = T;
     type Share = S;
 
     async fn share(&self) -> Self::Share {
         self.share.clone()
     }
 
-    async fn value(self) -> TaskValue<Self::Value> {
+    async fn value(self) -> TaskValue<Self::Output> {
         self.share.clone_value().await
     }
 }
@@ -111,21 +110,6 @@ where
             _ => Feedback::new(),
         }
     }
-}
-
-impl<S, T> Editor for InputEditor<S, T>
-where
-    S: SharedId
-        + SharedRead<Value = T>
-        + SharedWrite<Value = T>
-        + SharedValue<Value = T>
-        + Clone
-        + Send
-        + Sync,
-    T: Serialize + FromStr + Clone + Send + Sync,
-    T::Err: Send,
-    Self: ToHtml,
-{
 }
 
 impl<S, T> Tune for InputEditor<S, T> {

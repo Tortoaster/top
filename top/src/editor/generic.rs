@@ -3,15 +3,14 @@ pub use top_derive::Edit;
 use crate::editor::container::OptionEditor;
 use crate::editor::primitive::InputEditor;
 use crate::editor::tuple::*;
-use crate::editor::Editor;
-use crate::html::ToHtml;
+use crate::html::{Handler, ToHtml};
 use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
-use crate::task::Task;
+use crate::task::Value;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
 pub trait Edit: Sized {
-    type Editor: Editor<Value = Self>;
+    type Editor: Value<Output = Self> + Handler + ToHtml;
 
     /// Specifies the default editor for this type.
     fn edit(value: Option<Self>) -> Self::Editor;
@@ -106,7 +105,7 @@ impl<T> Edit for Option<T>
 where
     T: Edit,
     T::Editor: ToHtml + Send + Sync,
-    <T::Editor as Task>::Share: Sync,
+    <T::Editor as Value>::Share: Sync,
 {
     type Editor = OptionEditor<T::Editor>;
 
@@ -118,7 +117,7 @@ where
 }
 
 pub trait SharedEdit<S>: Sized {
-    type Editor: Editor<Value = Self>;
+    type Editor: Value<Output = Self> + Handler + ToHtml;
 
     fn edit_shared(share: S) -> Self::Editor;
 }
