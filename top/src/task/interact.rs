@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::editor::generic::{Edit, SharedEdit};
 use crate::editor::Editor;
 use crate::html::event::{Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedRead;
 use crate::task::{Result, Task, TaskValue};
 
@@ -76,16 +76,22 @@ where
 }
 
 #[async_trait]
+impl<E> Handler for Interact<E>
+where
+    E: Editor + Send + Sync,
+{
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        Ok(self.editor.on_event(event).await)
+    }
+}
+
+#[async_trait]
 impl<E> Task for Interact<E>
 where
     E: Editor + ToHtml + Send + Sync,
 {
     type Value = E::Value;
     type Share = E::Share;
-
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        Ok(self.editor.on_event(event).await)
-    }
 
     async fn share(&self) -> Self::Share {
         self.editor.share()

@@ -9,7 +9,8 @@ use uuid::Uuid;
 
 use top_derive::html;
 
-use crate::task::TaskValue;
+use crate::html::event::{Event, Feedback};
+use crate::task::{TaskError, TaskValue};
 
 pub mod event;
 pub mod icon;
@@ -59,6 +60,11 @@ impl FromIterator<Html> for Html {
 #[async_trait]
 pub trait ToHtml {
     async fn to_html(&self) -> Html;
+}
+
+#[async_trait]
+pub trait Handler {
+    async fn on_event(&mut self, event: Event) -> Result<Feedback, TaskError>;
 }
 
 macro_rules! impl_to_html {

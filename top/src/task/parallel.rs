@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::{Html, ToHtml};
+use crate::html::{Handler, Html, ToHtml};
 use crate::share::SharedValue;
 use crate::task::{Result, Task, TaskError, TaskValue};
 
@@ -46,6 +46,21 @@ where
 }
 
 #[async_trait]
+impl<T1, T2, F> Handler for Parallel<T1, T2, F>
+where
+    T1: Handler + Send + Sync,
+    T2: Handler + Send + Sync,
+    F: Send + Sync,
+{
+    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
+        let a = self.tasks.0.on_event(event.clone()).await?;
+        let b = self.tasks.1.on_event(event).await?;
+
+        a.merged_with(b).map_err(|_| TaskError::Feedback)
+    }
+}
+
+#[async_trait]
 impl<T1, T2> Task for Parallel<T1, T2, Both>
 where
     T1: Task + Send + Sync,
@@ -57,13 +72,6 @@ where
 {
     type Value = (T1::Value, T2::Value);
     type Share = (T1::Share, T2::Share);
-
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone()).await?;
-        let b = self.tasks.1.on_event(event).await?;
-
-        a.merged_with(b).map_err(|_| TaskError::Feedback)
-    }
 
     async fn share(&self) -> Self::Share {
         let a = self.tasks.0.share().await;
@@ -89,13 +97,6 @@ where
     type Value = T1::Value;
     type Share = T1::Share;
 
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone()).await?;
-        let b = self.tasks.1.on_event(event).await?;
-
-        a.merged_with(b).map_err(|_| TaskError::Feedback)
-    }
-
     async fn share(&self) -> Self::Share {
         self.tasks.0.share().await
     }
@@ -113,13 +114,6 @@ where
 {
     type Value = T2::Value;
     type Share = T2::Share;
-
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone()).await?;
-        let b = self.tasks.1.on_event(event).await?;
-
-        a.merged_with(b).map_err(|_| TaskError::Feedback)
-    }
 
     async fn share(&self) -> Self::Share {
         self.tasks.1.share().await
@@ -139,13 +133,6 @@ where
 {
     type Value = T1::Value;
     type Share = ();
-
-    async fn on_event(&mut self, event: Event) -> Result<Feedback> {
-        let a = self.tasks.0.on_event(event.clone()).await?;
-        let b = self.tasks.1.on_event(event).await?;
-
-        a.merged_with(b).map_err(|_| TaskError::Feedback)
-    }
 
     async fn share(&self) -> Self::Share {
         ()

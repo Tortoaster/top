@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::html::event::{Event, Feedback};
 use crate::share::SharedValue;
 
 pub mod inspect;
@@ -16,8 +15,6 @@ pub type Result<T> = std::result::Result<T, TaskError>;
 pub trait Task {
     type Value;
     type Share: SharedValue;
-
-    async fn on_event(&mut self, event: Event) -> Result<Feedback>;
 
     async fn share(&self) -> Self::Share;
 
