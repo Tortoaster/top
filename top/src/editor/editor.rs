@@ -1,5 +1,6 @@
 //! This module contains basic editors for primitive types.
 
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -69,7 +70,7 @@ where
 impl<S, T> Handler for Editor<S, T>
 where
     S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
-    T: Serialize + FromStr + Clone + Send,
+    T: Display + FromStr + Clone + Send,
     T::Err: Send,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
@@ -93,7 +94,7 @@ where
                     TaskValue::Stable(value) | TaskValue::Unstable(value) => {
                         Feedback::from(Change::UpdateValue {
                             id: self.id,
-                            value: serde_json::to_string(value).unwrap(),
+                            value: value.to_string(),
                         })
                     }
                     TaskValue::Empty => Feedback::from(Change::Invalid { id: self.id }),

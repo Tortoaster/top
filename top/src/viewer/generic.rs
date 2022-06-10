@@ -1,23 +1,33 @@
-use crate::share::{ShareId, ShareRead, Shared};
-use crate::viewer::primitive::OutputViewer;
-use crate::viewer::Viewer;
+use crate::html::{Refresh, ToHtml};
+use crate::share::{Share, ShareId, ShareRead, Shared};
+use crate::task::Value;
+use crate::viewer::viewer::Viewer;
 
 /// Specifies the default viewer for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`View`].
 pub trait View: Sized {
-    type Viewer: Viewer<Value = Self>;
+    type Viewer: Value<Output = Self> + Refresh + ToHtml;
 
     fn view(self) -> Self::Viewer;
+}
+
+/// Show a value to the user. To use a custom editor, see [`view_with`].
+#[inline]
+pub fn view<T>(value: T) -> T::Viewer
+where
+    T: View,
+{
+    value.view()
 }
 
 macro_rules! impl_view {
     ($($ty:ty),*) => {
         $(
             impl View for $ty {
-                type Viewer = OutputViewer<Shared<$ty>, $ty>;
+                type Viewer = Viewer<Shared<$ty>, $ty>;
 
                 fn view(self) -> Self::Viewer {
-                    OutputViewer::new(self)
+                    Viewer::new(self)
                 }
             }
         )*
@@ -46,9 +56,18 @@ impl_view!(
 );
 
 pub trait SharedView<S>: Sized {
-    type Viewer: Viewer<Value = Self>;
+    type Viewer: Value<Output = Self> + Refresh + ToHtml;
 
     fn view_shared(share: S) -> Self::Viewer;
+}
+
+#[inline]
+pub fn view_shared<S>(share: S) -> <S::Value as SharedView<S>>::Viewer
+where
+    S: Share,
+    S::Value: SharedView<S>,
+{
+    <S::Value>::view_shared(share)
 }
 
 macro_rules! impl_shared_view {
@@ -58,10 +77,10 @@ macro_rules! impl_shared_view {
             where
                 S: ShareId + ShareRead<Value = $ty> + Clone + Send + Sync,
             {
-                type Viewer = OutputViewer<S, $ty>;
+                type Viewer = Viewer<S, $ty>;
 
                 fn view_shared(share: S) -> Self::Viewer {
-                    OutputViewer::new_shared(share)
+                    Viewer::new_shared(share)
                 }
             }
         )*

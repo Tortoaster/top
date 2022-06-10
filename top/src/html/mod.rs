@@ -67,6 +67,11 @@ pub trait Handler {
     async fn on_event(&mut self, event: Event) -> Feedback;
 }
 
+#[async_trait]
+pub trait Refresh {
+    async fn refresh(&self, id: Uuid) -> Feedback;
+}
+
 macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(

@@ -4,7 +4,7 @@ use crate::editor::container::OptionEditor;
 use crate::editor::editor::Editor;
 use crate::editor::tuple::*;
 use crate::html::{Handler, ToHtml};
-use crate::share::{ShareId, ShareRead, ShareWrite, Shared};
+use crate::share::{Share, ShareId, ShareWrite, Shared};
 use crate::task::Value;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
@@ -161,7 +161,7 @@ pub trait SharedEdit<S>: Sized {
 #[inline]
 pub fn edit_shared<S>(share: S) -> <S::Value as SharedEdit<S>>::Editor
 where
-    S: ShareRead,
+    S: Share,
     S::Value: SharedEdit<S>,
 {
     <S::Value>::edit_shared(share)

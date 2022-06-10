@@ -5,6 +5,7 @@ use log::info;
 
 use top::integration::axum::{task, Task, TopService};
 use top::prelude::*;
+use top::viewer::viewer::Color;
 
 async fn index() -> Html<&'static str> {
     Html(
@@ -89,7 +90,7 @@ async fn ten() -> impl Task {
     edit_shared(share).right(view_shared(uwuified)).then(
         Trigger::Update,
         |value| value.as_ref().map(|s| s.contains("x3")).unwrap_or_default(),
-        |value| view(value.unwrap()).tune(OutputTuner::default().with_color(Color::Pink)),
+        |value| view(value.unwrap()).with_color(Color::Pink),
     )
 }
 

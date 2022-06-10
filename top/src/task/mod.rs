@@ -2,7 +2,6 @@ use async_trait::async_trait;
 
 use crate::share::Share;
 
-pub mod inspect;
 pub mod parallel;
 pub mod sequential;
 pub mod tune;
