@@ -5,58 +5,53 @@ use futures::lock::{Mutex, MutexGuard};
 use uuid::Uuid;
 
 use crate::html::event::Feedback;
-use crate::share::value::SharedValue;
-use crate::share::{SharedId, SharedRead, SharedWrite};
+use crate::share::{Share, ShareId, ShareRead, ShareWrite};
 use crate::task::TaskValue;
 
 #[derive(Clone, Debug)]
-pub struct Share<T> {
+pub struct Shared<T> {
     id: Uuid,
     value: Arc<Mutex<TaskValue<T>>>,
 }
 
-impl<T> Share<T> {
+impl<T> Shared<T> {
     pub fn new(value: TaskValue<T>) -> Self {
-        Share {
+        Shared {
             id: Uuid::new_v4(),
             value: Arc::new(Mutex::new(value)),
         }
     }
 }
 
-#[async_trait]
-impl<T> SharedRead for Share<T>
-where
-    T: Send,
-{
-    type Value = T;
-
-    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>> {
-        self.value.lock().await
-    }
-}
-
-#[async_trait]
-impl<T> SharedWrite for Share<T>
-where
-    T: Send,
-{
-    type Value = T;
-
-    async fn write(&self, value: TaskValue<Self::Value>) -> Feedback {
-        *self.value.lock().await = value;
-        Feedback::update_share(self.id)
-    }
-}
-
-impl<T> SharedId for Share<T> {
+impl<T> ShareId for Shared<T> {
     fn id(&self) -> Uuid {
         self.id
     }
 }
 
 #[async_trait]
-impl<T> SharedValue for Share<T>
+impl<T> ShareRead for Shared<T>
+where
+    T: Clone + Send,
+{
+    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>> {
+        self.value.lock().await
+    }
+}
+
+#[async_trait]
+impl<T> ShareWrite for Shared<T>
+where
+    T: Clone + Send,
+{
+    async fn write(&self, value: TaskValue<Self::Value>) -> Feedback {
+        *self.value.lock().await = value;
+        Feedback::update_share(self.id)
+    }
+}
+
+#[async_trait]
+impl<T> Share for Shared<T>
 where
     T: Clone + Send,
 {

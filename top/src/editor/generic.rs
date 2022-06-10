@@ -4,7 +4,7 @@ use crate::editor::container::OptionEditor;
 use crate::editor::editor::Editor;
 use crate::editor::tuple::*;
 use crate::html::{Handler, ToHtml};
-use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
+use crate::share::{ShareId, ShareRead, ShareWrite, Shared};
 use crate::task::Value;
 
 /// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
@@ -60,7 +60,7 @@ macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Editor = Editor<Share<$ty>, $ty>;
+                type Editor = Editor<Shared<$ty>, $ty>;
 
                 fn edit(value: Option<Self>) -> Self::Editor {
                     Editor::new(Some(value.unwrap_or_default()))
@@ -75,7 +75,7 @@ impl_edit_for_default!(
 );
 
 impl Edit for char {
-    type Editor = Editor<Share<char>, char>;
+    type Editor = Editor<Shared<char>, char>;
 
     fn edit(value: Option<Self>) -> Self::Editor {
         Editor::new(value)
@@ -161,7 +161,7 @@ pub trait SharedEdit<S>: Sized {
 #[inline]
 pub fn edit_shared<S>(share: S) -> <S::Value as SharedEdit<S>>::Editor
 where
-    S: SharedRead,
+    S: ShareRead,
     S::Value: SharedEdit<S>,
 {
     <S::Value>::edit_shared(share)
@@ -172,13 +172,7 @@ macro_rules! impl_shared_edit {
         $(
             impl<S> SharedEdit<S> for $ty
             where
-                S: SharedRead<Value = $ty>
-                    + SharedWrite<Value = $ty>
-                    + SharedId
-                    + SharedValue<Value = $ty>
-                    + Clone
-                    + Send
-                    + Sync,
+                S: ShareId + ShareWrite<Value = $ty> + Clone + Send + Sync,
             {
                 type Editor = Editor<S, $ty>;
 

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::share::SharedValue;
+use crate::share::Share;
 
 pub mod inspect;
 pub mod parallel;
@@ -10,7 +10,7 @@ pub mod tune;
 #[async_trait]
 pub trait Value {
     type Output;
-    type Share: SharedValue;
+    type Share: Share;
 
     async fn share(&self) -> Self::Share;
 

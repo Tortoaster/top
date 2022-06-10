@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::html::event::Feedback;
 use crate::prelude::TaskValue;
-use crate::share::SharedValue;
+use crate::share::Share;
 
 pub mod convert;
 pub mod generic;
@@ -14,7 +14,7 @@ pub mod primitive;
 pub trait Viewer {
     /// The type of data this viewer produces.
     type Value;
-    type Share: SharedValue;
+    type Share: Share;
 
     async fn redraw(&self, id: Uuid) -> Feedback;
 

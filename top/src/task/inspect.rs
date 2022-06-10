@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
-use crate::share::SharedRead;
+use crate::share::ShareRead;
 use crate::task::{TaskValue, Value};
 use crate::viewer::generic::{SharedView, View};
 use crate::viewer::Viewer;
@@ -33,7 +33,7 @@ pub fn view_with<V>(viewer: V) -> Inspect<V> {
 #[inline]
 pub fn view_shared<S>(share: S) -> Inspect<<S::Value as SharedView<S>>::Viewer>
 where
-    S: SharedRead,
+    S: ShareRead,
     S::Value: SharedView<S>,
 {
     view_with(<S::Value>::view_shared(share))

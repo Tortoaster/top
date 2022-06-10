@@ -10,7 +10,7 @@ use crate::html::event::{Change, Feedback};
 use crate::html::icon::Icon;
 use crate::html::{Html, ToHtml};
 use crate::prelude::TaskValue;
-use crate::share::{Share, SharedId, SharedRead, SharedValue};
+use crate::share::{ShareId, ShareRead, Shared};
 use crate::task::tune::{OutputTuner, Tune};
 use crate::viewer::Viewer;
 
@@ -22,9 +22,9 @@ pub struct OutputViewer<S, T> {
     tuner: OutputTuner,
 }
 
-impl<T> OutputViewer<Share<T>, T> {
+impl<T> OutputViewer<Shared<T>, T> {
     pub fn new(value: T) -> Self {
-        OutputViewer::new_shared(Share::new(TaskValue::Stable(value)))
+        OutputViewer::new_shared(Shared::new(TaskValue::Stable(value)))
     }
 }
 
@@ -42,7 +42,7 @@ impl<S, T> OutputViewer<S, T> {
 #[async_trait]
 impl<S, T> Viewer for OutputViewer<S, T>
 where
-    S: SharedRead<Value = T> + SharedId + SharedValue<Value = T> + Clone + Send + Sync,
+    S: ShareRead<Value = T> + ShareId + Clone + Send + Sync,
     T: Send + Sync,
     Self: ToHtml,
 {
@@ -83,7 +83,7 @@ macro_rules! impl_to_html {
             #[async_trait]
             impl<S> ToHtml for OutputViewer<S, $ty>
             where
-                S: SharedRead<Value = $ty> + Send + Sync,
+                S: ShareRead<Value = $ty> + Send + Sync,
             {
                 async fn to_html(&self) -> Html {
                     let value = self.share.read().await;
@@ -121,7 +121,7 @@ impl_to_html!(
 #[async_trait]
 impl<S> ToHtml for OutputViewer<S, bool>
 where
-    S: SharedRead<Value = bool> + Send + Sync,
+    S: ShareRead<Value = bool> + Send + Sync,
 {
     async fn to_html(&self) -> Html {
         match self.share.read().await.deref() {

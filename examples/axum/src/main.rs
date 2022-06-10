@@ -77,13 +77,13 @@ async fn eight() -> impl Task {
 
 // Shares
 async fn nine() -> impl Task {
-    let share: Share<String> = Share::new(TaskValue::Empty);
+    let share: Shared<String> = Shared::new(TaskValue::Empty);
 
     edit_shared(share.clone()).and(view_shared(share))
 }
 
 async fn ten() -> impl Task {
-    let share: Share<String> = Share::new(TaskValue::Empty);
+    let share: Shared<String> = Shared::new(TaskValue::Empty);
     let uwuified = share.map(|s| s.map(|s| uwuifier::uwuify_str_sse(s.as_str())));
 
     edit_shared(share).right(view_shared(uwuified)).then(

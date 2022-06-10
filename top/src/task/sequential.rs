@@ -8,7 +8,7 @@ use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
-use crate::share::{SharedRead, SharedValue};
+use crate::share::{Share, ShareRead};
 use crate::task::{TaskValue, Value};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
@@ -57,10 +57,10 @@ impl<T1, T2, C, F> Handler for Sequential<T1, T2, C, F>
 where
     T1: Value + Handler + Send + Sync,
     T1::Output: Clone + Send,
-    T1::Share: SharedRead<Value = <T1::Share as SharedValue>::Value> + Clone + Send + Sync,
+    T1::Share: ShareRead + Clone + Send + Sync,
     T2: ToHtml + Handler + Send + Sync,
-    C: Fn(&TaskValue<<T1::Share as SharedValue>::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as SharedValue>::Value>) -> T2 + Send + Sync,
+    C: Fn(&TaskValue<<T1::Share as Share>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T1::Share as Share>::Value>) -> T2 + Send + Sync,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
         match &mut self.current {
@@ -110,10 +110,10 @@ impl<T1, T2, C, F> Value for Sequential<T1, T2, C, F>
 where
     T1: Value + Send + Sync,
     T1::Output: Clone + Send,
-    T1::Share: SharedRead<Value = <T1::Share as SharedValue>::Value> + Clone + Send + Sync,
+    T1::Share: ShareRead + Clone + Send + Sync,
     T2: Value + ToHtml + Send + Sync,
-    C: Fn(&TaskValue<<T1::Share as SharedValue>::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as SharedValue>::Value>) -> T2 + Send + Sync,
+    C: Fn(&TaskValue<<T1::Share as Share>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T1::Share as Share>::Value>) -> T2 + Send + Sync,
 {
     type Output = T2::Output;
     type Share = ();

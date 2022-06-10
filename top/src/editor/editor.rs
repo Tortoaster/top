@@ -12,7 +12,7 @@ use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
-use crate::share::{Share, SharedId, SharedRead, SharedValue, SharedWrite};
+use crate::share::{ShareId, ShareRead, ShareWrite, Shared};
 use crate::task::{OptionExt, TaskValue, Value};
 
 #[derive(Clone, Debug)]
@@ -24,9 +24,9 @@ pub struct Editor<S, T> {
     _type: PhantomData<T>,
 }
 
-impl<T> Editor<Share<T>, T> {
+impl<T> Editor<Shared<T>, T> {
     pub fn new(value: Option<T>) -> Self {
-        Editor::new_shared(Share::new(value.into_unstable()))
+        Editor::new_shared(Shared::new(value.into_unstable()))
     }
 }
 
@@ -49,13 +49,7 @@ impl<S, T> Editor<S, T> {
 #[async_trait]
 impl<S, T> Value for Editor<S, T>
 where
-    S: SharedId
-        + SharedRead<Value = T>
-        + SharedWrite<Value = T>
-        + SharedValue<Value = T>
-        + Clone
-        + Send
-        + Sync,
+    S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
     T: Serialize + FromStr + Clone + Send + Sync,
     T::Err: Send,
 {
@@ -74,13 +68,7 @@ where
 #[async_trait]
 impl<S, T> Handler for Editor<S, T>
 where
-    S: SharedId
-        + SharedRead<Value = T>
-        + SharedWrite<Value = T>
-        + SharedValue<Value = T>
-        + Clone
-        + Send
-        + Sync,
+    S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
     T: Serialize + FromStr + Clone + Send,
     T::Err: Send,
 {
@@ -119,7 +107,7 @@ where
 #[async_trait]
 impl<S> ToHtml for Editor<S, String>
 where
-    S: SharedRead<Value = String> + Send + Sync,
+    S: ShareRead<Value = String> + Send + Sync,
 {
     async fn to_html(&self) -> Html {
         let value = self.share.read().await;
@@ -136,7 +124,7 @@ macro_rules! impl_to_html_for_number {
             #[async_trait]
             impl<S> ToHtml for Editor<S, $ty>
             where
-                S: SharedRead<Value = $ty> + Send + Sync,
+                S: ShareRead<Value = $ty> + Send + Sync,
             {
                 async fn to_html(&self) -> Html {
                     let value = self.share.read().await;
@@ -156,7 +144,7 @@ impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128
 #[async_trait]
 impl<S> ToHtml for Editor<S, bool>
 where
-    S: SharedRead<Value = bool> + Send + Sync,
+    S: ShareRead<Value = bool> + Send + Sync,
 {
     async fn to_html(&self) -> Html {
         let value = self.share.read().await;
@@ -173,7 +161,7 @@ where
 #[async_trait]
 impl<S> ToHtml for Editor<S, char>
 where
-    S: SharedRead<Value = char> + Send + Sync,
+    S: ShareRead<Value = char> + Send + Sync,
 {
     async fn to_html(&self) -> Html {
         let value = self

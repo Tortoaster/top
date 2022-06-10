@@ -1,4 +1,4 @@
-use crate::share::{Share, SharedId, SharedRead, SharedValue};
+use crate::share::{ShareId, ShareRead, Shared};
 use crate::viewer::primitive::OutputViewer;
 use crate::viewer::Viewer;
 
@@ -14,7 +14,7 @@ macro_rules! impl_view {
     ($($ty:ty),*) => {
         $(
             impl View for $ty {
-                type Viewer = OutputViewer<Share<$ty>, $ty>;
+                type Viewer = OutputViewer<Shared<$ty>, $ty>;
 
                 fn view(self) -> Self::Viewer {
                     OutputViewer::new(self)
@@ -56,12 +56,7 @@ macro_rules! impl_shared_view {
         $(
             impl<S> SharedView<S> for $ty
             where
-                S: SharedRead<Value = $ty>
-                    + SharedId
-                    + SharedValue<Value = $ty>
-                    + Clone
-                    + Send
-                    + Sync,
+                S: ShareId + ShareRead<Value = $ty> + Clone + Send + Sync,
             {
                 type Viewer = OutputViewer<S, $ty>;
 
