@@ -1,11 +1,11 @@
 // use top_derive::html;
 //
-// use crate::editor::{Editor, EditorError};
+// use crate::edit::{Editor, EditorError};
 // use crate::html::event::{Change, Event, Feedback};
 // use crate::html::id::{Generator, Id};
 // use crate::html::{Html, ToHtml};
 // use crate::task::tune::{ContentTune, Tune};
-// use crate::viewer::Viewer;
+// use crate::view::Viewer;
 //
 // #[derive(Clone, Debug, Eq, PartialEq)]
 // pub struct ChoiceEditor<V> {

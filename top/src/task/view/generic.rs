@@ -1,19 +1,19 @@
 use crate::html::{Refresh, ToHtml};
 use crate::share::{Share, ShareId, ShareRead, Shared};
+use crate::task::view::View as ViewTask;
 use crate::task::Value;
-use crate::viewer::viewer::Viewer;
 
-/// Specifies the default viewer for a certain type. Can be derived for arbitrary types, as long as
+/// Specifies the default view for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`View`].
 pub trait View: Sized {
-    type Viewer: Value<Output = Self> + Refresh + ToHtml;
+    type Task: Value<Output = Self> + Refresh + ToHtml;
 
-    fn view(self) -> Self::Viewer;
+    fn view(self) -> Self::Task;
 }
 
-/// Show a value to the user. To use a custom editor, see [`view_with`].
+/// Show a value to the user. To use a custom edit, see [`view_with`].
 #[inline]
-pub fn view<T>(value: T) -> T::Viewer
+pub fn view<T>(value: T) -> T::Task
 where
     T: View,
 {
@@ -24,10 +24,10 @@ macro_rules! impl_view {
     ($($ty:ty),*) => {
         $(
             impl View for $ty {
-                type Viewer = Viewer<Shared<$ty>, $ty>;
+                type Task = ViewTask<Shared<$ty>, $ty>;
 
-                fn view(self) -> Self::Viewer {
-                    Viewer::new(self)
+                fn view(self) -> Self::Task {
+                    ViewTask::new(self)
                 }
             }
         )*
@@ -56,13 +56,13 @@ impl_view!(
 );
 
 pub trait SharedView<S>: Sized {
-    type Viewer: Value<Output = Self> + Refresh + ToHtml;
+    type Task: Value<Output = Self> + Refresh + ToHtml;
 
-    fn view_shared(share: S) -> Self::Viewer;
+    fn view_shared(share: S) -> Self::Task;
 }
 
 #[inline]
-pub fn view_shared<S>(share: S) -> <S::Value as SharedView<S>>::Viewer
+pub fn view_shared<S>(share: S) -> <S::Value as SharedView<S>>::Task
 where
     S: Share,
     S::Value: SharedView<S>,
@@ -70,24 +70,24 @@ where
     <S::Value>::view_shared(share)
 }
 
-macro_rules! impl_shared_view {
+macro_rules! impl_view_for_share {
     ($($ty:ty),*) => {
         $(
             impl<S> SharedView<S> for $ty
             where
                 S: ShareId + ShareRead<Value = $ty> + Clone + Send + Sync,
             {
-                type Viewer = Viewer<S, $ty>;
+                type Task = ViewTask<S, $ty>;
 
-                fn view_shared(share: S) -> Self::Viewer {
-                    Viewer::new_shared(share)
+                fn view_shared(share: S) -> Self::Task {
+                    ViewTask::new_shared(share)
                 }
             }
         )*
     };
 }
 
-impl_shared_view!(
+impl_view_for_share!(
     u8,
     u16,
     u32,

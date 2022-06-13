@@ -13,8 +13,11 @@ use crate::prelude::TaskValue;
 use crate::share::{Share, ShareId, ShareRead, Shared};
 use crate::task::Value;
 
+pub mod convert;
+pub mod generic;
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Viewer<S, T> {
+pub struct View<S, T> {
     id: Uuid,
     share: S,
     color: Color,
@@ -22,15 +25,15 @@ pub struct Viewer<S, T> {
     _type: PhantomData<T>,
 }
 
-impl<T> Viewer<Shared<T>, T> {
+impl<T> View<Shared<T>, T> {
     pub fn new(value: T) -> Self {
-        Viewer::new_shared(Shared::new(TaskValue::Stable(value)))
+        View::new_shared(Shared::new(TaskValue::Stable(value)))
     }
 }
 
-impl<S, T> Viewer<S, T> {
+impl<S, T> View<S, T> {
     pub fn new_shared(share: S) -> Self {
-        Viewer {
+        View {
             id: Uuid::new_v4(),
             share,
             color: Color::default(),
@@ -45,7 +48,7 @@ impl<S, T> Viewer<S, T> {
 }
 
 #[async_trait]
-impl<S, T> Value for Viewer<S, T>
+impl<S, T> Value for View<S, T>
 where
     S: Share<Value = T> + Clone + Send + Sync,
     T: Send + Sync,
@@ -63,7 +66,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Handler for Viewer<S, T>
+impl<S, T> Handler for View<S, T>
 where
     S: Send,
     T: Send,
@@ -74,7 +77,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Refresh for Viewer<S, T>
+impl<S, T> Refresh for View<S, T>
 where
     Self: ToHtml,
     S: ShareId + Send + Sync,
@@ -96,7 +99,7 @@ macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for Viewer<S, $ty>
+            impl<S> ToHtml for View<S, $ty>
             where
                 S: ShareRead<Value = $ty> + Send + Sync,
             {
@@ -134,7 +137,7 @@ impl_to_html!(
 );
 
 #[async_trait]
-impl<S> ToHtml for Viewer<S, bool>
+impl<S> ToHtml for View<S, bool>
 where
     S: ShareRead<Value = bool> + Send + Sync,
 {

@@ -43,7 +43,7 @@ use crate::task::Value;
 //             .editors
 //             .iter()
 //             .zip(&self.rows)
-//             .map(|(editor, row)| row.to_html(editor))
+//             .map(|(edit, row)| row.to_html(edit))
 //             .collect();
 //
 //         let button = Row::add_button(self.add_id);
@@ -70,8 +70,8 @@ use crate::task::Value;
 //         self.add_id = gen.next();
 //         self.rows = self.editors.iter().map(|_| Row::new(gen)).collect();
 //
-//         for editor in &mut self.editors {
-//             editor.start(gen);
+//         for edit in &mut self.editors {
+//             edit.start(gen);
 //         }
 //     }
 //
@@ -79,12 +79,12 @@ use crate::task::Value;
 //         match event {
 //             Event::Press { id } if id == self.add_id => {
 //                 // Add a new row
-//                 let mut editor = self.template.clone();
-//                 editor.start(gen);
+//                 let mut edit = self.template.clone();
+//                 edit.start(gen);
 //                 let row = Row::new(gen);
-//                 let html = row.to_html(&editor);
+//                 let html = row.to_html(&edit);
 //
-//                 self.editors.push(editor);
+//                 self.editors.push(edit);
 //                 self.rows.push(row);
 //
 //                 Feedback::from(Change::AppendContent {
@@ -103,8 +103,8 @@ use crate::task::Value;
 //             _ => self
 //                 .editors
 //                 .iter_mut()
-//                 .find_map(|editor| {
-//                     let feedback = editor.on_event(event.clone(), gen);
+//                 .find_map(|edit| {
+//                     let feedback = edit.on_event(event.clone(), gen);
 //                     (!feedback.is_empty()).then(|| feedback)
 //                 })
 //                 .unwrap_or_default(),
@@ -115,7 +115,7 @@ use crate::task::Value;
 //         // TODO: Return all errors
 //         self.editors
 //             .iter()
-//             .map(|editor| editor.value())
+//             .map(|edit| edit.value())
 //             .collect::<Result<Vec<_>, _>>()
 //     }
 // }
@@ -139,10 +139,10 @@ pub struct OptionEditor<E> {
     id: Uuid,
     /// Represents the plus button if there is no value present.
     add_id: Uuid,
-    /// Represents the row containing the editor and the minus button if a value is present.
+    /// Represents the row containing the edit and the minus button if a value is present.
     row: Row,
     editor: E,
-    /// True if this editor contains a value, false otherwise.
+    /// True if this edit contains a value, false otherwise.
     enabled: bool,
 }
 
@@ -260,7 +260,7 @@ impl Row {
         }
     }
 
-    /// Creates a row consisting of the editor and a button to remove it.
+    /// Creates a row consisting of the edit and a button to remove it.
     async fn to_html<E>(&self, editor: &E) -> Html
     where
         E: ToHtml,

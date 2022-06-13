@@ -5,7 +5,6 @@ use log::info;
 
 use top::integration::axum::{task, Task, TopService};
 use top::prelude::*;
-use top::viewer::viewer::Color;
 
 async fn index() -> Html<&'static str> {
     Html(

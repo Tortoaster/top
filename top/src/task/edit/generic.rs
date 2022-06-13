@@ -1,40 +1,40 @@
 pub use top_derive::Edit;
 
-use crate::editor::container::OptionEditor;
-use crate::editor::editor::Editor;
-use crate::editor::tuple::*;
 use crate::html::{Handler, ToHtml};
 use crate::share::{Share, ShareId, ShareWrite, Shared};
+use crate::task::edit::container::OptionEditor;
+use crate::task::edit::tuple::*;
+use crate::task::edit::Edit as EditTask;
 use crate::task::Value;
 
-/// Specifies the default editor for a certain type. Can be derived for arbitrary types, as long as
+/// Specifies the default edit for a certain type. Can be derived for arbitrary types, as long as
 /// all its fields also implement [`Edit`].
 pub trait Edit: Sized {
-    type Editor: Value<Output = Self> + Handler + ToHtml;
+    type Task: Value<Output = Self> + Handler + ToHtml;
 
-    /// Specifies the default editor for this type.
-    fn edit(value: Option<Self>) -> Self::Editor;
+    /// Specifies the default edit for this type.
+    fn edit(value: Option<Self>) -> Self::Task;
 }
 
-/// Have the user enter a value. To use a custom editor, see [`edit_with`].
+/// Have the user enter a value. To use a custom edit, see [`edit_with`].
 #[inline]
-pub fn enter<T>() -> T::Editor
+pub fn enter<T>() -> T::Task
 where
     T: Edit,
 {
     T::edit(None)
 }
 
-/// Have the user update a value. To use a custom editor, see [`edit_with`].
+/// Have the user update a value. To use a custom edit, see [`edit_with`].
 #[inline]
-pub fn edit<T>(value: T) -> T::Editor
+pub fn edit<T>(value: T) -> T::Task
 where
     T: Edit,
 {
     T::edit(Some(value))
 }
 
-// /// Have the user select a value out of a list of options. To use a custom viewer for the options,
+// /// Have the user select a value out of a list of options. To use a custom view for the options,
 // /// see [`choose_with`].
 // #[inline]
 // pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
@@ -44,26 +44,26 @@ where
 //     choose_with(options.into_iter().map(T::view).collect())
 // }
 //
-// /// Have the user select a value out of a list of options, using a custom viewer.
+// /// Have the user select a value out of a list of options, using a custom view.
 // #[inline]
 // pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
 //     Interact {
-//         editor: ChoiceEditor::new(options),
+//         edit: ChoiceEditor::new(options),
 //     }
 // }
 
 /// For some types, the HTML-representation starts with a valid value by default. For example, a
 /// number input starts at 0, which is a valid number, and a text field starts empty, which is a
-/// valid string. In these cases, the editor should be initialized with a default value, rather than
+/// valid string. In these cases, the edit should be initialized with a default value, rather than
 /// [`EditorError::Empty`].
 macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Editor = Editor<Shared<$ty>, $ty>;
+                type Task = EditTask<Shared<$ty>, $ty>;
 
-                fn edit(value: Option<Self>) -> Self::Editor {
-                    Editor::new(Some(value.unwrap_or_default()))
+                fn edit(value: Option<Self>) -> Self::Task {
+                    EditTask::new(Some(value.unwrap_or_default()))
                 }
             }
         )*
@@ -75,17 +75,17 @@ impl_edit_for_default!(
 );
 
 impl Edit for char {
-    type Editor = Editor<Shared<char>, char>;
+    type Task = EditTask<Shared<char>, char>;
 
-    fn edit(value: Option<Self>) -> Self::Editor {
-        Editor::new(value)
+    fn edit(value: Option<Self>) -> Self::Task {
+        EditTask::new(value)
     }
 }
 
 impl Edit for () {
-    type Editor = UnitEditor;
+    type Task = UnitEditor;
 
-    fn edit(_: Option<Self>) -> Self::Editor {
+    fn edit(_: Option<Self>) -> Self::Task {
         UnitEditor
     }
 }
@@ -140,12 +140,12 @@ macro_rules! impl_edit_for_tuple {
 impl<T> Edit for Option<T>
 where
     T: Edit,
-    T::Editor: ToHtml + Send + Sync,
-    <T::Editor as Value>::Share: Sync,
+    T::Task: ToHtml + Send + Sync,
+    <T::Task as Value>::Share: Sync,
 {
-    type Editor = OptionEditor<T::Editor>;
+    type Task = OptionEditor<T::Task>;
 
-    fn edit(value: Option<Self>) -> Self::Editor {
+    fn edit(value: Option<Self>) -> Self::Task {
         let enabled = value.as_ref().map(Option::is_some).unwrap_or_default();
 
         OptionEditor::new(T::edit(value.flatten()), enabled)
@@ -153,13 +153,13 @@ where
 }
 
 pub trait SharedEdit<S>: Sized {
-    type Editor: Value<Output = Self> + Handler + ToHtml;
+    type Task: Value<Output = Self> + Handler + ToHtml;
 
-    fn edit_shared(share: S) -> Self::Editor;
+    fn edit_shared(share: S) -> Self::Task;
 }
 
 #[inline]
-pub fn edit_shared<S>(share: S) -> <S::Value as SharedEdit<S>>::Editor
+pub fn edit_shared<S>(share: S) -> <S::Value as SharedEdit<S>>::Task
 where
     S: Share,
     S::Value: SharedEdit<S>,
@@ -167,23 +167,23 @@ where
     <S::Value>::edit_shared(share)
 }
 
-macro_rules! impl_shared_edit {
+macro_rules! impl_edit_for_share {
     ($($ty:ty),*) => {
         $(
             impl<S> SharedEdit<S> for $ty
             where
                 S: ShareId + ShareWrite<Value = $ty> + Clone + Send + Sync,
             {
-                type Editor = Editor<S, $ty>;
+                type Task = EditTask<S, $ty>;
 
-                fn edit_shared(share: S) -> Self::Editor {
-                    Editor::new_shared(share)
+                fn edit_shared(share: S) -> Self::Task {
+                    EditTask::new_shared(share)
                 }
             }
         )*
     };
 }
 
-impl_shared_edit!(
+impl_edit_for_share!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, String
 );

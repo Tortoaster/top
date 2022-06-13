@@ -4,12 +4,12 @@
 //
 // use crate::html::{Html, ToHtml};
 // use crate::task::tune::Tune;
-// use crate::viewer::primitive::OutputViewer;
-// use crate::viewer::Viewer;
+// use crate::view::primitive::OutputViewer;
+// use crate::view::Viewer;
 //
 // #[derive(Clone, Debug, Eq, PartialEq)]
 // pub struct DisplayViewer<T> {
-//     viewer: OutputViewer<String>,
+//     view: OutputViewer<String>,
 //     value: T,
 // }
 //
@@ -19,7 +19,7 @@
 //         T: Display,
 //     {
 //         DisplayViewer {
-//             viewer: OutputViewer::new(value.to_string()),
+//             view: OutputViewer::new(value.to_string()),
 //             value,
 //         }
 //     }
@@ -31,7 +31,7 @@
 //     T: Send + Sync,
 // {
 //     async fn to_html(&self) -> Html {
-//         self.viewer.to_html().await
+//         self.view.to_html().await
 //     }
 // }
 //
@@ -50,13 +50,13 @@
 //     type Tuner = <OutputViewer<String> as Tune>::Tuner;
 //
 //     fn tune(&mut self, tuner: Self::Tuner) {
-//         self.viewer.tune(tuner);
+//         self.view.tune(tuner);
 //     }
 // }
 //
 // #[derive(Clone, Debug, Eq, PartialEq)]
 // pub struct DebugViewer<T> {
-//     viewer: OutputViewer<String>,
+//     view: OutputViewer<String>,
 //     value: T,
 // }
 //
@@ -66,7 +66,7 @@
 //         T: Debug,
 //     {
 //         DebugViewer {
-//             viewer: OutputViewer::new(format!("{:?}", value)),
+//             view: OutputViewer::new(format!("{:?}", value)),
 //             value,
 //         }
 //     }
@@ -78,7 +78,7 @@
 //     T: Send + Sync,
 // {
 //     async fn to_html(&self) -> Html {
-//         self.viewer.to_html().await
+//         self.view.to_html().await
 //     }
 // }
 //
@@ -97,6 +97,6 @@
 //     type Tuner = <OutputViewer<String> as Tune>::Tuner;
 //
 //     fn tune(&mut self, tuner: Self::Tuner) {
-//         self.viewer.tune(tuner);
+//         self.view.tune(tuner);
 //     }
 // }

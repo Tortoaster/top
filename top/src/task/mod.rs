@@ -2,9 +2,11 @@ use async_trait::async_trait;
 
 use crate::share::Share;
 
+pub mod edit;
 pub mod parallel;
 pub mod sequential;
 pub mod tune;
+pub mod view;
 
 #[async_trait]
 pub trait Value {

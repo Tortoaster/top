@@ -1,5 +1,3 @@
-//! This module contains basic editors for primitive types.
-
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -16,8 +14,14 @@ use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::share::{ShareId, ShareRead, ShareWrite, Shared};
 use crate::task::{OptionExt, TaskValue, Value};
 
+pub mod choice;
+pub mod container;
+pub mod convert;
+pub mod generic;
+pub mod tuple;
+
 #[derive(Clone, Debug)]
-pub struct Editor<S, T> {
+pub struct Edit<S, T> {
     id: Uuid,
     share: S,
     label: Option<String>,
@@ -25,15 +29,15 @@ pub struct Editor<S, T> {
     _type: PhantomData<T>,
 }
 
-impl<T> Editor<Shared<T>, T> {
+impl<T> Edit<Shared<T>, T> {
     pub fn new(value: Option<T>) -> Self {
-        Editor::new_shared(Shared::new(value.into_unstable()))
+        Edit::new_shared(Shared::new(value.into_unstable()))
     }
 }
 
-impl<S, T> Editor<S, T> {
+impl<S, T> Edit<S, T> {
     pub fn new_shared(share: S) -> Self {
-        Editor {
+        Edit {
             id: Uuid::new_v4(),
             share,
             label: None,
@@ -48,7 +52,7 @@ impl<S, T> Editor<S, T> {
 }
 
 #[async_trait]
-impl<S, T> Value for Editor<S, T>
+impl<S, T> Value for Edit<S, T>
 where
     S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
     T: Serialize + FromStr + Clone + Send + Sync,
@@ -67,7 +71,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Handler for Editor<S, T>
+impl<S, T> Handler for Edit<S, T>
 where
     S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
     T: FromStr + Clone + Send,
@@ -95,7 +99,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Refresh for Editor<S, T>
+impl<S, T> Refresh for Edit<S, T>
 where
     S: ShareId + ShareRead<Value = T> + Send + Sync,
     T: Display + Send + Sync,
@@ -118,7 +122,7 @@ where
 }
 
 #[async_trait]
-impl<S> ToHtml for Editor<S, String>
+impl<S> ToHtml for Edit<S, String>
 where
     S: ShareRead<Value = String> + Send + Sync,
 {
@@ -135,7 +139,7 @@ macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for Editor<S, $ty>
+            impl<S> ToHtml for Edit<S, $ty>
             where
                 S: ShareRead<Value = $ty> + Send + Sync,
             {
@@ -155,7 +159,7 @@ macro_rules! impl_to_html_for_number {
 impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
 #[async_trait]
-impl<S> ToHtml for Editor<S, bool>
+impl<S> ToHtml for Edit<S, bool>
 where
     S: ShareRead<Value = bool> + Send + Sync,
 {
@@ -172,7 +176,7 @@ where
 }
 
 #[async_trait]
-impl<S> ToHtml for Editor<S, char>
+impl<S> ToHtml for Edit<S, char>
 where
     S: ShareRead<Value = char> + Send + Sync,
 {
