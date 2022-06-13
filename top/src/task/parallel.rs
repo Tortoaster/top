@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 
 use async_trait::async_trait;
+use uuid::Uuid;
 
 use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
-use crate::html::{Handler, Html, ToHtml};
+use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::share::Share;
 use crate::task::{TaskValue, Value};
 
@@ -55,6 +56,21 @@ where
     async fn on_event(&mut self, event: Event) -> Feedback {
         let a = self.tasks.0.on_event(event.clone()).await;
         let b = self.tasks.1.on_event(event).await;
+
+        a.merged_with(b).unwrap()
+    }
+}
+
+#[async_trait]
+impl<T1, T2, F> Refresh for Parallel<T1, T2, F>
+where
+    T1: Refresh + Send + Sync,
+    T2: Refresh + Send + Sync,
+    F: Send + Sync,
+{
+    async fn refresh(&self, id: Uuid) -> Feedback {
+        let a = self.tasks.0.refresh(id).await;
+        let b = self.tasks.1.refresh(id).await;
 
         a.merged_with(b).unwrap()
     }

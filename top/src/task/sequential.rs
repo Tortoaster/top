@@ -7,7 +7,7 @@ use uuid::Uuid;
 use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Handler, Html, ToHtml};
+use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::share::{Share, ShareRead};
 use crate::task::{TaskValue, Value};
 
@@ -101,6 +101,22 @@ where
                 }
             }
             Either::Right(task) => task.on_event(event).await,
+        }
+    }
+}
+
+#[async_trait]
+impl<T1, T2, C, F> Refresh for Sequential<T1, T2, C, F>
+where
+    T1: Refresh + Send + Sync,
+    T2: Refresh + Send + Sync,
+    C: Send + Sync,
+    F: Send + Sync,
+{
+    async fn refresh(&self, id: Uuid) -> Feedback {
+        match &self.current {
+            Either::Left(task) => task.refresh(id).await,
+            Either::Right(task) => task.refresh(id).await,
         }
     }
 }

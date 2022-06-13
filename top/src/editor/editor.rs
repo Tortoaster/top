@@ -12,7 +12,7 @@ use uuid::Uuid;
 use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Handler, Html, ToHtml};
+use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::share::{ShareId, ShareRead, ShareWrite, Shared};
 use crate::task::{OptionExt, TaskValue, Value};
 
@@ -70,7 +70,7 @@ where
 impl<S, T> Handler for Editor<S, T>
 where
     S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
-    T: Display + FromStr + Clone + Send,
+    T: FromStr + Clone + Send,
     T::Err: Send,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
@@ -89,18 +89,30 @@ where
                         .unwrap()
                 }
             },
-            Event::Redraw { id } if self.share.id() == id => {
-                match self.share.read().await.deref() {
-                    TaskValue::Stable(value) | TaskValue::Unstable(value) => {
-                        Feedback::from(Change::UpdateValue {
-                            id: self.id,
-                            value: value.to_string(),
-                        })
-                    }
-                    TaskValue::Empty => Feedback::from(Change::Invalid { id: self.id }),
-                }
-            }
             _ => Feedback::new(),
+        }
+    }
+}
+
+#[async_trait]
+impl<S, T> Refresh for Editor<S, T>
+where
+    S: ShareId + ShareRead<Value = T> + Send + Sync,
+    T: Display + Send + Sync,
+{
+    async fn refresh(&self, id: Uuid) -> Feedback {
+        if self.share.id() == id {
+            match self.share.read().await.deref() {
+                TaskValue::Stable(value) | TaskValue::Unstable(value) => {
+                    Feedback::from(Change::UpdateValue {
+                        id: self.id,
+                        value: value.to_string(),
+                    })
+                }
+                TaskValue::Empty => Feedback::from(Change::Invalid { id: self.id }),
+            }
+        } else {
+            Feedback::new()
         }
     }
 }

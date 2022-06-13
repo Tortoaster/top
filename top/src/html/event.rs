@@ -11,7 +11,6 @@ use crate::html::Html;
 pub enum Event {
     Update { id: Uuid, value: String },
     Press { id: Uuid },
-    Redraw { id: Uuid },
 }
 
 /// Changes to the user interface in response to [`Event`]s, such as confirming a value is valid, or

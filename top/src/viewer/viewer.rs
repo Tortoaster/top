@@ -6,9 +6,9 @@ use uuid::Uuid;
 
 use top_derive::html;
 
-use crate::html::event::{Change, Feedback};
+use crate::html::event::{Change, Event, Feedback};
 use crate::html::icon::Icon;
-use crate::html::{Html, Refresh, ToHtml};
+use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::prelude::TaskValue;
 use crate::share::{Share, ShareId, ShareRead, Shared};
 use crate::task::Value;
@@ -59,6 +59,17 @@ where
 
     async fn value(self) -> TaskValue<Self::Output> {
         self.share.clone_value().await
+    }
+}
+
+#[async_trait]
+impl<S, T> Handler for Viewer<S, T>
+where
+    S: Send,
+    T: Send,
+{
+    async fn on_event(&mut self, _event: Event) -> Feedback {
+        Feedback::new()
     }
 }
 

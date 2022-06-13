@@ -2,25 +2,23 @@ use std::convert::Infallible;
 use std::future::Future;
 use std::task::Poll;
 
+use async_trait::async_trait;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::WebSocketUpgrade;
 use axum::http::{Request, StatusCode};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, MethodRouter};
-use futures::stream::SplitSink;
+use futures::stream::{SplitSink, SplitStream};
 use futures::{SinkExt, StreamExt};
 use log::{error, warn};
 use tower_http::services::ServeFile;
 use tower_service::Service;
 use uuid::Uuid;
 
-use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Handler, ToHtml};
-
-pub trait Task: crate::task::Value + Handler + ToHtml {}
-
-impl<T> Task for T where T: crate::task::Value + Handler + ToHtml {}
+use crate::html::event::{Change, Feedback};
+use crate::html::{Handler, Refresh, ToHtml};
+use crate::task::Value;
 
 #[derive(Clone, Debug)]
 pub struct TopService(MethodRouter);
@@ -65,7 +63,7 @@ pub fn task<H, Fut, T>(handler: H) -> TaskRouter
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: crate::task::Value + Handler + ToHtml + Send + Sync + 'static,
+    T: Task + Send + Sync + 'static,
 {
     let wrapper = get(wrapper);
     let connect = get(|ws| connect(ws, handler));
@@ -98,29 +96,49 @@ async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoRespon
 where
     H: FnOnce() -> Fut + Clone + Send + 'static,
     Fut: Future<Output = T> + Send + 'static,
-    T: crate::task::Value + Handler + ToHtml + Send + Sync + 'static,
+    T: Task + Send + Sync + 'static,
 {
     ws.on_upgrade(|socket| async move {
-        let (mut sender, mut receiver) = socket.split();
-        let mut task = handler().await;
+        let (sender, receiver) = socket.split();
+        let task = handler().await;
+        task.execute(sender, receiver).await;
+    })
+}
 
-        let html = task.to_html().await;
+#[async_trait]
+pub trait Task {
+    async fn execute(self, sender: SplitSink<WebSocket, Message>, receiver: SplitStream<WebSocket>);
+}
+
+#[async_trait]
+impl<T> Task for T
+where
+    T: Value + Handler + Refresh + ToHtml + Send + Sync,
+{
+    async fn execute(
+        mut self,
+        mut sender: SplitSink<WebSocket, Message>,
+        mut receiver: SplitStream<WebSocket>,
+    ) {
+        // Initial page
+        let html = self.to_html().await;
         let feedback = Feedback::from(Change::AppendContent {
             id: Uuid::nil(),
             html,
         });
         send_feedback(&mut sender, feedback).await;
 
+        // Respond to input
         while let Some(Ok(message)) = receiver.next().await {
             match message.into_text() {
                 Ok(text) => match serde_json::from_str(&text) {
                     Ok(event) => {
-                        let mut feedback = task.on_event(event).await;
+                        let mut feedback = self.on_event(event).await;
                         let mut shares = feedback.shares().clone();
                         while !shares.is_empty() {
                             let first = *shares.iter().next().unwrap();
                             let id = shares.take(&first).unwrap();
-                            let new = task.on_event(Event::Redraw { id }).await;
+                            let new = self.refresh(id).await;
                             feedback = feedback.merged_with(new).unwrap();
                         }
                         if !feedback.is_empty() {
@@ -132,7 +150,7 @@ where
                 Err(_) => warn!("non-text message"),
             }
         }
-    })
+    }
 }
 
 async fn send_feedback(sender: &mut SplitSink<WebSocket, Message>, feedback: Feedback) {
