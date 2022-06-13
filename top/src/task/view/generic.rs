@@ -24,7 +24,7 @@ macro_rules! impl_view {
     ($($ty:ty),*) => {
         $(
             impl View for $ty {
-                type Task = ViewTask<Shared<$ty>, $ty>;
+                type Task = ViewTask<Shared<$ty>>;
 
                 fn view(self) -> Self::Task {
                     ViewTask::new(self)
@@ -77,7 +77,7 @@ macro_rules! impl_view_for_share {
             where
                 S: ShareId + ShareRead<Value = $ty> + Clone + Send + Sync,
             {
-                type Task = ViewTask<S, $ty>;
+                type Task = ViewTask<S>;
 
                 fn view_shared(share: S) -> Self::Task {
                     ViewTask::new_shared(share)

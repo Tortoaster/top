@@ -17,7 +17,91 @@ pub mod convert;
 pub mod generic;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct View<S, T> {
+pub struct View<S: Share>(InnerView<S, S::Value>);
+
+impl<T> View<Shared<T>>
+where
+    T: Clone + Send,
+{
+    pub fn new(value: T) -> Self {
+        View::new_shared(Shared::new(TaskValue::Stable(value)))
+    }
+}
+
+impl<S> View<S>
+where
+    S: Share,
+{
+    pub fn new_shared(share: S) -> Self {
+        View(InnerView {
+            id: Uuid::new_v4(),
+            share,
+            color: Color::default(),
+            _type: PhantomData,
+        })
+    }
+
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.0.color = color;
+        self
+    }
+}
+
+#[async_trait]
+impl<S> Value for View<S>
+where
+    S: Share + Clone + Send + Sync,
+    S::Value: Send + Sync,
+{
+    type Output = S::Value;
+    type Share = S;
+
+    async fn share(&self) -> Self::Share {
+        self.0.share().await
+    }
+
+    async fn value(self) -> TaskValue<Self::Output> {
+        self.0.value().await
+    }
+}
+
+#[async_trait]
+impl<S> Handler for View<S>
+where
+    S: Share + Send,
+    S::Value: Send,
+{
+    async fn on_event(&mut self, event: Event) -> Feedback {
+        self.0.on_event(event).await
+    }
+}
+
+#[async_trait]
+impl<S> Refresh for View<S>
+where
+    S: Share + ShareId + Send + Sync,
+    S::Value: Send + Sync,
+    InnerView<S, S::Value>: ToHtml,
+{
+    async fn refresh(&self, id: Uuid) -> Feedback {
+        self.0.refresh(id).await
+    }
+}
+
+#[async_trait]
+impl<S> ToHtml for View<S>
+where
+    S: Share + Send + Sync,
+    S::Value: Send + Sync,
+    InnerView<S, S::Value>: ToHtml,
+{
+    async fn to_html(&self) -> Html {
+        self.0.to_html().await
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+struct InnerView<S, T> {
     id: Uuid,
     share: S,
     color: Color,
@@ -25,30 +109,8 @@ pub struct View<S, T> {
     _type: PhantomData<T>,
 }
 
-impl<T> View<Shared<T>, T> {
-    pub fn new(value: T) -> Self {
-        View::new_shared(Shared::new(TaskValue::Stable(value)))
-    }
-}
-
-impl<S, T> View<S, T> {
-    pub fn new_shared(share: S) -> Self {
-        View {
-            id: Uuid::new_v4(),
-            share,
-            color: Color::default(),
-            _type: PhantomData,
-        }
-    }
-
-    pub fn with_color(mut self, color: Color) -> Self {
-        self.color = color;
-        self
-    }
-}
-
 #[async_trait]
-impl<S, T> Value for View<S, T>
+impl<S, T> Value for InnerView<S, T>
 where
     S: Share<Value = T> + Clone + Send + Sync,
     T: Send + Sync,
@@ -66,7 +128,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Handler for View<S, T>
+impl<S, T> Handler for InnerView<S, T>
 where
     S: Send,
     T: Send,
@@ -77,7 +139,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Refresh for View<S, T>
+impl<S, T> Refresh for InnerView<S, T>
 where
     Self: ToHtml,
     S: ShareId + Send + Sync,
@@ -99,7 +161,7 @@ macro_rules! impl_to_html {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for View<S, $ty>
+            impl<S> ToHtml for InnerView<S, $ty>
             where
                 S: ShareRead<Value = $ty> + Send + Sync,
             {
@@ -137,7 +199,7 @@ impl_to_html!(
 );
 
 #[async_trait]
-impl<S> ToHtml for View<S, bool>
+impl<S> ToHtml for InnerView<S, bool>
 where
     S: ShareRead<Value = bool> + Send + Sync,
 {
