@@ -88,7 +88,7 @@ function onMessage(ev: MessageEvent) {
     } else if (change.updateValue != null) {
       const id = change.updateValue.id;
       const input = document.getElementById(id) as HTMLInputElement;
-      input.value = JSON.parse(change.updateValue.value);
+      input.value = change.updateValue.value;
       input?.classList.remove('is-danger');
       input?.classList.add('is-success');
     }
