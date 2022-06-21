@@ -60,7 +60,7 @@ macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Task = EditTask<Shared<$ty>, $ty>;
+                type Task = EditTask<Shared<$ty>>;
 
                 fn edit(value: Option<Self>) -> Self::Task {
                     EditTask::new(Some(value.unwrap_or_default()))
@@ -75,7 +75,7 @@ impl_edit_for_default!(
 );
 
 impl Edit for char {
-    type Task = EditTask<Shared<char>, char>;
+    type Task = EditTask<Shared<char>>;
 
     fn edit(value: Option<Self>) -> Self::Task {
         EditTask::new(value)
@@ -174,7 +174,7 @@ macro_rules! impl_edit_for_share {
             where
                 S: ShareId + ShareWrite<Value = $ty> + Clone + Send + Sync,
             {
-                type Task = EditTask<S, $ty>;
+                type Task = EditTask<S>;
 
                 fn edit_shared(share: S) -> Self::Task {
                     EditTask::new_shared(share)

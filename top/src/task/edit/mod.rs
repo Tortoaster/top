@@ -4,14 +4,13 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 use async_trait::async_trait;
-use serde::Serialize;
 use uuid::Uuid;
 
 use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::{ShareId, ShareRead, ShareWrite, Shared};
+use crate::share::{Share, ShareId, ShareRead, ShareWrite, Shared};
 use crate::task::{OptionExt, TaskValue, Value};
 
 pub mod choice;
@@ -21,7 +20,91 @@ pub mod generic;
 pub mod tuple;
 
 #[derive(Clone, Debug)]
-pub struct Edit<S, T> {
+pub struct Edit<S: Share>(InnerEdit<S, S::Value>);
+
+impl<T> Edit<Shared<T>>
+where
+    T: Clone + Send,
+{
+    pub fn new(value: Option<T>) -> Self {
+        Edit::new_shared(Shared::new(value.into_unstable()))
+    }
+}
+
+impl<S> Edit<S>
+where
+    S: Share,
+{
+    pub fn new_shared(share: S) -> Self {
+        Edit(InnerEdit {
+            id: Uuid::new_v4(),
+            share,
+            label: None,
+            _type: PhantomData,
+        })
+    }
+
+    pub fn with_label(mut self, label: String) -> Self {
+        self.0.label = Some(label);
+        self
+    }
+}
+
+#[async_trait]
+impl<S> Value for Edit<S>
+where
+    S: Share + Clone + Send + Sync,
+    S::Value: Clone + Send + Sync,
+{
+    type Output = S::Value;
+    type Share = S;
+
+    async fn share(&self) -> Self::Share {
+        self.0.share().await
+    }
+
+    async fn value(self) -> TaskValue<Self::Output> {
+        self.0.value().await
+    }
+}
+
+#[async_trait]
+impl<S> Handler for Edit<S>
+where
+    S: ShareWrite + Clone + Send + Sync,
+    S::Value: FromStr + Clone + Send,
+    <S::Value as FromStr>::Err: Send,
+{
+    async fn on_event(&mut self, event: Event) -> Feedback {
+        self.0.on_event(event).await
+    }
+}
+
+#[async_trait]
+impl<S> Refresh for Edit<S>
+where
+    S: ShareId + ShareRead + Send + Sync,
+    S::Value: Display + Send + Sync,
+{
+    async fn refresh(&self, id: Uuid) -> Feedback {
+        self.0.refresh(id).await
+    }
+}
+
+#[async_trait]
+impl<S> ToHtml for Edit<S>
+where
+    S: ShareId + ShareRead + Send + Sync,
+    S::Value: Display + Send + Sync,
+    InnerEdit<S, S::Value>: ToHtml,
+{
+    async fn to_html(&self) -> Html {
+        self.0.to_html().await
+    }
+}
+
+#[derive(Clone, Debug)]
+struct InnerEdit<S, T> {
     id: Uuid,
     share: S,
     label: Option<String>,
@@ -29,34 +112,11 @@ pub struct Edit<S, T> {
     _type: PhantomData<T>,
 }
 
-impl<T> Edit<Shared<T>, T> {
-    pub fn new(value: Option<T>) -> Self {
-        Edit::new_shared(Shared::new(value.into_unstable()))
-    }
-}
-
-impl<S, T> Edit<S, T> {
-    pub fn new_shared(share: S) -> Self {
-        Edit {
-            id: Uuid::new_v4(),
-            share,
-            label: None,
-            _type: PhantomData,
-        }
-    }
-
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(label);
-        self
-    }
-}
-
 #[async_trait]
-impl<S, T> Value for Edit<S, T>
+impl<S, T> Value for InnerEdit<S, T>
 where
-    S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
-    T: Serialize + FromStr + Clone + Send + Sync,
-    T::Err: Send,
+    S: Share<Value = T> + Clone + Send + Sync,
+    T: Clone + Send + Sync,
 {
     type Output = T;
     type Share = S;
@@ -71,9 +131,9 @@ where
 }
 
 #[async_trait]
-impl<S, T> Handler for Edit<S, T>
+impl<S, T> Handler for InnerEdit<S, T>
 where
-    S: ShareId + ShareWrite<Value = T> + Clone + Send + Sync,
+    S: ShareWrite<Value = T> + Clone + Send + Sync,
     T: FromStr + Clone + Send,
     T::Err: Send,
 {
@@ -99,7 +159,7 @@ where
 }
 
 #[async_trait]
-impl<S, T> Refresh for Edit<S, T>
+impl<S, T> Refresh for InnerEdit<S, T>
 where
     S: ShareId + ShareRead<Value = T> + Send + Sync,
     T: Display + Send + Sync,
@@ -122,7 +182,7 @@ where
 }
 
 #[async_trait]
-impl<S> ToHtml for Edit<S, String>
+impl<S> ToHtml for InnerEdit<S, String>
 where
     S: ShareRead<Value = String> + Send + Sync,
 {
@@ -139,7 +199,7 @@ macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
             #[async_trait]
-            impl<S> ToHtml for Edit<S, $ty>
+            impl<S> ToHtml for InnerEdit<S, $ty>
             where
                 S: ShareRead<Value = $ty> + Send + Sync,
             {
@@ -159,7 +219,7 @@ macro_rules! impl_to_html_for_number {
 impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
 #[async_trait]
-impl<S> ToHtml for Edit<S, bool>
+impl<S> ToHtml for InnerEdit<S, bool>
 where
     S: ShareRead<Value = bool> + Send + Sync,
 {
@@ -176,7 +236,7 @@ where
 }
 
 #[async_trait]
-impl<S> ToHtml for Edit<S, char>
+impl<S> ToHtml for InnerEdit<S, char>
 where
     S: ShareRead<Value = char> + Send + Sync,
 {
