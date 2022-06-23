@@ -2,7 +2,6 @@ pub use top_derive::Edit;
 
 use crate::html::{Handler, ToHtml};
 use crate::share::{Share, ShareId, ShareWrite, Shared};
-use crate::task::edit::container::OptionEditor;
 use crate::task::edit::tuple::*;
 use crate::task::edit::Edit as EditTask;
 use crate::task::Value;
@@ -137,20 +136,18 @@ macro_rules! impl_edit_for_tuple {
 //     }
 // }
 
-impl<T> Edit for Option<T>
-where
-    T: Edit,
-    T::Task: ToHtml + Send + Sync,
-    <T::Task as Value>::Share: Sync,
-{
-    type Task = OptionEditor<T::Task>;
-
-    fn edit(value: Option<Self>) -> Self::Task {
-        let enabled = value.as_ref().map(Option::is_some).unwrap_or_default();
-
-        OptionEditor::new(T::edit(value.flatten()), enabled)
-    }
-}
+// impl<T> Edit for Option<T>
+// where
+//     T: Edit,
+//     T::Task: ToHtml + Send + Sync,
+//     <T::Task as Value>::Share: Sync,
+// {
+//     type Task = OptionEditor<T::Task>;
+//
+//     fn edit(value: Option<Self>) -> Self::Task {
+//         EditOption::new(T::edit(value.flatten()))
+//     }
+// }
 
 pub trait SharedEdit<S>: Sized {
     type Task: Value<Output = Self> + Handler + ToHtml;
@@ -187,3 +184,15 @@ macro_rules! impl_edit_for_share {
 impl_edit_for_share!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, String
 );
+
+// TODO: ???
+// impl<S> SharedEdit<S> for Option<S::Value>
+// where
+//     S: Share
+// {
+//     type Task = EditOption<S>;
+//
+//     fn edit_shared(value: Option<Self>) -> Self::Task {
+//         EditOption::new(T::edit(value.flatten()))
+//     }
+// }

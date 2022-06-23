@@ -17,6 +17,7 @@ pub mod choice;
 pub mod container;
 pub mod convert;
 pub mod generic;
+mod option;
 pub mod tuple;
 
 #[derive(Clone, Debug)]
