@@ -1,256 +1,196 @@
-use std::fmt::Display;
-use std::marker::PhantomData;
-use std::ops::Deref;
-use std::str::FromStr;
+pub use top_derive::Edit;
 
-use async_trait::async_trait;
-use uuid::Uuid;
-
-use top_derive::html;
-
-use crate::html::event::{Change, Event, Feedback};
-use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::{Share, ShareId, ShareRead, ShareWrite, Shared};
-use crate::task::{OptionExt, TaskValue, Value};
+use crate::html::{Handler, ToHtml};
+use crate::share::{Share, ShareId, ShareWrite, Shared};
+use crate::task::edit::option::OptionEditor;
+use crate::task::edit::tuple::*;
+use crate::task::edit::value::EditValue as EditTask;
+use crate::task::Value;
 
 pub mod choice;
-pub mod container;
 pub mod convert;
-pub mod generic;
+pub mod option;
 pub mod tuple;
+pub mod value;
+pub mod vec;
 
-#[derive(Clone, Debug)]
-pub struct Edit<S: Share>(InnerEdit<S, S::Value>);
+/// Specifies the default edit for a certain type. Can be derived for arbitrary types, as long as
+/// all its fields also implement [`Edit`].
+pub trait Edit: Sized {
+    type Task: Value<Output = Self> + Handler + ToHtml;
 
-impl<T> Edit<Shared<T>>
+    /// Specifies the default edit for this type.
+    fn edit(value: Option<Self>) -> Self::Task;
+}
+
+/// Have the user enter a value. To use a custom edit, see [`edit_with`].
+#[inline]
+pub fn enter<T>() -> T::Task
 where
-    T: Clone + Send,
+    T: Edit,
 {
-    pub fn new(value: Option<T>) -> Self {
-        Edit::new_shared(Shared::new(value.into_unstable()))
-    }
+    T::edit(None)
 }
 
-impl<S> Edit<S>
+/// Have the user update a value. To use a custom edit, see [`edit_with`].
+#[inline]
+pub fn edit<T>(value: T) -> T::Task
 where
-    S: Share,
+    T: Edit,
 {
-    pub fn new_shared(share: S) -> Self {
-        Edit(InnerEdit {
-            id: Uuid::new_v4(),
-            share,
-            label: None,
-            _type: PhantomData,
-        })
-    }
-
-    pub fn with_label(mut self, label: String) -> Self {
-        self.0.label = Some(label);
-        self
-    }
+    T::edit(Some(value))
 }
 
-#[async_trait]
-impl<S> Value for Edit<S>
-where
-    S: Share + Clone + Send + Sync,
-    S::Value: Clone + Send + Sync,
-{
-    type Output = S::Value;
-    type Share = S;
+// /// Have the user select a value out of a list of options. To use a custom view for the options,
+// /// see [`choose_with`].
+// #[inline]
+// pub fn choose<T>(options: Vec<T>) -> Interact<ChoiceEditor<T::Viewer>>
+// where
+//     T: View,
+// {
+//     choose_with(options.into_iter().map(T::view).collect())
+// }
+//
+// /// Have the user select a value out of a list of options, using a custom view.
+// #[inline]
+// pub fn choose_with<V>(options: Vec<V>) -> Interact<ChoiceEditor<V>> {
+//     Interact {
+//         edit: ChoiceEditor::new(options),
+//     }
+// }
 
-    async fn share(&self) -> Self::Share {
-        self.0.share().await
-    }
-
-    async fn value(self) -> TaskValue<Self::Output> {
-        self.0.value().await
-    }
-}
-
-#[async_trait]
-impl<S> Handler for Edit<S>
-where
-    S: ShareWrite + Clone + Send + Sync,
-    S::Value: FromStr + Clone + Send,
-    <S::Value as FromStr>::Err: Send,
-{
-    async fn on_event(&mut self, event: Event) -> Feedback {
-        self.0.on_event(event).await
-    }
-}
-
-#[async_trait]
-impl<S> Refresh for Edit<S>
-where
-    S: ShareId + ShareRead + Send + Sync,
-    S::Value: Display + Send + Sync,
-{
-    async fn refresh(&self, id: Uuid) -> Feedback {
-        self.0.refresh(id).await
-    }
-}
-
-#[async_trait]
-impl<S> ToHtml for Edit<S>
-where
-    S: ShareId + ShareRead + Send + Sync,
-    S::Value: Display + Send + Sync,
-    InnerEdit<S, S::Value>: ToHtml,
-{
-    async fn to_html(&self) -> Html {
-        self.0.to_html().await
-    }
-}
-
-#[derive(Clone, Debug)]
-struct InnerEdit<S, T> {
-    id: Uuid,
-    share: S,
-    label: Option<String>,
-    // Necessary for the `ToHtml` impls.
-    _type: PhantomData<T>,
-}
-
-#[async_trait]
-impl<S, T> Value for InnerEdit<S, T>
-where
-    S: Share<Value = T> + Clone + Send + Sync,
-    T: Clone + Send + Sync,
-{
-    type Output = T;
-    type Share = S;
-
-    async fn share(&self) -> Self::Share {
-        self.share.clone()
-    }
-
-    async fn value(self) -> TaskValue<Self::Output> {
-        self.share.clone_value().await
-    }
-}
-
-#[async_trait]
-impl<S, T> Handler for InnerEdit<S, T>
-where
-    S: ShareWrite<Value = T> + Clone + Send + Sync,
-    T: FromStr + Clone + Send,
-    T::Err: Send,
-{
-    async fn on_event(&mut self, event: Event) -> Feedback {
-        match event {
-            Event::Update { id, value } if id == self.id => match value.parse::<T>() {
-                Ok(value) => {
-                    let feedback = self.share.write(TaskValue::Unstable(value)).await;
-                    Feedback::from(Change::Valid { id })
-                        .merged_with(feedback)
-                        .unwrap()
-                }
-                Err(_) => {
-                    let feedback = self.share.write(TaskValue::Empty).await;
-                    Feedback::from(Change::Invalid { id })
-                        .merged_with(feedback)
-                        .unwrap()
-                }
-            },
-            _ => Feedback::new(),
-        }
-    }
-}
-
-#[async_trait]
-impl<S, T> Refresh for InnerEdit<S, T>
-where
-    S: ShareId + ShareRead<Value = T> + Send + Sync,
-    T: Display + Send + Sync,
-{
-    async fn refresh(&self, id: Uuid) -> Feedback {
-        if self.share.id() == id {
-            match self.share.read().await.deref() {
-                TaskValue::Stable(value) | TaskValue::Unstable(value) => {
-                    Feedback::from(Change::UpdateValue {
-                        id: self.id,
-                        value: value.to_string(),
-                    })
-                }
-                TaskValue::Empty => Feedback::from(Change::Invalid { id: self.id }),
-            }
-        } else {
-            Feedback::new()
-        }
-    }
-}
-
-#[async_trait]
-impl<S> ToHtml for InnerEdit<S, String>
-where
-    S: ShareRead<Value = String> + Send + Sync,
-{
-    async fn to_html(&self) -> Html {
-        let value = self.share.read().await;
-        html! {r#"
-            <label for="{self.id}" class="label">{self.label}</label>
-            <input id="{self.id}" class="input" value="{value}" oninput="update(this)"/>
-        "#}
-    }
-}
-
-macro_rules! impl_to_html_for_number {
+/// For some types, the HTML-representation starts with a valid value by default. For example, a
+/// number input starts at 0, which is a valid number, and a text field starts empty, which is a
+/// valid string. In these cases, the edit should be initialized with a default value, rather than
+/// [`EditorError::Empty`].
+macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
-            #[async_trait]
-            impl<S> ToHtml for InnerEdit<S, $ty>
-            where
-                S: ShareRead<Value = $ty> + Send + Sync,
-            {
-                async fn to_html(&self) -> Html {
-                    let value = self.share.read().await;
-                    let number = value.as_ref().map(ToString::to_string);
-                    html! {r#"
-                        <label for="{self.id}" class="label">{self.label}</label>
-                        <input id="{self.id}" type="number" class="input" value="{number}" oninput="update(this)"/>
-                    "#}
+            impl Edit for $ty {
+                type Task = EditTask<Shared<$ty>>;
+
+                fn edit(value: Option<Self>) -> Self::Task {
+                    EditTask::new(Some(value.unwrap_or_default()))
                 }
             }
         )*
     };
 }
 
-impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
+impl_edit_for_default!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, String
+);
 
-#[async_trait]
-impl<S> ToHtml for InnerEdit<S, bool>
-where
-    S: ShareRead<Value = bool> + Send + Sync,
-{
-    async fn to_html(&self) -> Html {
-        let value = self.share.read().await;
-        let checked = value.as_ref().unwrap_or(&false).then(|| "checked");
-        html! {r#"
-            <label class="checkbox">
-                <input id="{self.id}" type="checkbox" onclick="update(this, this.checked.toString())" {checked}>
-                {self.label}
-            </label>
-        "#}
+impl Edit for char {
+    type Task = EditTask<Shared<char>>;
+
+    fn edit(value: Option<Self>) -> Self::Task {
+        EditTask::new(value)
     }
 }
 
-#[async_trait]
-impl<S> ToHtml for InnerEdit<S, char>
-where
-    S: ShareRead<Value = char> + Send + Sync,
-{
-    async fn to_html(&self) -> Html {
-        let value = self
-            .share
-            .read()
-            .await
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_default();
-        html! {r#"
-            <label for="{self.id}" class="label">{self.label}</label>
-            <input id="{self.id}" class="input" value="{value}" oninput="update(this)" maxlength="1"/>
-        "#}
+impl Edit for () {
+    type Task = UnitEditor;
+
+    fn edit(_: Option<Self>) -> Self::Task {
+        UnitEditor
     }
 }
+
+macro_rules! impl_edit_for_tuple {
+    ($name:ident<$($editor:ident),*>) => {
+        impl<$($editor),*> Edit for ($($editor,)*)
+        where
+            $($editor: Edit),*
+        {
+            type Editor = $name<$($editor::Editor),*>;
+
+            fn default_editor() -> Self::Editor {
+                $name::new($($editor::default_editor()),*)
+            }
+        }
+    }
+}
+
+// impl_edit_for_tuple!(MonupleEditor<A>);
+// impl_edit_for_tuple!(CoupleEditor<A, B>);
+// impl_edit_for_tuple!(TripleEditor<A, B, C>);
+// impl_edit_for_tuple!(QuadrupleEditor<A, B, C, D>);
+// impl_edit_for_tuple!(QuintupleEditor<A, B, C, D, E>);
+// impl_edit_for_tuple!(SextupleEditor<A, B, C, D, E, F>);
+// impl_edit_for_tuple!(SeptupleEditor<A, B, C, D, E, F, G>);
+// impl_edit_for_tuple!(OctupleEditor<A, B, C, D, E, F, G, H>);
+// impl_edit_for_tuple!(NonupleEditor<A, B, C, D, E, F, G, H, I>);
+// impl_edit_for_tuple!(DecupleEditor<A, B, C, D, E, F, G, H, I, J>);
+// impl_edit_for_tuple!(UndecupleEditor<A, B, C, D, E, F, G, H, I, J, K>);
+// impl_edit_for_tuple!(DuodecupleEditor<A, B, C, D, E, F, G, H, I, J, K, L>);
+
+// impl<T> Edit for Vec<T>
+// where
+//     T: Edit,
+//     T::Editor: ToHtml + Clone,
+// {
+//     type Editor = VecEditor<T::Editor>;
+//
+//     fn edit(value: Option<Self>) -> Self::Editor {
+//         VecEditor::new(
+//             value
+//                 .into_iter()
+//                 .flatten()
+//                 .map(|value| T::edit(Some(value)))
+//                 .collect(),
+//             T::edit(None),
+//         )
+//     }
+// }
+
+impl<T> Edit for Option<T>
+where
+    T: Edit,
+    T::Task: ToHtml + Send + Sync,
+    <T::Task as Value>::Share: Sync,
+{
+    type Task = OptionEditor<T::Task>;
+
+    fn edit(value: Option<Self>) -> Self::Task {
+        let enabled = value.as_ref().map(Option::is_some).unwrap_or_default();
+
+        OptionEditor::new(T::edit(value.flatten()), enabled)
+    }
+}
+
+pub trait SharedEdit<S>: Sized {
+    type Task: Value<Output = Self> + Handler + ToHtml;
+
+    fn edit_shared(share: S) -> Self::Task;
+}
+
+#[inline]
+pub fn edit_shared<S>(share: S) -> <S::Value as SharedEdit<S>>::Task
+where
+    S: Share,
+    S::Value: SharedEdit<S>,
+{
+    <S::Value>::edit_shared(share)
+}
+
+macro_rules! impl_edit_for_share {
+    ($($ty:ty),*) => {
+        $(
+            impl<S> SharedEdit<S> for $ty
+            where
+                S: ShareId + ShareWrite<Value = $ty> + Clone + Send + Sync,
+            {
+                type Task = EditTask<S>;
+
+                fn edit_shared(share: S) -> Self::Task {
+                    EditTask::new_shared(share)
+                }
+            }
+        )*
+    };
+}
+
+impl_edit_for_share!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, String
+);
