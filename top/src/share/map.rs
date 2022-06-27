@@ -1,30 +1,23 @@
-use std::ops::Deref;
-
 use async_trait::async_trait;
-use futures::lock::MutexGuard;
 use uuid::Uuid;
 
 use crate::prelude::TaskValue;
-use crate::share::{Share, ShareId, ShareRead, ShareWrite, Shared};
+use crate::share::guard::ShareGuard;
+use crate::share::{Share, ShareId, ShareRead};
 
 #[derive(Clone, Debug)]
-pub struct Map<S, T, F> {
+pub struct Map<S, F> {
     share: S,
-    value: Shared<T>,
     f: F,
 }
 
 pub trait SharedReadMapExt: ShareRead + Clone + Sized + Sync {
-    fn map<T, F>(&self, f: F) -> Map<Self, T, F>
+    fn map<F, T>(&self, f: F) -> Map<Self, F>
     where
-        T: Clone,
-        F: Fn(TaskValue<Self::Value>) -> TaskValue<T> + Send + Sync,
-        Self::Value: Clone,
+        F: Fn(&TaskValue<Self::Value>) -> TaskValue<T> + Send + Sync,
     {
-        let value = Shared::new(f(futures::executor::block_on(self.read()).deref().clone()));
         Map {
             share: self.clone(),
-            value,
             f,
         }
     }
@@ -32,7 +25,7 @@ pub trait SharedReadMapExt: ShareRead + Clone + Sized + Sync {
 
 impl<T> SharedReadMapExt for T where T: ShareRead + Clone + Sync {}
 
-impl<S, T, F> ShareId for Map<S, T, F>
+impl<S, F> ShareId for Map<S, F>
 where
     S: ShareId,
 {
@@ -42,32 +35,27 @@ where
 }
 
 #[async_trait]
-impl<S, T, F> ShareRead for Map<S, T, F>
+impl<S, F, T> ShareRead for Map<S, F>
 where
     S: ShareRead + Send + Sync,
-    S::Value: Clone + Send + Sync,
-    T: Clone + Send,
-    F: Fn(TaskValue<S::Value>) -> TaskValue<T> + Send + Sync,
+    F: Fn(&TaskValue<S::Value>) -> TaskValue<T> + Send + Sync,
+    T: Clone,
 {
-    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>> {
-        let _ = self
-            .value
-            .write((self.f)(self.share.read().await.deref().clone()))
-            .await;
-        self.value.read().await
+    async fn read(&self) -> ShareGuard<'_, TaskValue<Self::Value>> {
+        self.share.read().await.map(&self.f)
     }
 }
 
 #[async_trait]
-impl<S, T, F> Share for Map<S, T, F>
+impl<S, F, T> Share for Map<S, F>
 where
-    S: Share + Send + Sync,
-    T: Send,
-    F: Fn(TaskValue<S::Value>) -> TaskValue<T> + Send + Sync,
+    S: ShareRead + Send + Sync,
+    F: Fn(&TaskValue<S::Value>) -> TaskValue<T> + Send + Sync,
+    T: Clone,
 {
     type Value = T;
 
     async fn clone_value(&self) -> TaskValue<Self::Value> {
-        (self.f)(self.share.clone_value().await)
+        self.read().await.clone()
     }
 }

@@ -84,7 +84,7 @@ async fn nine() -> impl Task {
 
 async fn ten() -> impl Task {
     let share: Shared<String> = Shared::new(TaskValue::Empty);
-    let uwuified = share.map(|s| s.map(|s| uwuifier::uwuify_str_sse(s.as_str())));
+    let uwuified = share.map(|s| s.as_ref().map(|s| uwuifier::uwuify_str_sse(s)));
 
     edit_shared(share).right(view_shared(uwuified)).then(
         Trigger::Update,

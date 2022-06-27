@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use futures::lock::MutexGuard;
 use uuid::Uuid;
 
 pub use map::*;
@@ -7,9 +6,18 @@ pub use shared::*;
 
 use crate::html::event::Feedback;
 use crate::prelude::TaskValue;
+use crate::share::guard::ShareGuard;
 
+mod guard;
 mod map;
 mod shared;
+
+#[async_trait]
+pub trait Share {
+    type Value;
+
+    async fn clone_value(&self) -> TaskValue<Self::Value>;
+}
 
 pub trait ShareId {
     fn id(&self) -> Uuid;
@@ -17,19 +25,12 @@ pub trait ShareId {
 
 #[async_trait]
 pub trait ShareRead: Share {
-    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>>;
+    async fn read(&self) -> ShareGuard<'_, TaskValue<Self::Value>>;
 }
 
 #[async_trait]
 pub trait ShareWrite: ShareRead {
     async fn write(&self, value: TaskValue<Self::Value>) -> Feedback;
-}
-
-#[async_trait]
-pub trait Share {
-    type Value;
-
-    async fn clone_value(&self) -> TaskValue<Self::Value>;
 }
 
 #[async_trait]

@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::lock::{Mutex, MutexGuard};
+use futures::lock::Mutex;
 use uuid::Uuid;
 
 use crate::html::event::Feedback;
+use crate::share::guard::ShareGuard;
 use crate::share::{Share, ShareId, ShareRead, ShareWrite};
 use crate::task::TaskValue;
 
@@ -34,8 +35,8 @@ impl<T> ShareRead for Shared<T>
 where
     T: Clone + Send,
 {
-    async fn read(&self) -> MutexGuard<'_, TaskValue<Self::Value>> {
-        self.value.lock().await
+    async fn read(&self) -> ShareGuard<'_, TaskValue<Self::Value>> {
+        self.value.lock().await.into()
     }
 }
 
