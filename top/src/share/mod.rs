@@ -8,7 +8,7 @@ use crate::html::event::Feedback;
 use crate::prelude::TaskValue;
 use crate::share::guard::ShareGuard;
 
-mod guard;
+pub mod guard;
 mod map;
 mod shared;
 
@@ -20,6 +20,7 @@ pub trait Share {
 }
 
 pub trait ShareId {
+    // TODO: `ShareId` newtype
     fn id(&self) -> Uuid;
 }
 

@@ -1,5 +1,5 @@
 pub use crate::share::{Shared, SharedReadMapExt};
-pub use crate::task::edit::{edit, edit_shared, enter};
+pub use crate::task::edit::{edit, edit_share, enter};
 pub use crate::task::parallel::TaskParallelExt;
 pub use crate::task::sequential::{Button, TaskSequentialExt, Trigger};
 pub use crate::task::view::generic::{view, view_shared};
