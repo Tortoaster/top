@@ -8,7 +8,7 @@ use log::debug;
 
 use top::integration::axum::{task, Task, TopService};
 use top::prelude::*;
-use top::task::edit::option::EditOption;
+use top::task::view::option::ViewOption;
 use top::task::Value;
 
 async fn index() -> Html<&'static str> {
@@ -107,7 +107,7 @@ async fn ten() -> impl Task {
 async fn test() -> impl Task {
     let task = edit(Some(5));
     let share = task.share().await;
-    let other = EditOption::new_shared(share);
+    let other = ViewOption::new_shared(share);
 
     task.and(other)
 }

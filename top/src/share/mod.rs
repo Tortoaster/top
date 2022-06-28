@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 pub use map::*;
+pub use option::OptionShare;
 pub use shared::*;
 
 use crate::html::event::Feedback;
@@ -10,6 +11,7 @@ use crate::share::guard::ShareGuard;
 
 pub mod guard;
 mod map;
+mod option;
 mod shared;
 
 #[async_trait]
