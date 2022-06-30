@@ -7,7 +7,7 @@ use top_derive::html;
 
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::Share;
+use crate::share::ShareConsume;
 use crate::task::{TaskValue, Value};
 
 #[derive(Debug)]
@@ -84,7 +84,7 @@ where
     T1::Output: Send,
     T1::Share: Send + Sync,
     T2::Share: Send + Sync,
-    <T1::Share as Share>::Value: Send,
+    <T1::Share as ShareConsume>::Value: Send,
 {
     type Output = (T1::Output, T2::Output);
     type Share = (T1::Share, T2::Share);

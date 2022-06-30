@@ -1,5 +1,5 @@
 use crate::html::{Refresh, ToHtml};
-use crate::share::{Share, ShareId, ShareRead, Shared};
+use crate::share::{ShareConsume, ShareId, ShareRead, ShareValue};
 use crate::task::view::value::ViewValue;
 use crate::task::Value;
 
@@ -27,7 +27,7 @@ macro_rules! impl_view {
     ($($ty:ty),*) => {
         $(
             impl View for $ty {
-                type Task = ViewValue<Shared<$ty>>;
+                type Task = ViewValue<ShareValue<$ty>>;
 
                 fn view(self) -> Self::Task {
                     ViewValue::new(self)
@@ -65,9 +65,9 @@ pub trait ViewShare<S>: Sized {
 }
 
 #[inline]
-pub fn view_shared<S>(share: S) -> <S::Value as ViewShare<S>>::Task
+pub fn view_share<S>(share: S) -> <S::Value as ViewShare<S>>::Task
 where
-    S: Share,
+    S: ShareConsume,
     S::Value: ViewShare<S>,
 {
     <S::Value>::view_share(share)

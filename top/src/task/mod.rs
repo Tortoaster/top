@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::share::Share;
+use crate::share::ShareConsume;
 
 pub mod edit;
 pub mod parallel;
@@ -11,7 +11,7 @@ pub mod view;
 #[async_trait]
 pub trait Value {
     type Output;
-    type Share: Share;
+    type Share: ShareConsume;
 
     async fn share(&self) -> Self::Share;
 

@@ -4,7 +4,7 @@ use paste::paste;
 use crate::html::event::{Event, Feedback};
 use crate::html::{Handler, Html, ToHtml};
 use crate::prelude::TaskValue;
-use crate::share::Shared;
+use crate::share::ShareValue;
 use crate::task::Value;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,10 +20,10 @@ impl ToHtml for UnitEditor {
 #[async_trait]
 impl Value for UnitEditor {
     type Output = ();
-    type Share = Shared<Self::Output>;
+    type Share = ShareValue<Self::Output>;
 
     async fn share(&self) -> Self::Share {
-        Shared::new(TaskValue::Stable(()))
+        ShareValue::new(TaskValue::Stable(()))
     }
 
     async fn value(self) -> TaskValue<Self::Output> {

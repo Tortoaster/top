@@ -9,33 +9,33 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::prelude::TaskValue;
-use crate::share::{OptionShare, Share, ShareId, ShareRead, ShareWrite, Shared};
+use crate::share::{ShareConsume, ShareId, ShareOption, ShareRead, ShareValue, ShareWrite};
 use crate::task::view::value::ViewValue;
 use crate::task::{OptionExt, Value};
 
 #[derive(Clone, Debug)]
 pub struct ViewOption<S> {
-    share: OptionShare<S>,
+    share: ShareOption<S>,
     view: ViewValue<S>,
     container_id: Uuid,
 }
 
-impl<T> ViewOption<Shared<T>>
+impl<T> ViewOption<ShareValue<T>>
 where
     T: Clone + Send,
 {
     pub fn new(value: Option<T>) -> Self {
         let enabled = value.is_some();
-        let share = OptionShare::new(Shared::new(value.into_unstable()), enabled);
+        let share = ShareOption::new(ShareValue::new(value.into_unstable()), enabled);
         ViewOption::new_shared(share)
     }
 }
 
 impl<S> ViewOption<S>
 where
-    S: Share + Clone,
+    S: ShareConsume + Clone,
 {
-    pub fn new_shared(share: OptionShare<S>) -> Self {
+    pub fn new_shared(share: ShareOption<S>) -> Self {
         let view = ViewValue::new_shared(share.inner().clone());
         ViewOption {
             share,
@@ -48,17 +48,17 @@ where
 #[async_trait]
 impl<S> Value for ViewOption<S>
 where
-    S: Share + Clone + Send + Sync,
+    S: ShareConsume + Clone + Send + Sync,
 {
     type Output = Option<S::Value>;
-    type Share = OptionShare<S>;
+    type Share = ShareOption<S>;
 
     async fn share(&self) -> Self::Share {
         self.share.clone()
     }
 
     async fn value(self) -> TaskValue<Self::Output> {
-        self.share.clone_value().await
+        self.share.consume().await
     }
 }
 

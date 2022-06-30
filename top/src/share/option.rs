@@ -6,18 +6,18 @@ use uuid::Uuid;
 
 use crate::html::event::Feedback;
 use crate::share::guard::ShareGuard;
-use crate::share::{Share, ShareId, ShareRead, ShareWrite};
+use crate::share::{ShareConsume, ShareId, ShareRead, ShareWrite};
 use crate::task::TaskValue;
 
 #[derive(Clone, Debug)]
-pub struct OptionShare<S> {
+pub struct ShareOption<S> {
     share: S,
     enabled: Arc<Mutex<bool>>,
 }
 
-impl<S> OptionShare<S> {
+impl<S> ShareOption<S> {
     pub fn new(share: S, enabled: bool) -> Self {
-        OptionShare {
+        ShareOption {
             share,
             enabled: Arc::new(Mutex::new(enabled)),
         }
@@ -32,7 +32,7 @@ impl<S> OptionShare<S> {
     }
 }
 
-impl<S> OptionShare<S>
+impl<S> ShareOption<S>
 where
     S: ShareId,
 {
@@ -48,22 +48,22 @@ where
 }
 
 #[async_trait]
-impl<S> Share for OptionShare<S>
+impl<S> ShareConsume for ShareOption<S>
 where
-    S: Share + Send + Sync,
+    S: ShareConsume + Send + Sync,
 {
     type Value = Option<S::Value>;
 
-    async fn clone_value(&self) -> TaskValue<Self::Value> {
+    async fn consume(self) -> TaskValue<Self::Value> {
         if *self.enabled.lock().await {
-            self.share.clone_value().await.map(Some)
+            self.share.consume().await.map(Some)
         } else {
             TaskValue::Empty
         }
     }
 }
 
-impl<S> ShareId for OptionShare<S>
+impl<S> ShareId for ShareOption<S>
 where
     S: ShareId,
 {
@@ -73,7 +73,7 @@ where
 }
 
 #[async_trait]
-impl<S> ShareRead for OptionShare<S>
+impl<S> ShareRead for ShareOption<S>
 where
     S: ShareRead + Send + Sync,
     S::Value: Clone,
@@ -88,7 +88,7 @@ where
 }
 
 #[async_trait]
-impl<S> ShareWrite for OptionShare<S>
+impl<S> ShareWrite for ShareOption<S>
 where
     S: ShareWrite + Send + Sync,
     S::Value: Clone + Send,

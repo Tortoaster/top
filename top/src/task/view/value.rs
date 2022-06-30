@@ -8,7 +8,7 @@ use top_derive::html;
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
 use crate::prelude::TaskValue;
-use crate::share::{Share, ShareId, ShareRead, Shared};
+use crate::share::{ShareConsume, ShareId, ShareRead, ShareValue};
 use crate::task::Value;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -18,18 +18,18 @@ pub struct ViewValue<S> {
     color: Color,
 }
 
-impl<T> ViewValue<Shared<T>>
+impl<T> ViewValue<ShareValue<T>>
 where
     T: Clone + Send,
 {
     pub fn new(value: T) -> Self {
-        ViewValue::new_shared(Shared::new(TaskValue::Stable(value)))
+        ViewValue::new_shared(ShareValue::new(TaskValue::Stable(value)))
     }
 }
 
 impl<S> ViewValue<S>
 where
-    S: Share,
+    S: ShareConsume,
 {
     pub fn new_shared(share: S) -> Self {
         ViewValue {
@@ -48,7 +48,7 @@ where
 #[async_trait]
 impl<S> Value for ViewValue<S>
 where
-    S: Share + Clone + Send + Sync,
+    S: ShareConsume + Clone + Send + Sync,
     S::Value: Send + Sync,
 {
     type Output = S::Value;
@@ -59,7 +59,7 @@ where
     }
 
     async fn value(self) -> TaskValue<Self::Output> {
-        self.share.clone_value().await
+        self.share.consume().await
     }
 }
 

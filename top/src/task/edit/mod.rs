@@ -1,6 +1,6 @@
 pub use top_derive::Edit;
 
-use crate::share::{Share, ShareId, ShareWrite, Shared};
+use crate::share::{ShareConsume, ShareId, ShareValue, ShareWrite};
 use crate::task::edit::option::EditOption;
 use crate::task::edit::tuple::*;
 use crate::task::edit::value::EditValue;
@@ -49,7 +49,7 @@ macro_rules! impl_edit_for_default {
     ($($ty:ty),*) => {
         $(
             impl Edit for $ty {
-                type Task = EditValue<Shared<$ty>>;
+                type Task = EditValue<ShareValue<$ty>>;
 
                 fn edit(value: Option<Self>) -> Self::Task {
                     EditValue::new(Some(value.unwrap_or_default()))
@@ -64,7 +64,7 @@ impl_edit_for_default!(
 );
 
 impl Edit for char {
-    type Task = EditValue<Shared<char>>;
+    type Task = EditValue<ShareValue<char>>;
 
     fn edit(value: Option<Self>) -> Self::Task {
         EditValue::new(value)
@@ -75,7 +75,7 @@ impl<T> Edit for Option<T>
 where
     T: Clone + Send,
 {
-    type Task = EditOption<Shared<T>>;
+    type Task = EditOption<ShareValue<T>>;
 
     fn edit(value: Option<Self>) -> Self::Task {
         EditOption::new(value.flatten())
@@ -164,7 +164,7 @@ pub trait EditShare<S>: Sized {
 #[inline]
 pub fn edit_share<S>(share: S) -> <S::Value as EditShare<S>>::Task
 where
-    S: Share,
+    S: ShareConsume,
     S::Value: EditShare<S>,
 {
     <S::Value>::edit_share(share)

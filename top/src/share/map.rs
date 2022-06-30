@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::prelude::TaskValue;
 use crate::share::guard::ShareGuard;
-use crate::share::{Share, ShareId, ShareRead};
+use crate::share::{ShareConsume, ShareId, ShareRead};
 
 #[derive(Clone, Debug)]
 pub struct Map<S, F> {
@@ -47,15 +47,15 @@ where
 }
 
 #[async_trait]
-impl<S, F, T> Share for Map<S, F>
+impl<S, F, T> ShareConsume for Map<S, F>
 where
     S: ShareRead + Send + Sync,
-    F: Fn(&TaskValue<S::Value>) -> TaskValue<T> + Send + Sync,
+    F: FnOnce(&TaskValue<S::Value>) -> TaskValue<T> + Send + Sync,
     T: Clone,
 {
     type Value = T;
 
-    async fn clone_value(&self) -> TaskValue<Self::Value> {
-        self.read().await.clone()
+    async fn consume(self) -> TaskValue<Self::Value> {
+        (self.f)(&self.share.consume().await)
     }
 }

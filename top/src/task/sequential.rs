@@ -8,7 +8,7 @@ use top_derive::html;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::{Share, ShareRead};
+use crate::share::{ShareConsume, ShareRead};
 use crate::task::{TaskValue, Value};
 
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
@@ -59,8 +59,8 @@ where
     T1::Output: Clone + Send,
     T1::Share: ShareRead + Clone + Send + Sync,
     T2: ToHtml + Handler + Send + Sync,
-    C: Fn(&TaskValue<<T1::Share as Share>::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as Share>::Value>) -> T2 + Send + Sync,
+    C: Fn(&TaskValue<<T1::Share as ShareConsume>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T1::Share as ShareConsume>::Value>) -> T2 + Send + Sync,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
         match &mut self.current {
@@ -71,7 +71,7 @@ where
                 match &self.continuation.trigger {
                     Trigger::Update => {
                         if (self.continuation.condition)(share.read().await.deref()) {
-                            let next = (self.continuation.transform)(share.clone_value().await);
+                            let next = (self.continuation.transform)(share.consume().await);
                             let html = next.to_html().await;
                             self.current = Either::Right(next);
                             Feedback::from(Change::ReplaceContent { id: self.id, html })
@@ -83,8 +83,7 @@ where
                         if let Event::Press { id } = &event {
                             if action.1 == *id {
                                 if (self.continuation.condition)(share.read().await.deref()) {
-                                    let next =
-                                        (self.continuation.transform)(share.clone_value().await);
+                                    let next = (self.continuation.transform)(share.consume().await);
                                     let html = next.to_html().await;
                                     self.current = Either::Right(next);
                                     Feedback::from(Change::ReplaceContent { id: self.id, html })
@@ -128,8 +127,8 @@ where
     T1::Output: Clone + Send,
     T1::Share: ShareRead + Clone + Send + Sync,
     T2: Value + ToHtml + Send + Sync,
-    C: Fn(&TaskValue<<T1::Share as Share>::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as Share>::Value>) -> T2 + Send + Sync,
+    C: Fn(&TaskValue<<T1::Share as ShareConsume>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T1::Share as ShareConsume>::Value>) -> T2 + Send + Sync,
 {
     type Output = T2::Output;
     type Share = ();

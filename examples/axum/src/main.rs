@@ -8,7 +8,6 @@ use log::debug;
 
 use top::integration::axum::{task, Task, TopService};
 use top::prelude::*;
-use top::task::view::option::ViewOption;
 use top::task::Value;
 
 async fn index() -> Html<&'static str> {
@@ -82,16 +81,16 @@ async fn eight() -> impl Task {
 
 // Shares
 async fn nine() -> impl Task {
-    let share: Shared<String> = Shared::new(TaskValue::Empty);
+    let share: ShareValue<String> = ShareValue::new(TaskValue::Empty);
 
-    edit_share(share.clone()).and(view_shared(share))
+    edit_share(share.clone()).and(view_share(share))
 }
 
 async fn ten() -> impl Task {
-    let share: Shared<String> = Shared::new(TaskValue::Empty);
+    let share: ShareValue<String> = ShareValue::new(TaskValue::Empty);
     let uwuified = share.map(|s| s.as_ref().map(|s| uwuifier::uwuify_str_sse(s)));
 
-    edit_share(share).right(view_shared(uwuified)).then(
+    edit_share(share).right(view_share(uwuified)).then(
         Trigger::Update,
         |value| value.as_ref().map(|s| s.contains("x3")).unwrap_or_default(),
         |value| view(value.unwrap()).with_color(Color::Pink),
@@ -107,7 +106,7 @@ async fn ten() -> impl Task {
 async fn test() -> impl Task {
     let task = edit(Some(5));
     let share = task.share().await;
-    let other = ViewOption::new_shared(share);
+    let other = view_share(share.map(|x| x.as_ref().map(|x| x.unwrap_or(0))));
 
     task.and(other)
 }

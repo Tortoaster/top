@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 pub use map::*;
-pub use option::OptionShare;
-pub use shared::*;
+pub use option::ShareOption;
+pub use value::*;
 
 use crate::html::event::Feedback;
 use crate::prelude::TaskValue;
@@ -12,13 +12,68 @@ use crate::share::guard::ShareGuard;
 pub mod guard;
 mod map;
 mod option;
-mod shared;
+mod value;
 
-#[async_trait]
-pub trait Share {
-    type Value;
+pub trait Share: Sized {
+    type Share: ShareConsume<Value = Self>;
 
-    async fn clone_value(&self) -> TaskValue<Self::Value>;
+    fn share(self) -> Self::Share;
+}
+
+#[inline]
+pub fn share<T>(value: T) -> T::Share
+where
+    T: Share,
+{
+    value.share()
+}
+
+macro_rules! impl_share {
+    ($($ty:ty),*) => {
+        $(
+            impl Share for $ty {
+                type Share = ShareValue<$ty>;
+
+                fn share(self) -> Self::Share {
+                    ShareValue::new(TaskValue::Unstable(self))
+                }
+            }
+        )*
+    };
+}
+
+impl_share!(
+    u8,
+    u16,
+    u32,
+    u64,
+    u128,
+    usize,
+    i8,
+    i16,
+    i32,
+    i64,
+    i128,
+    isize,
+    f32,
+    f64,
+    bool,
+    char,
+    &'static str,
+    String
+);
+
+impl<T> Share for Option<T>
+where
+    T: Share + Default,
+    T::Share: Send + Sync,
+{
+    type Share = ShareOption<T::Share>;
+
+    fn share(self) -> Self::Share {
+        let enabled = self.is_some();
+        ShareOption::new(self.unwrap_or_default().share(), enabled)
+    }
 }
 
 pub trait ShareId {
@@ -27,7 +82,14 @@ pub trait ShareId {
 }
 
 #[async_trait]
-pub trait ShareRead: Share {
+pub trait ShareConsume {
+    type Value;
+
+    async fn consume(self) -> TaskValue<Self::Value>;
+}
+
+#[async_trait]
+pub trait ShareRead: ShareConsume {
     async fn read(&self) -> ShareGuard<'_, TaskValue<Self::Value>>;
 }
 
@@ -37,27 +99,27 @@ pub trait ShareWrite: ShareRead {
 }
 
 #[async_trait]
-impl<T, U> Share for (T, U)
+impl<T, U> ShareConsume for (T, U)
 where
-    T: Share + Send + Sync,
-    U: Share + Send + Sync,
+    T: ShareConsume + Send + Sync,
+    U: ShareConsume + Send + Sync,
     T::Value: Send,
 {
     type Value = (T::Value, U::Value);
 
-    async fn clone_value(&self) -> TaskValue<Self::Value> {
-        let a = self.0.clone_value().await;
-        let b = self.1.clone_value().await;
+    async fn consume(self) -> TaskValue<Self::Value> {
+        let a = self.0.consume().await;
+        let b = self.1.consume().await;
 
         a.and(b)
     }
 }
 
 #[async_trait]
-impl Share for () {
+impl ShareConsume for () {
     type Value = ();
 
-    async fn clone_value(&self) -> TaskValue<Self::Value> {
+    async fn consume(self) -> TaskValue<Self::Value> {
         TaskValue::Stable(())
     }
 }

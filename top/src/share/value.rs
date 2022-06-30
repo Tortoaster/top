@@ -6,32 +6,32 @@ use uuid::Uuid;
 
 use crate::html::event::Feedback;
 use crate::share::guard::ShareGuard;
-use crate::share::{Share, ShareId, ShareRead, ShareWrite};
+use crate::share::{ShareConsume, ShareId, ShareRead, ShareWrite};
 use crate::task::TaskValue;
 
 #[derive(Clone, Debug)]
-pub struct Shared<T> {
+pub struct ShareValue<T> {
     id: Uuid,
     value: Arc<Mutex<TaskValue<T>>>,
 }
 
-impl<T> Shared<T> {
+impl<T> ShareValue<T> {
     pub fn new(value: TaskValue<T>) -> Self {
-        Shared {
+        ShareValue {
             id: Uuid::new_v4(),
             value: Arc::new(Mutex::new(value)),
         }
     }
 }
 
-impl<T> ShareId for Shared<T> {
+impl<T> ShareId for ShareValue<T> {
     fn id(&self) -> Uuid {
         self.id
     }
 }
 
 #[async_trait]
-impl<T> ShareRead for Shared<T>
+impl<T> ShareRead for ShareValue<T>
 where
     T: Clone + Send,
 {
@@ -41,7 +41,7 @@ where
 }
 
 #[async_trait]
-impl<T> ShareWrite for Shared<T>
+impl<T> ShareWrite for ShareValue<T>
 where
     T: Clone + Send,
 {
@@ -52,13 +52,13 @@ where
 }
 
 #[async_trait]
-impl<T> Share for Shared<T>
+impl<T> ShareConsume for ShareValue<T>
 where
     T: Clone + Send,
 {
     type Value = T;
 
-    async fn clone_value(&self) -> TaskValue<Self::Value> {
+    async fn consume(self) -> TaskValue<Self::Value> {
         self.value.lock().await.clone()
     }
 }
