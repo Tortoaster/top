@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -11,33 +9,22 @@ use crate::share::ShareConsume;
 use crate::task::{TaskValue, Value};
 
 #[derive(Debug)]
-pub struct Left;
-
-#[derive(Debug)]
-pub struct Right;
-
-#[derive(Debug)]
-pub struct Both;
-
-#[derive(Debug)]
-pub struct Either;
-
-#[derive(Debug)]
-pub struct Parallel<T1, T2, F> {
-    tasks: (T1, T2),
-    combine: PhantomData<F>,
+pub struct Parallel<L, R, F> {
+    left: L,
+    right: R,
+    combine: F,
 }
 
 #[async_trait]
-impl<T1, T2, F> ToHtml for Parallel<T1, T2, F>
+impl<L, R, F> ToHtml for Parallel<L, R, F>
 where
-    T1: ToHtml + Send + Sync,
-    T2: ToHtml + Send + Sync,
+    L: ToHtml + Send + Sync,
+    R: ToHtml + Send + Sync,
     F: Send + Sync,
 {
     async fn to_html(&self) -> Html {
-        let left = self.tasks.0.to_html().await;
-        let right = self.tasks.1.to_html().await;
+        let left = self.left.to_html().await;
+        let right = self.right.to_html().await;
 
         html! {r#"
             {left}
@@ -47,159 +34,111 @@ where
 }
 
 #[async_trait]
-impl<T1, T2, F> Handler for Parallel<T1, T2, F>
+impl<L, R, F> Handler for Parallel<L, R, F>
 where
-    T1: Handler + Send + Sync,
-    T2: Handler + Send + Sync,
+    L: Handler + Send + Sync,
+    R: Handler + Send + Sync,
     F: Send + Sync,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
-        let a = self.tasks.0.on_event(event.clone()).await;
-        let b = self.tasks.1.on_event(event).await;
+        let a = self.left.on_event(event.clone()).await;
+        let b = self.right.on_event(event).await;
 
         a.merged_with(b).unwrap()
     }
 }
 
 #[async_trait]
-impl<T1, T2, F> Refresh for Parallel<T1, T2, F>
+impl<L, R, F> Refresh for Parallel<L, R, F>
 where
-    T1: Refresh + Send + Sync,
-    T2: Refresh + Send + Sync,
+    L: Refresh + Send + Sync,
+    R: Refresh + Send + Sync,
     F: Send + Sync,
 {
     async fn refresh(&self, id: Uuid) -> Feedback {
-        let a = self.tasks.0.refresh(id).await;
-        let b = self.tasks.1.refresh(id).await;
+        let a = self.left.refresh(id).await;
+        let b = self.right.refresh(id).await;
 
         a.merged_with(b).unwrap()
     }
 }
 
 #[async_trait]
-impl<T1, T2> Value for Parallel<T1, T2, Both>
+impl<L, R, F, T> Value for Parallel<L, R, F>
 where
-    T1: Value + Send + Sync,
-    T2: Value + Send + Sync,
-    T1::Output: Send,
-    T1::Share: Send + Sync,
-    T2::Share: Send + Sync,
-    <T1::Share as ShareConsume>::Value: Send,
+    L: Value + Send + Sync,
+    R: Value + Send + Sync,
+    L::Output: Send,
+    L::Share: Send + Sync,
+    R::Share: Send + Sync,
+    <L::Share as ShareConsume>::Value: Send,
+    F: FnOnce(TaskValue<L::Output>, TaskValue<R::Output>) -> TaskValue<T> + Send + Sync,
+    T: Send + Sync,
 {
-    type Output = (T1::Output, T2::Output);
-    type Share = (T1::Share, T2::Share);
-
-    async fn share(&self) -> Self::Share {
-        let a = self.tasks.0.share().await;
-        let b = self.tasks.1.share().await;
-
-        (a, b)
-    }
-
-    async fn value(self) -> TaskValue<Self::Output> {
-        let a = self.tasks.0.value().await;
-        let b = self.tasks.1.value().await;
-
-        a.and(b)
-    }
-}
-
-#[async_trait]
-impl<T1, T2> Value for Parallel<T1, T2, Left>
-where
-    T1: Value + Send + Sync,
-    T2: Value + Send + Sync,
-{
-    type Output = T1::Output;
-    type Share = T1::Share;
-
-    async fn share(&self) -> Self::Share {
-        self.tasks.0.share().await
-    }
-
-    async fn value(self) -> TaskValue<Self::Output> {
-        self.tasks.0.value().await
-    }
-}
-
-#[async_trait]
-impl<T1, T2> Value for Parallel<T1, T2, Right>
-where
-    T1: Value + Send + Sync,
-    T2: Value + Send + Sync,
-{
-    type Output = T2::Output;
-    type Share = T2::Share;
-
-    async fn share(&self) -> Self::Share {
-        self.tasks.1.share().await
-    }
-
-    async fn value(self) -> TaskValue<Self::Output> {
-        self.tasks.1.value().await
-    }
-}
-
-#[async_trait]
-impl<T1, T2> Value for Parallel<T1, T2, Either>
-where
-    T1: Value + Send + Sync,
-    T2: Value<Output = T1::Output, Share = T1::Share> + Send + Sync,
-    T1::Output: Send,
-{
-    type Output = T1::Output;
+    type Output = T;
     type Share = ();
 
     async fn share(&self) -> Self::Share {
+        // let a = self.left.share().await;
+        // let b = self.right.share().await;
+
         ()
     }
 
     async fn value(self) -> TaskValue<Self::Output> {
-        let a = self.tasks.0.value().await;
-        let b = self.tasks.1.value().await;
-
-        a.or(b)
+        let a = self.left.value().await;
+        let b = self.right.value().await;
+        (self.combine)(a, b)
     }
 }
 
-pub trait TaskParallelExt: Value {
-    fn and<T>(self, other: T) -> Parallel<Self, T, Both>
+type And<L, R> = fn(TaskValue<L>, TaskValue<R>) -> TaskValue<(L, R)>;
+type Or<T> = fn(TaskValue<T>, TaskValue<T>) -> TaskValue<T>;
+type Left<L, R> = fn(TaskValue<L>, TaskValue<R>) -> TaskValue<L>;
+type Right<L, R> = fn(TaskValue<L>, TaskValue<R>) -> TaskValue<R>;
+
+pub trait TaskParallelExt: Value + Sized {
+    fn and<R>(self, right: R) -> Parallel<Self, R, And<Self::Output, R::Output>>
     where
-        Self: Sized,
+        R: Value,
     {
         Parallel {
-            tasks: (self, other),
-            combine: PhantomData,
+            left: self,
+            right,
+            combine: |a: TaskValue<Self::Output>, b: TaskValue<R::Output>| a.and(b),
         }
     }
 
-    fn or<T>(self, other: T) -> Parallel<Self, T, Either>
+    fn or<R>(self, right: R) -> Parallel<Self, R, Or<Self::Output>>
     where
-        Self: Sized,
+        R: Value<Output = Self::Output>,
     {
         Parallel {
-            tasks: (self, other),
-            combine: PhantomData,
+            left: self,
+            right,
+            combine: |a: TaskValue<Self::Output>, b: TaskValue<R::Output>| a.or(b),
         }
     }
 
-    fn left<T>(self, other: T) -> Parallel<Self, T, Left>
+    fn left<R>(self, right: R) -> Parallel<Self, R, Left<Self::Output, R::Output>>
     where
-        Self: Sized,
+        R: Value,
     {
         Parallel {
-            tasks: (self, other),
-            combine: PhantomData,
+            left: self,
+            right,
+            combine: |a: TaskValue<Self::Output>, _: TaskValue<R::Output>| a,
         }
     }
 
-    fn right<T>(self, other: T) -> Parallel<Self, T, Right>
+    fn right<R>(self, right: R) -> Parallel<Self, R, Right<Self::Output, R::Output>>
     where
-        Self: Sized,
+        R: Value,
     {
         Parallel {
-            tasks: (self, other),
-            combine: PhantomData,
+            left: self,
+            right,
+            combine: |_: TaskValue<Self::Output>, b: TaskValue<R::Output>| b,
         }
     }
 }
