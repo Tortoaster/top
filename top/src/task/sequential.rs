@@ -14,17 +14,50 @@ use crate::task::{TaskValue, Value};
 /// Basic sequential task. Consists of a current task, along with one or more [`Continuation`]s that
 /// decide when the current task should finish and what to do with the result.
 #[derive(Debug)]
-pub struct Sequential<T1, T2, C, F> {
+pub struct Sequential<T, U, C, F> {
     id: Uuid,
-    current: Either<T1, T2>,
-    continuation: Continuation<C, F>,
+    current: Either<T, U>,
+    trigger: Trigger,
+    condition: C,
+    transform: F,
+}
+
+impl<T, U, C, F> Sequential<T, U, C, F>
+where
+    T: Value + Send + Sync,
+    T::Share: ShareRead + Clone + Send + Sync,
+    U: ToHtml + Send + Sync,
+    C: Fn(&TaskValue<<T::Share as ShareConsume>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T::Share as ShareConsume>::Value>) -> U + Send + Sync,
+{
+    async fn transform(&mut self) -> Result<Feedback, TransformError> {
+        match &self.current {
+            Either::Left(task) => {
+                let share = task.share().await;
+                if (self.condition)(share.read().await.deref()) {
+                    let next = (self.transform)(share.consume().await);
+                    let html = next.to_html().await;
+                    self.current = Either::Right(next);
+                    Ok(Feedback::from(Change::ReplaceContent { id: self.id, html }))
+                } else {
+                    Err(TransformError::FalseCondition)
+                }
+            }
+            Either::Right(_) => Err(TransformError::InvalidState),
+        }
+    }
+}
+
+enum TransformError {
+    InvalidState,
+    FalseCondition,
 }
 
 #[async_trait]
-impl<T1, T2, C, F> ToHtml for Sequential<T1, T2, C, F>
+impl<T, U, C, F> ToHtml for Sequential<T, U, C, F>
 where
-    T1: ToHtml + Send + Sync,
-    T2: ToHtml + Send + Sync,
+    T: ToHtml + Send + Sync,
+    U: ToHtml + Send + Sync,
     C: Send + Sync,
     F: Send + Sync,
 {
@@ -33,7 +66,7 @@ where
             Either::Left(task) => {
                 let task = task.to_html().await;
 
-                let buttons = match &self.continuation.trigger {
+                let buttons = match &self.trigger {
                     Trigger::Button(button) => button.to_html().await,
                     _ => Html::default(),
                 };
@@ -53,43 +86,26 @@ where
 }
 
 #[async_trait]
-impl<T1, T2, C, F> Handler for Sequential<T1, T2, C, F>
+impl<T, U, C, F> Handler for Sequential<T, U, C, F>
 where
-    T1: Value + Handler + Send + Sync,
-    T1::Output: Clone + Send,
-    T1::Share: ShareRead + Clone + Send + Sync,
-    T2: ToHtml + Handler + Send + Sync,
-    C: Fn(&TaskValue<<T1::Share as ShareConsume>::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as ShareConsume>::Value>) -> T2 + Send + Sync,
+    T: Value + Handler + Send + Sync,
+    T::Output: Clone + Send,
+    T::Share: ShareRead + Clone + Send + Sync,
+    U: ToHtml + Handler + Send + Sync,
+    C: Fn(&TaskValue<<T::Share as ShareConsume>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T::Share as ShareConsume>::Value>) -> U + Send + Sync,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
         match &mut self.current {
             Either::Left(task) => {
                 let feedback = task.on_event(event.clone()).await;
-                let share = task.share().await;
 
-                match &self.continuation.trigger {
-                    Trigger::Update => {
-                        if (self.continuation.condition)(share.read().await.deref()) {
-                            let next = (self.continuation.transform)(share.consume().await);
-                            let html = next.to_html().await;
-                            self.current = Either::Right(next);
-                            Feedback::from(Change::ReplaceContent { id: self.id, html })
-                        } else {
-                            feedback
-                        }
-                    }
+                match &self.trigger {
+                    Trigger::Update => self.transform().await.unwrap_or(feedback),
                     Trigger::Button(action) => {
                         if let Event::Press { id } = &event {
                             if action.1 == *id {
-                                if (self.continuation.condition)(share.read().await.deref()) {
-                                    let next = (self.continuation.transform)(share.consume().await);
-                                    let html = next.to_html().await;
-                                    self.current = Either::Right(next);
-                                    Feedback::from(Change::ReplaceContent { id: self.id, html })
-                                } else {
-                                    feedback
-                                }
+                                self.transform().await.unwrap_or(feedback)
                             } else {
                                 feedback
                             }
@@ -105,10 +121,10 @@ where
 }
 
 #[async_trait]
-impl<T1, T2, C, F> Refresh for Sequential<T1, T2, C, F>
+impl<T, U, C, F> Refresh for Sequential<T, U, C, F>
 where
-    T1: Refresh + Send + Sync,
-    T2: Refresh + Send + Sync,
+    T: Refresh + Send + Sync,
+    U: Refresh + Send + Sync,
     C: Send + Sync,
     F: Send + Sync,
 {
@@ -121,16 +137,16 @@ where
 }
 
 #[async_trait]
-impl<T1, T2, C, F> Value for Sequential<T1, T2, C, F>
+impl<T, U, C, F> Value for Sequential<T, U, C, F>
 where
-    T1: Value + Send + Sync,
-    T1::Output: Clone + Send,
-    T1::Share: ShareRead + Clone + Send + Sync,
-    T2: Value + ToHtml + Send + Sync,
-    C: Fn(&TaskValue<<T1::Share as ShareConsume>::Value>) -> bool + Send + Sync,
-    F: Fn(TaskValue<<T1::Share as ShareConsume>::Value>) -> T2 + Send + Sync,
+    T: Value + Send + Sync,
+    T::Output: Clone + Send,
+    T::Share: ShareRead + Clone + Send + Sync,
+    U: Value + ToHtml + Send + Sync,
+    C: Fn(&TaskValue<<T::Share as ShareConsume>::Value>) -> bool + Send + Sync,
+    F: Fn(TaskValue<<T::Share as ShareConsume>::Value>) -> U + Send + Sync,
 {
-    type Output = T2::Output;
+    type Output = U::Output;
     type Share = ();
 
     async fn share(&self) -> Self::Share {
@@ -151,15 +167,6 @@ pub enum Trigger {
     Update,
     /// Trigger when the user presses a button.
     Button(Button),
-}
-
-/// Continuation of a [`Then`] task. Decides when the current task is consumed, using its value to
-/// construct the next task.
-#[derive(Debug)]
-struct Continuation<C, F> {
-    trigger: Trigger,
-    condition: C,
-    transform: F,
 }
 
 /// Actions that are represented as buttons in the user interface, used in [`Continuation`]s. When
@@ -188,26 +195,22 @@ impl ToHtml for Button {
 /// Adds the [`steps`] method to any task, allowing it to become a sequential task through the
 /// [`Steps`] builder.
 pub trait TaskSequentialExt: Value + Sized {
-    fn then<T2, C, F>(
+    fn then<U, C, F>(
         self,
         trigger: Trigger,
         condition: C,
         transform: F,
-    ) -> Sequential<Self, T2, C, F>
+    ) -> Sequential<Self, U, C, F>
     where
         C: Fn(&TaskValue<Self::Output>) -> bool,
-        F: Fn(TaskValue<Self::Output>) -> T2,
+        F: Fn(TaskValue<Self::Output>) -> U,
     {
-        let continuation = Continuation {
-            trigger,
-            condition,
-            transform,
-        };
-
         Sequential {
             id: Uuid::new_v4(),
             current: Either::Left(self),
-            continuation,
+            trigger,
+            condition,
+            transform,
         }
     }
 }
