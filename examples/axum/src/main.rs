@@ -6,6 +6,8 @@ use log::debug;
 
 use top::integration::axum::{task, Task, TopService};
 use top::share::ShareValue;
+use top::task::edit::{edit_shared, EditValue};
+use top::task::parallel::TaskParallelExt;
 use top::task::view::view_shared;
 
 // async fn index() -> Html<&'static str> {
@@ -103,7 +105,10 @@ use top::task::view::view_shared;
 
 fn test() -> impl Task {
     let share = ShareValue::new(Some(5));
-    view_shared(share)
+    let edit: EditValue<ShareValue<i32>> = edit_shared(share.clone());
+    let view = view_shared(share);
+    let both = edit.and(view);
+    both
 }
 
 #[tokio::main]

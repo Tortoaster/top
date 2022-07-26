@@ -1,4 +1,8 @@
+pub use value::EditValue;
+
+use crate::share::ShareRead;
 use crate::task::edit::edit::Edit;
+use crate::task::edit::edit_shared::EditShared;
 
 mod edit;
 mod edit_shared;
@@ -21,11 +25,11 @@ where
     T::edit(Some(value))
 }
 
-// #[inline]
-// pub fn edit_shared<S>(share: S) -> <S::Value as EditShared<S>>::Task
-// where
-//     S: ShareWrite,
-//     S::Value: EditShared<S>,
-// {
-//     <S::Value as EditShared<S>>::edit_shared(share)
-// }
+#[inline]
+pub fn edit_shared<S>(share: S) -> <S::Value as EditShared<S>>::Task
+where
+    S: ShareRead,
+    S::Value: EditShared<S>,
+{
+    <S::Value as EditShared<S>>::edit_shared(share)
+}
