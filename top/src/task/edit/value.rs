@@ -7,9 +7,8 @@ use uuid::Uuid;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::{ShareConsume, ShareId, ShareRead, ShareValue, ShareWrite};
 use crate::task::edit::form::Form;
-use crate::task::{OptionExt, TaskValue, Value};
+use crate::task::{TaskValue, Value};
 
 #[derive(Clone, Debug)]
 pub struct EditValue<S> {
@@ -18,20 +17,11 @@ pub struct EditValue<S> {
     label: Option<String>,
 }
 
-impl<T> EditValue<ShareValue<T>>
-where
-    T: Clone + Send,
-{
-    pub fn new(value: Option<T>) -> Self {
-        EditValue::new_shared(ShareValue::new(value.into_unstable()))
-    }
-}
-
 impl<S> EditValue<S>
 where
     S: ShareConsume,
 {
-    pub fn new_shared(share: S) -> Self {
+    pub fn new(share: S) -> Self {
         EditValue {
             id: Uuid::new_v4(),
             share,
@@ -52,11 +42,6 @@ where
     S::Value: Clone + Send + Sync,
 {
     type Output = S::Value;
-    type Share = S;
-
-    async fn share(&self) -> Self::Share {
-        self.share.clone()
-    }
 
     async fn value(self) -> TaskValue<Self::Output> {
         self.share.consume().await

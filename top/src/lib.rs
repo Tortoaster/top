@@ -1,5 +1,6 @@
+#![feature(generic_associated_types)]
+
 pub mod html;
 pub mod integration;
-pub mod prelude;
 pub mod share;
 pub mod task;

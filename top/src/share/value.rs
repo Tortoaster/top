@@ -1,22 +1,17 @@
-use std::sync::Arc;
-
-use async_trait::async_trait;
-use futures::lock::Mutex;
+use crate::share::{ShareRead, ShareWrite};
+use std::collections::BTreeSet;
+use std::ops::Deref;
+use std::sync::{Arc, Mutex, MutexGuard};
 use uuid::Uuid;
 
-use crate::html::event::Feedback;
-use crate::share::guard::ShareGuard;
-use crate::share::{ShareConsume, ShareId, ShareRead, ShareWrite};
-use crate::task::TaskValue;
-
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ShareValue<T> {
     id: Uuid,
-    value: Arc<Mutex<TaskValue<T>>>,
+    value: Arc<Mutex<T>>,
 }
 
 impl<T> ShareValue<T> {
-    pub fn new(value: TaskValue<T>) -> Self {
+    pub fn new(value: T) -> Self {
         ShareValue {
             id: Uuid::new_v4(),
             value: Arc::new(Mutex::new(value)),
@@ -24,41 +19,37 @@ impl<T> ShareValue<T> {
     }
 }
 
-impl<T> ShareId for ShareValue<T> {
-    fn id(&self) -> Uuid {
-        self.id
+pub struct ShareGuard<'a, T>(MutexGuard<'a, T>);
+
+impl<'a, T> AsRef<T> for ShareGuard<'a, T> {
+    fn as_ref(&self) -> &T {
+        self.0.deref()
     }
 }
 
-#[async_trait]
-impl<T> ShareRead for ShareValue<T>
-where
-    T: Clone + Send,
-{
-    async fn read(&self) -> ShareGuard<'_, TaskValue<Self::Value>> {
-        self.value.lock().await.into()
+impl<'a, T> From<MutexGuard<'a, T>> for ShareGuard<'a, T> {
+    fn from(guard: MutexGuard<'a, T>) -> Self {
+        ShareGuard(guard)
     }
 }
 
-#[async_trait]
-impl<T> ShareWrite for ShareValue<T>
-where
-    T: Clone + Send,
-{
-    async fn write(&self, value: TaskValue<Self::Value>) -> Feedback {
-        *self.value.lock().await = value;
-        Feedback::update_share(self.id)
+impl<T> ShareRead for ShareValue<T> {
+    type Value = T;
+    type Borrow<'a> = ShareGuard<'a, T> where T: 'a;
+
+    fn read<'a>(&'a self) -> Self::Borrow<'a> {
+        self.value.lock().unwrap().into()
+    }
+
+    fn updated(&self, ids: &BTreeSet<Uuid>) -> bool {
+        ids.contains(&self.id)
     }
 }
 
-#[async_trait]
-impl<T> ShareConsume for ShareValue<T>
-where
-    T: Clone + Send,
-{
+impl<T> ShareWrite for ShareValue<T> {
     type Value = T;
 
-    async fn consume(self) -> TaskValue<Self::Value> {
-        self.value.lock().await.clone()
+    fn write(&mut self, value: Self::Value) {
+        *self.value.lock().unwrap() = value;
     }
 }

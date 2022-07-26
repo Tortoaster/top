@@ -1,45 +1,31 @@
-use async_trait::async_trait;
 use uuid::Uuid;
 
-use top_derive::html;
+use crate::html::Html;
 
-use crate::html::{Html, ToHtml};
-use crate::prelude::TaskValue;
-use crate::share::guard::ShareGuard;
-
-#[async_trait]
-pub trait Form: Sized {
-    async fn form(
-        value: ShareGuard<'_, TaskValue<Self>>,
-        id: &Uuid,
-        label: &Option<String>,
-    ) -> Html;
+pub trait Form {
+    fn form(&self, id: &Uuid, label: &str) -> Html;
 }
 
-#[async_trait]
 impl Form for String {
-    async fn form(
-        value: ShareGuard<'_, TaskValue<Self>>,
-        id: &Uuid,
-        label: &Option<String>,
-    ) -> Html {
-        html! {r#"
+    fn form(&self, id: &Uuid, label: &str) -> Html {
+        Html(format!(
+            r#"
             <label for="{id}" class="label">{label}</label>
-            <input id="{id}" class="input" value="{value}" oninput="update(this)"/>
-        "#}
+            <input id="{id}" class="input" value="{self}" oninput="update(this)"/>
+        "#
+        ))
     }
 }
 
 macro_rules! impl_to_html_for_number {
     ($($ty:ty),*) => {
         $(
-            #[async_trait]
             impl Form for $ty {
-                async fn form(value: ShareGuard<'_, TaskValue<Self>>, id: &Uuid, label: &Option<String>) -> Html {
-                    html! {r#"
+                fn form(&self, id: &Uuid, label: &str) -> Html {
+                    Html(format!(r#"
                         <label for="{id}" class="label">{label}</label>
-                        <input id="{id}" type="number" class="input" value="{value}" oninput="update(this)"/>
-                    "#}
+                        <input id="{id}" type="number" class="input" value="{self}" oninput="update(this)"/>
+                    "#))
                 }
             }
         )*
@@ -48,33 +34,27 @@ macro_rules! impl_to_html_for_number {
 
 impl_to_html_for_number!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64);
 
-#[async_trait]
 impl Form for bool {
-    async fn form(
-        value: ShareGuard<'_, TaskValue<Self>>,
-        id: &Uuid,
-        label: &Option<String>,
-    ) -> Html {
-        let checked = value.as_ref().map(|x| x.then(|| " checked"));
-        html! {r#"
+    fn form(&self, id: &Uuid, label: &str) -> Html {
+        let checked = self.then("checked").unwrap_or_default();
+        Html(format!(
+            r#"
             <label class="checkbox">
-                <input id="{id}" type="checkbox" onclick="update(this, this.checked.toString())"{checked}/>
+                <input id="{id}" type="checkbox" onclick="update(this, this.checked.toString())" {checked}/>
                 {label}
             </label>
-        "#}
+        "#
+        ))
     }
 }
 
-#[async_trait]
 impl Form for char {
-    async fn form(
-        value: ShareGuard<'_, TaskValue<Self>>,
-        id: &Uuid,
-        label: &Option<String>,
-    ) -> Html {
-        html! {r#"
+    fn form(&self, id: &Uuid, label: &str) -> Html {
+        Html(format!(
+            r#"
             <label for="{id}" class="label">{label}</label>
-            <input id="{id}" class="input" value="{value}" oninput="update(this)" maxlength="1"/>
-        "#}
+            <input id="{id}" class="input" value="{self}" oninput="update(this)" maxlength="1"/>
+        "#
+        ))
     }
 }

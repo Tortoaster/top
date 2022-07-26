@@ -1,5 +1,6 @@
 //! This module contains functionality for generating user interfaces for tasks.
 
+use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 
 use async_trait::async_trait;
@@ -7,13 +8,10 @@ use futures::future;
 use serde::Serialize;
 use uuid::Uuid;
 
-use top_derive::html;
-
 use crate::html::event::{Event, Feedback};
 use crate::task::TaskValue;
 
 pub mod event;
-pub mod icon;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[serde(transparent)]
@@ -21,7 +19,8 @@ pub struct Html(pub String);
 
 impl Html {
     pub async fn wrapper(title: &str) -> Html {
-        html! {r#"
+        Html(format!(
+            r#"
             <!DOCTYPE html>
             <html lang="en">
                 <head>
@@ -40,7 +39,8 @@ impl Html {
                     </section>
                 </body>
             </html>
-        "#}
+        "#
+        ))
     }
 }
 
@@ -69,7 +69,7 @@ pub trait Handler {
 
 #[async_trait]
 pub trait Refresh {
-    async fn refresh(&self, id: Uuid) -> Feedback;
+    async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback;
 }
 
 macro_rules! impl_to_html {
