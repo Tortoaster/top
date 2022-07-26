@@ -4,9 +4,9 @@ use std::net::SocketAddr;
 use axum::{Router, Server};
 use log::debug;
 
-use top::integration::axum::{task, TopService};
+use top::integration::axum::{task, Task, TopService};
 use top::share::ShareValue;
-use top::task::view::{view_shared, ViewDisplay};
+use top::task::view::view_shared;
 
 // async fn index() -> Html<&'static str> {
 //     Html(
@@ -101,7 +101,7 @@ use top::task::view::{view_shared, ViewDisplay};
 // Derive macro
 // ...
 
-async fn test() -> ViewDisplay<ShareValue<i32>> {
+fn test() -> impl Task {
     let share = ShareValue::new(5);
     view_shared(share)
 }

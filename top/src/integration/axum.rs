@@ -1,5 +1,4 @@
 use std::convert::Infallible;
-use std::future::Future;
 use std::task::Poll;
 
 use async_trait::async_trait;
@@ -59,14 +58,13 @@ pub struct TaskRouter {
     connect: MethodRouter<Body, Infallible>,
 }
 
-pub fn task<H, Fut, T>(handler: H) -> TaskRouter
+pub fn task<H, T>(handler: H) -> TaskRouter
 where
-    H: FnOnce() -> Fut + Clone + Send + 'static,
-    Fut: Future<Output = T> + Send + 'static,
+    H: FnOnce() -> T + Clone + Send + 'static,
     T: Task + Send + Sync + 'static,
 {
     let wrapper = get(wrapper);
-    let connect = get(|ws| connect(ws, handler));
+    let connect = get(|ws| connect(ws, handler()));
 
     TaskRouter { wrapper, connect }
 }
@@ -92,15 +90,12 @@ async fn wrapper() -> impl IntoResponse {
     Html(crate::html::Html::wrapper("Top Axum").await.to_string())
 }
 
-async fn connect<H, Fut, T>(ws: WebSocketUpgrade, handler: H) -> impl IntoResponse
+async fn connect<T>(ws: WebSocketUpgrade, task: T) -> impl IntoResponse
 where
-    H: FnOnce() -> Fut + Clone + Send + 'static,
-    Fut: Future<Output = T> + Send + 'static,
     T: Task + Send + Sync + 'static,
 {
     ws.on_upgrade(|socket| async move {
         let (sender, receiver) = socket.split();
-        let task = handler().await;
         task.execute(sender, receiver).await;
     })
 }

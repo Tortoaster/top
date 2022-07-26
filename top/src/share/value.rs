@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
 use uuid::Uuid;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ShareValue<T> {
     id: Uuid,
     value: Arc<Mutex<T>>,
