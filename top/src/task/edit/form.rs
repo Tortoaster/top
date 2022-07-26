@@ -18,7 +18,7 @@ macro_rules! impl_from_form {
                 fn from_form(value: String) -> TaskValue<Self> {
                     match value.parse::<Self>() {
                         Ok(value) => TaskValue::Unstable(value),
-                        Err(_) => TaskValue::Empty,
+                        Err(error) => TaskValue::Error(error.to_string()),
                     }
                 }
             }

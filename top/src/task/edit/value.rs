@@ -56,8 +56,10 @@ where
             Event::Update { id, value } if id == self.id => {
                 let value = S::Value::from_form(value);
                 let change = match value {
-                    TaskValue::Stable(_) | TaskValue::Unstable(_) => Change::Valid { id },
-                    TaskValue::Empty => Change::Invalid { id },
+                    TaskValue::Stable(_) | TaskValue::Unstable(_) | TaskValue::Empty => {
+                        Change::Valid { id }
+                    }
+                    TaskValue::Error(_) => Change::Invalid { id },
                 };
                 self.share.write(value);
                 let feedback = Feedback::update_share(self.share.id());
@@ -72,6 +74,7 @@ where
 impl<S> Refresh for EditValue<S>
 where
     S: ShareRead + ShareUpdate + Send + Sync,
+    // TODO: Don't use Display, use IntoForm
     S::Value: Display + Send + Sync,
 {
     async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback {
@@ -83,7 +86,11 @@ where
                         value: value.to_string(),
                     })
                 }
-                TaskValue::Empty => Feedback::from(Change::Invalid { id: self.id }),
+                TaskValue::Error(_) => Feedback::from(Change::Invalid { id: self.id }),
+                TaskValue::Empty => Feedback::from(Change::UpdateValue {
+                    id: self.id,
+                    value: String::new(),
+                }),
             }
         } else {
             Feedback::new()

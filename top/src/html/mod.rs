@@ -4,12 +4,10 @@ use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 
 use async_trait::async_trait;
-use futures::future;
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::html::event::{Event, Feedback};
-use crate::task::TaskValue;
 
 pub mod event;
 
@@ -70,82 +68,4 @@ pub trait Handler {
 #[async_trait]
 pub trait Refresh {
     async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback;
-}
-
-macro_rules! impl_to_html {
-    ($($ty:ty),*) => {
-        $(
-            #[async_trait]
-            impl ToHtml for $ty {
-                async fn to_html(&self) -> Html {
-                    Html(self.to_string())
-                }
-            }
-        )*
-    };
-}
-
-impl_to_html!(
-    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64, bool, char, &str,
-    String, Uuid
-);
-
-#[async_trait]
-impl ToHtml for Html {
-    async fn to_html(&self) -> Html {
-        self.clone()
-    }
-}
-
-#[async_trait]
-impl<T> ToHtml for Option<T>
-where
-    T: ToHtml + Sync,
-{
-    async fn to_html(&self) -> Html {
-        match self {
-            None => Html::default(),
-            Some(value) => value.to_html().await,
-        }
-    }
-}
-
-#[async_trait]
-impl<T, E> ToHtml for Result<T, E>
-where
-    T: ToHtml + Sync,
-    E: Sync,
-{
-    async fn to_html(&self) -> Html {
-        match self {
-            Ok(value) => value.to_html().await,
-            Err(_) => Html::default(),
-        }
-    }
-}
-
-#[async_trait]
-impl<T> ToHtml for TaskValue<T>
-where
-    T: ToHtml + Sync,
-{
-    async fn to_html(&self) -> Html {
-        match self {
-            TaskValue::Stable(value) | TaskValue::Unstable(value) => value.to_html().await,
-            TaskValue::Empty => Html::default(),
-        }
-    }
-}
-
-#[async_trait]
-impl<T> ToHtml for Vec<T>
-where
-    T: ToHtml + Sync,
-{
-    async fn to_html(&self) -> Html {
-        future::join_all(self.iter().map(ToHtml::to_html))
-            .await
-            .into_iter()
-            .collect()
-    }
 }

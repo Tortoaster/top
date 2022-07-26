@@ -72,15 +72,12 @@ where
     S::Value: Display + Send + Sync,
 {
     async fn to_html(&self) -> Html {
-        Html(format!(
-            r#"<div id="{}"><span>{}</span></div>"#,
-            self.id,
-            self.share
-                .read()
-                .as_ref()
-                .as_ref()
-                .map(ToString::to_string)
-                .unwrap_or_default()
-        ))
+        let value = self.share.read();
+        let string = match value.as_ref() {
+            TaskValue::Stable(value) | TaskValue::Unstable(value) => value.to_string(),
+            TaskValue::Error(error) => format!(r#"<span style="color: red;">{error}</span>"#),
+            TaskValue::Empty => String::new(),
+        };
+        Html(format!(r#"<div id="{}">{string}</div>"#, self.id))
     }
 }

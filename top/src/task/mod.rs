@@ -18,6 +18,8 @@ pub enum TaskValue<T> {
     Stable(T),
     /// The task's value is unstable, meaning the user can still change it.
     Unstable(T),
+    /// The task has an invalid value.
+    Error(String),
     /// The task has no value yet.
     Empty,
 }
@@ -26,7 +28,7 @@ impl<T> TaskValue<T> {
     pub fn as_ref(&self) -> TaskValue<&T> {
         match *self {
             TaskValue::Stable(ref x) | TaskValue::Unstable(ref x) => TaskValue::Unstable(x),
-            TaskValue::Empty => TaskValue::Empty,
+            TaskValue::Error(_) | TaskValue::Empty => TaskValue::Empty,
         }
     }
 
@@ -36,21 +38,23 @@ impl<T> TaskValue<T> {
     {
         match self {
             TaskValue::Stable(x) | TaskValue::Unstable(x) => TaskValue::Unstable(f(x)),
-            TaskValue::Empty => TaskValue::Empty,
+            TaskValue::Error(_) | TaskValue::Empty => TaskValue::Empty,
         }
     }
 
     pub fn unwrap(self) -> T {
         match self {
             TaskValue::Stable(value) | TaskValue::Unstable(value) => value,
-            TaskValue::Empty => panic!("called `TaskValue::unwrap` on an `Empty` value"),
+            TaskValue::Error(_) | TaskValue::Empty => {
+                panic!("called `TaskValue::unwrap` on an `Error` or `Empty` value")
+            }
         }
     }
 
     pub fn unwrap_or(self, default: T) -> T {
         match self {
             TaskValue::Stable(x) | TaskValue::Unstable(x) => x,
-            TaskValue::Empty => default,
+            TaskValue::Error(_) | TaskValue::Empty => default,
         }
     }
 
@@ -60,7 +64,7 @@ impl<T> TaskValue<T> {
     {
         match self {
             TaskValue::Stable(x) | TaskValue::Unstable(x) => x,
-            TaskValue::Empty => Default::default(),
+            TaskValue::Error(_) | TaskValue::Empty => T::default(),
         }
     }
 
@@ -78,10 +82,17 @@ impl<T> TaskValue<T> {
         }
     }
 
-    pub fn has_value(&self) -> bool {
+    pub fn is_error(&self) -> bool {
         match self {
-            TaskValue::Empty => false,
-            _ => true,
+            TaskValue::Error(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            TaskValue::Empty => true,
+            _ => false,
         }
     }
 
@@ -90,11 +101,19 @@ impl<T> TaskValue<T> {
             TaskValue::Stable(a) => match other {
                 TaskValue::Stable(b) => TaskValue::Stable((a, b)),
                 TaskValue::Unstable(b) => TaskValue::Unstable((a, b)),
+                TaskValue::Error(error) => TaskValue::Error(error),
                 TaskValue::Empty => TaskValue::Empty,
             },
             TaskValue::Unstable(a) => match other {
                 TaskValue::Stable(b) | TaskValue::Unstable(b) => TaskValue::Unstable((a, b)),
+                TaskValue::Error(error) => TaskValue::Error(error),
                 TaskValue::Empty => TaskValue::Empty,
+            },
+            TaskValue::Error(error) => match other {
+                TaskValue::Stable(_) | TaskValue::Unstable(_) | TaskValue::Empty => {
+                    TaskValue::Error(error)
+                }
+                TaskValue::Error(other) => TaskValue::Error(format!("{error}\n{other}")),
             },
             TaskValue::Empty => TaskValue::Empty,
         }
@@ -112,7 +131,7 @@ impl<T> From<TaskValue<T>> for Option<T> {
     fn from(value: TaskValue<T>) -> Self {
         match value {
             TaskValue::Stable(x) | TaskValue::Unstable(x) => Some(x),
-            TaskValue::Empty => None,
+            TaskValue::Error(_) | TaskValue::Empty => None,
         }
     }
 }
