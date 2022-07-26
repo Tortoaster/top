@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-// pub mod edit;
+pub mod edit;
 pub mod parallel;
 pub mod sequential;
 pub mod view;

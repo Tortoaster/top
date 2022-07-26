@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::ShareRead;
+use crate::share::{ShareRead, ShareUpdate};
 use crate::task::{TaskValue, Value};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -50,7 +50,7 @@ where
 #[async_trait]
 impl<S> Refresh for ViewDisplay<S>
 where
-    S: ShareRead + Send + Sync,
+    S: ShareRead + ShareUpdate + Send + Sync,
     S::Value: Display + Send + Sync,
 {
     async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback {

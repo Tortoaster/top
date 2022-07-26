@@ -1,9 +1,11 @@
-use crate::share::{ShareRead, ShareWrite};
-use crate::task::{OptionExt, TaskValue};
 use std::collections::BTreeSet;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
+
 use uuid::Uuid;
+
+use crate::share::{ShareRead, ShareUpdate, ShareWrite};
+use crate::task::{OptionExt, TaskValue};
 
 #[derive(Clone, Debug)]
 pub struct ShareValue<T> {
@@ -41,16 +43,22 @@ impl<T> ShareRead for ShareValue<T> {
     fn read<'a>(&'a self) -> Self::Borrow<'a> {
         self.value.lock().unwrap().into()
     }
-
-    fn updated(&self, ids: &BTreeSet<Uuid>) -> bool {
-        ids.contains(&self.id)
-    }
 }
 
 impl<T> ShareWrite for ShareValue<T> {
     type Value = T;
 
-    fn write(&mut self, value: Self::Value) {
-        *self.value.lock().unwrap() = TaskValue::Unstable(value);
+    fn write(&mut self, value: TaskValue<Self::Value>) {
+        *self.value.lock().unwrap() = value;
+    }
+}
+
+impl<T> ShareUpdate for ShareValue<T> {
+    fn id(&self) -> Uuid {
+        self.id
+    }
+
+    fn updated(&self, ids: &BTreeSet<Uuid>) -> bool {
+        ids.contains(&self.id)
     }
 }

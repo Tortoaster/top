@@ -17,7 +17,7 @@ macro_rules! impl_edit_for_default {
                 type Task = EditValue<ShareValue<$ty>>;
 
                 fn edit(value: Option<Self>) -> Self::Task {
-                    EditValue::new(Some(value.unwrap_or_default()))
+                    EditValue::new(ShareValue::new(Some(value.unwrap_or_default())))
                 }
             }
         )*
@@ -32,6 +32,6 @@ impl Edit for char {
     type Task = EditValue<ShareValue<char>>;
 
     fn edit(value: Option<Self>) -> Self::Task {
-        EditValue::new(value)
+        EditValue::new(ShareValue::new(value))
     }
 }

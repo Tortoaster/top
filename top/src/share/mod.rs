@@ -14,12 +14,16 @@ pub trait ShareRead {
         Self: 'a;
 
     fn read<'a>(&'a self) -> Self::Borrow<'a>;
-
-    fn updated(&self, ids: &BTreeSet<Uuid>) -> bool;
 }
 
 pub trait ShareWrite {
     type Value;
 
-    fn write(&mut self, value: Self::Value);
+    fn write(&mut self, value: TaskValue<Self::Value>);
+}
+
+pub trait ShareUpdate {
+    fn id(&self) -> Uuid;
+
+    fn updated(&self, ids: &BTreeSet<Uuid>) -> bool;
 }

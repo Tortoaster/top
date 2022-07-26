@@ -1,14 +1,13 @@
+use std::collections::BTreeSet;
 use std::fmt::Display;
-use std::ops::Deref;
-use std::str::FromStr;
 
 use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
-use crate::share::{ShareRead, ShareWrite};
-use crate::task::edit::form::Form;
+use crate::share::{ShareRead, ShareUpdate, ShareWrite};
+use crate::task::edit::form::{FromForm, IntoForm};
 use crate::task::{TaskValue, Value};
 
 #[derive(Clone, Debug)]
@@ -49,24 +48,21 @@ where
 #[async_trait]
 impl<S> Handler for EditValue<S>
 where
-    S: ShareWrite + Send + Sync,
+    S: ShareWrite + ShareUpdate + Send + Sync,
+    S::Value: FromForm,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
-            Event::Update { id, value } if id == self.id => match value.parse::<S::Value>() {
-                Ok(value) => {
-                    let feedback = self.share.write(TaskValue::Unstable(value)).await;
-                    Feedback::from(Change::Valid { id })
-                        .merged_with(feedback)
-                        .unwrap()
-                }
-                Err(_) => {
-                    let feedback = self.share.write(TaskValue::Empty).await;
-                    Feedback::from(Change::Invalid { id })
-                        .merged_with(feedback)
-                        .unwrap()
-                }
-            },
+            Event::Update { id, value } if id == self.id => {
+                let value = S::Value::from_form(value);
+                let change = match value {
+                    TaskValue::Stable(_) | TaskValue::Unstable(_) => Change::Valid { id },
+                    TaskValue::Empty => Change::Invalid { id },
+                };
+                self.share.write(value);
+                let feedback = Feedback::update_share(self.share.id());
+                feedback.merged_with(Feedback::from(change)).unwrap()
+            }
             _ => Feedback::new(),
         }
     }
@@ -75,12 +71,12 @@ where
 #[async_trait]
 impl<S> Refresh for EditValue<S>
 where
-    S: ShareRead + Send + Sync,
+    S: ShareRead + ShareUpdate + Send + Sync,
     S::Value: Display + Send + Sync,
 {
-    async fn refresh(&self, id: Uuid) -> Feedback {
-        if self.share.id() == id {
-            match self.share.read().await.deref() {
+    async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback {
+        if self.share.updated(ids) {
+            match self.share.read().as_ref() {
                 TaskValue::Stable(value) | TaskValue::Unstable(value) => {
                     Feedback::from(Change::UpdateValue {
                         id: self.id,
@@ -99,9 +95,13 @@ where
 impl<S> ToHtml for EditValue<S>
 where
     S: ShareRead + Send + Sync,
-    S::Value: Form + Send,
+    S::Value: IntoForm + Send,
 {
     async fn to_html(&self) -> Html {
-        S::Value::form(self.share.read().await, &self.id, &self.label).await
+        S::Value::into_form(
+            self.share.read().as_ref(),
+            &self.id,
+            self.label.as_deref().unwrap_or_default(),
+        )
     }
 }
