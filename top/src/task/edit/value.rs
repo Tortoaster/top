@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::html::event::{Change, Event, Feedback};
 use crate::html::{Handler, Html, Refresh, ToHtml};
+use crate::share::{ShareRead, ShareWrite};
 use crate::task::edit::form::Form;
 use crate::task::{TaskValue, Value};
 
@@ -17,10 +18,7 @@ pub struct EditValue<S> {
     label: Option<String>,
 }
 
-impl<S> EditValue<S>
-where
-    S: ShareConsume,
-{
+impl<S> EditValue<S> {
     pub fn new(share: S) -> Self {
         EditValue {
             id: Uuid::new_v4(),
@@ -38,22 +36,20 @@ where
 #[async_trait]
 impl<S> Value for EditValue<S>
 where
-    S: ShareConsume + Clone + Send + Sync,
+    S: ShareRead + Send + Sync,
     S::Value: Clone + Send + Sync,
 {
     type Output = S::Value;
 
     async fn value(self) -> TaskValue<Self::Output> {
-        self.share.consume().await
+        self.share.read().as_ref().clone()
     }
 }
 
 #[async_trait]
 impl<S> Handler for EditValue<S>
 where
-    S: ShareWrite + Clone + Send + Sync,
-    S::Value: FromStr + Clone + Send,
-    <S::Value as FromStr>::Err: Send,
+    S: ShareWrite + Send + Sync,
 {
     async fn on_event(&mut self, event: Event) -> Feedback {
         match event {
@@ -79,7 +75,7 @@ where
 #[async_trait]
 impl<S> Refresh for EditValue<S>
 where
-    S: ShareId + ShareRead + Send + Sync,
+    S: ShareRead + Send + Sync,
     S::Value: Display + Send + Sync,
 {
     async fn refresh(&self, id: Uuid) -> Feedback {

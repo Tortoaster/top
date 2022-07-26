@@ -15,7 +15,7 @@ macro_rules! impl_view {
                 type Task = ViewDisplay<ShareValue<$ty>>;
 
                 fn view(self) -> Self::Task {
-                    ViewDisplay::new(ShareValue::new(self))
+                    ViewDisplay::new(ShareValue::new(Some(self)))
                 }
             }
         )*

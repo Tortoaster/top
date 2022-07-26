@@ -102,7 +102,7 @@ use top::task::view::view_shared;
 // ...
 
 fn test() -> impl Task {
-    let share = ShareValue::new(5);
+    let share = ShareValue::new(Some(5));
     view_shared(share)
 }
 

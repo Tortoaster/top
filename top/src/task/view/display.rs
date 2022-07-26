@@ -33,7 +33,7 @@ where
     type Output = S::Value;
 
     async fn value(self) -> TaskValue<Self::Output> {
-        TaskValue::Unstable(self.share.read().as_ref().clone())
+        self.share.read().as_ref().clone()
     }
 }
 
@@ -75,7 +75,12 @@ where
         Html(format!(
             r#"<div id="{}"><span>{}</span></div>"#,
             self.id,
-            self.share.read().as_ref()
+            self.share
+                .read()
+                .as_ref()
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default()
         ))
     }
 }

@@ -1,4 +1,5 @@
 use crate::share::{ShareRead, ShareWrite};
+use crate::task::{OptionExt, TaskValue};
 use std::collections::BTreeSet;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -7,28 +8,28 @@ use uuid::Uuid;
 #[derive(Clone, Debug)]
 pub struct ShareValue<T> {
     id: Uuid,
-    value: Arc<Mutex<T>>,
+    value: Arc<Mutex<TaskValue<T>>>,
 }
 
 impl<T> ShareValue<T> {
-    pub fn new(value: T) -> Self {
+    pub fn new(value: Option<T>) -> Self {
         ShareValue {
             id: Uuid::new_v4(),
-            value: Arc::new(Mutex::new(value)),
+            value: Arc::new(Mutex::new(value.into_unstable())),
         }
     }
 }
 
-pub struct ShareGuard<'a, T>(MutexGuard<'a, T>);
+pub struct ShareGuard<'a, T>(MutexGuard<'a, TaskValue<T>>);
 
-impl<'a, T> AsRef<T> for ShareGuard<'a, T> {
-    fn as_ref(&self) -> &T {
+impl<'a, T> AsRef<TaskValue<T>> for ShareGuard<'a, T> {
+    fn as_ref(&self) -> &TaskValue<T> {
         self.0.deref()
     }
 }
 
-impl<'a, T> From<MutexGuard<'a, T>> for ShareGuard<'a, T> {
-    fn from(guard: MutexGuard<'a, T>) -> Self {
+impl<'a, T> From<MutexGuard<'a, TaskValue<T>>> for ShareGuard<'a, T> {
+    fn from(guard: MutexGuard<'a, TaskValue<T>>) -> Self {
         ShareGuard(guard)
     }
 }
@@ -50,6 +51,6 @@ impl<T> ShareWrite for ShareValue<T> {
     type Value = T;
 
     fn write(&mut self, value: Self::Value) {
-        *self.value.lock().unwrap() = value;
+        *self.value.lock().unwrap() = TaskValue::Unstable(value);
     }
 }

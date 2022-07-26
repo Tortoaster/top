@@ -2,13 +2,14 @@ use std::collections::BTreeSet;
 
 use uuid::Uuid;
 
+use crate::task::TaskValue;
 pub use value::ShareValue;
 
 mod value;
 
 pub trait ShareRead {
     type Value;
-    type Borrow<'a>: AsRef<Self::Value>
+    type Borrow<'a>: AsRef<TaskValue<Self::Value>>
     where
         Self: 'a;
 
