@@ -1,7 +1,9 @@
 pub use top_derive::Edit;
 
-use crate::share::ShareValue;
+use crate::share::{ShareValue, ShareVec};
+use crate::task::edit::edit_shared::EditShared;
 use crate::task::edit::value::EditValue;
+use crate::task::edit::EditVec;
 use crate::task::Value;
 
 pub trait Edit: Sized {
@@ -33,5 +35,17 @@ impl Edit for char {
 
     fn edit(value: Option<Self>) -> Self::Task {
         EditValue::new(ShareValue::new(value))
+    }
+}
+
+impl<T> Edit for Vec<T>
+where
+    T: EditShared<ShareValue<T>> + Clone + Send,
+    T::Task: Send + Sync,
+{
+    type Task = EditVec<ShareVec<ShareValue<T>>, T::Task>;
+
+    fn edit(value: Option<Self>) -> Self::Task {
+        EditVec::new(ShareVec::new(value))
     }
 }

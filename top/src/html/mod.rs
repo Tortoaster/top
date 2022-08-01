@@ -26,7 +26,6 @@ impl Html {
                     <meta name="viewport" content="width=device-width, initial-scale=1">
                     <title>{title}</title>
                     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-                    <script src="https://kit.fontawesome.com/e94af86b8c.js" crossorigin="anonymous"></script>
                     <script src="top/top.js"></script>
                 </head>
                 <body>
@@ -67,5 +66,5 @@ pub trait Handler {
 
 #[async_trait]
 pub trait Refresh {
-    async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback;
+    async fn refresh(&mut self, ids: &BTreeSet<Uuid>) -> Feedback;
 }

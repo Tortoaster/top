@@ -129,11 +129,9 @@ where
                 Ok(text) => match serde_json::from_str(&text) {
                     Ok(event) => {
                         let mut feedback = self.on_event(event).await;
-                        let shares = feedback.shares().clone();
-                        if !shares.is_empty() {
-                            let new = self.refresh(&shares).await;
-                            feedback = feedback.merged_with(new).unwrap();
-                        }
+                        let ids = feedback.shares().clone();
+                        let refresh = self.refresh(&ids).await;
+                        feedback = feedback.merged_with(refresh).unwrap();
                         if !feedback.is_empty() {
                             send_feedback(&mut sender, feedback).await;
                         }

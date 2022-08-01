@@ -38,15 +38,19 @@ impl<'a, T> From<MutexGuard<'a, TaskValue<T>>> for ShareGuard<'a, T> {
 
 impl<T> ShareRead for ShareValue<T> {
     type Value = T;
-    type Borrow<'a> = ShareGuard<'a, T> where T: 'a;
+    type Read<'a> = ShareGuard<'a, T> where T: 'a;
 
-    fn read<'a>(&'a self) -> Self::Borrow<'a> {
+    fn read<'a>(&'a self) -> Self::Read<'a> {
         self.value.lock().unwrap().into()
     }
 }
 
 impl<T> ShareWrite for ShareValue<T> {
     type Value = T;
+
+    fn create(value: TaskValue<Self::Value>) -> Self {
+        ShareValue::new(value.into())
+    }
 
     fn write(&mut self, value: TaskValue<Self::Value>) {
         *self.value.lock().unwrap() = value;

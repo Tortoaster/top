@@ -5,8 +5,8 @@ use axum::{Router, Server};
 use log::debug;
 
 use top::integration::axum::{task, Task, TopService};
-use top::share::ShareValue;
-use top::task::edit::{edit_shared, EditValue};
+use top::share::{ShareValue, ShareVec};
+use top::task::edit::{edit, edit_shared, EditValue};
 use top::task::parallel::TaskParallelExt;
 use top::task::view::view_shared;
 
@@ -104,11 +104,8 @@ use top::task::view::view_shared;
 // ...
 
 fn test() -> impl Task {
-    let share = ShareValue::new(Some(5));
-    let edit: EditValue<ShareValue<i32>> = edit_shared(share.clone());
-    let view = view_shared(share);
-    let both = edit.and(view);
-    both
+    let share: ShareVec<ShareValue<String>> = ShareVec::new(Some(Vec::new()));
+    edit_shared(share.clone()).and(edit_shared(share))
 }
 
 #[tokio::main]

@@ -53,7 +53,7 @@ where
     S: ShareRead + ShareUpdate + Send + Sync,
     S::Value: Display + Send + Sync,
 {
-    async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback {
+    async fn refresh(&mut self, ids: &BTreeSet<Uuid>) -> Feedback {
         if self.share.updated(&ids) {
             Feedback::from(Change::Replace {
                 id: self.id,

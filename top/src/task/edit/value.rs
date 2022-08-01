@@ -77,7 +77,7 @@ where
     // TODO: Don't use Display, use IntoForm
     S::Value: Display + Send + Sync,
 {
-    async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback {
+    async fn refresh(&mut self, ids: &BTreeSet<Uuid>) -> Feedback {
         if self.share.updated(ids) {
             match self.share.read().as_ref() {
                 TaskValue::Stable(value) | TaskValue::Unstable(value) => {

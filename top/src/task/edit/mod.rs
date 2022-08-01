@@ -1,4 +1,5 @@
 pub use value::EditValue;
+pub use vec::EditVec;
 
 use crate::share::ShareRead;
 use crate::task::edit::edit::Edit;
@@ -8,6 +9,7 @@ mod edit;
 mod edit_shared;
 mod form;
 mod value;
+mod vec;
 
 #[inline]
 pub fn enter<T>() -> T::Task

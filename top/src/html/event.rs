@@ -167,3 +167,11 @@ impl From<Change> for Feedback {
         }
     }
 }
+
+impl FromIterator<Feedback> for Feedback {
+    fn from_iter<T: IntoIterator<Item = Feedback>>(iter: T) -> Self {
+        iter.into_iter().fold(Feedback::new(), |acc, feedback| {
+            acc.merged_with(feedback).unwrap()
+        })
+    }
+}

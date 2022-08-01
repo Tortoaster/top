@@ -12,7 +12,7 @@ pub trait Value {
     async fn value(self) -> TaskValue<Self::Output>;
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum TaskValue<T> {
     /// The task's value is stable, meaning it cannot be changed by the user anymore.
     Stable(T),
@@ -21,6 +21,7 @@ pub enum TaskValue<T> {
     /// The task has an invalid value.
     Error(String),
     /// The task has no value yet.
+    #[default]
     Empty,
 }
 
@@ -127,18 +128,30 @@ impl<T> TaskValue<T> {
     }
 }
 
+impl<T> IntoIterator for TaskValue<T> {
+    type Item = T;
+    type IntoIter = <Option<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Option::from(self).into_iter()
+    }
+}
+
+impl<A, V: FromIterator<A>> FromIterator<TaskValue<A>> for TaskValue<V> {
+    fn from_iter<T: IntoIterator<Item = TaskValue<A>>>(iter: T) -> Self {
+        iter.into_iter()
+            .map(Into::<Option<A>>::into)
+            .collect::<Option<V>>()
+            .into_unstable()
+    }
+}
+
 impl<T> From<TaskValue<T>> for Option<T> {
     fn from(value: TaskValue<T>) -> Self {
         match value {
             TaskValue::Stable(x) | TaskValue::Unstable(x) => Some(x),
             TaskValue::Error(_) | TaskValue::Empty => None,
         }
-    }
-}
-
-impl<T> Default for TaskValue<T> {
-    fn default() -> Self {
-        TaskValue::Empty
     }
 }
 

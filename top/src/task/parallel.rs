@@ -49,7 +49,7 @@ where
     R: Refresh + Send + Sync,
     F: Send + Sync,
 {
-    async fn refresh(&self, ids: &BTreeSet<Uuid>) -> Feedback {
+    async fn refresh(&mut self, ids: &BTreeSet<Uuid>) -> Feedback {
         let a = self.left.refresh(ids).await;
         let b = self.right.refresh(ids).await;
         a.merged_with(b).unwrap()
