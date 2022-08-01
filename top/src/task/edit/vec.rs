@@ -45,13 +45,13 @@ where
 #[async_trait]
 impl<S, T> Value for EditVec<S, T>
 where
-    S: ShareRead + Send,
+    S: ShareRead + Send + Sync,
     S::Value: Clone,
     T: Send + Sync,
 {
     type Output = S::Value;
 
-    async fn value(self) -> TaskValue<Self::Output> {
+    async fn value(&self) -> TaskValue<Self::Output> {
         self.share.read().as_ref().clone()
     }
 }

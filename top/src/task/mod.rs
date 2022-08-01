@@ -1,15 +1,21 @@
 use async_trait::async_trait;
 
+use crate::html::{Handler, Refresh, ToHtml};
+
 pub mod edit;
 pub mod parallel;
 pub mod sequential;
 pub mod view;
 
+pub trait Task: Value + Handler + Refresh + ToHtml {}
+
+impl<T> Task for T where T: Value + Handler + Refresh + ToHtml {}
+
 #[async_trait]
 pub trait Value {
     type Output;
 
-    async fn value(self) -> TaskValue<Self::Output>;
+    async fn value(&self) -> TaskValue<Self::Output>;
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]

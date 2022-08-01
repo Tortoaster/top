@@ -34,7 +34,7 @@ impl<S, T> EditShared<S> for Vec<T>
 where
     T: EditShared<S::Child> + Clone,
     T::Task: Send + Sync,
-    S: ShareChildren + ShareRead<Value = Vec<T>> + Send,
+    S: ShareChildren + ShareRead<Value = Vec<T>> + Send + Sync,
     S::Child: ShareRead<Value = T> + Clone,
 {
     type Task = EditVec<S, T::Task>;

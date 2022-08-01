@@ -40,7 +40,7 @@ where
 {
     type Output = S::Value;
 
-    async fn value(self) -> TaskValue<Self::Output> {
+    async fn value(&self) -> TaskValue<Self::Output> {
         self.share.read().as_ref().clone()
     }
 }

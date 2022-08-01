@@ -62,12 +62,12 @@ where
     L: Value + Send + Sync,
     R: Value + Send + Sync,
     L::Output: Send,
-    F: FnOnce(TaskValue<L::Output>, TaskValue<R::Output>) -> TaskValue<T> + Send + Sync,
+    F: Fn(TaskValue<L::Output>, TaskValue<R::Output>) -> TaskValue<T> + Send + Sync,
     T: Send + Sync,
 {
     type Output = T;
 
-    async fn value(self) -> TaskValue<Self::Output> {
+    async fn value(&self) -> TaskValue<Self::Output> {
         let a = self.left.value().await;
         let b = self.right.value().await;
         (self.combine)(a, b)
