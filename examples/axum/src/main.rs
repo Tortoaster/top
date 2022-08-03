@@ -8,13 +8,13 @@ use log::debug;
 
 use top::integration::axum::{task, TopService};
 use top::share::{ShareRead, ShareValue, ShareVec, ShareWrite};
-use top::task::edit::{edit, edit_shared, enter, EditValue, EditVec};
+use top::task::edit::{enter, EditValue};
 use top::task::parallel::{Parallel, TaskParallelExt};
-use top::task::sequential::{always, has_value, Button, Sequential, TaskSequentialExt, Trigger};
+use top::task::sequential::{has_value, Button, Sequential, TaskSequentialExt, Trigger};
 use top::task::view::{view, view_shared, ViewDisplay, ViewVec};
 use top::task::{Task, TaskValue};
 
-type IndexTask = Sequential<
+type ChatTask = Sequential<
     Parallel<
         ViewVec<ShareVec<ShareValue<String>>, ViewDisplay<ShareValue<String>>>,
         EditValue<ShareValue<String>>,
@@ -23,20 +23,33 @@ type IndexTask = Sequential<
     Infallible,
 >;
 
-fn index() -> IndexTask {
+lazy_static! {
+    static ref MESSAGES: ShareVec<ShareValue<String>> = ShareVec::new(Some(Vec::new()));
+}
+
+fn chat(name: String) -> ChatTask {
     view_shared(MESSAGES.clone())
         .right(enter::<String>())
         .step()
-        .on(Trigger::Button(Button::new("Send")), has_value, |message| {
-            let mut current = MESSAGES.read().as_ref().clone().unwrap();
-            current.push(message.unwrap());
-            MESSAGES.write(TaskValue::Unstable(current));
-            index()
-        })
+        .on(
+            Trigger::Button(Button::new("Send")),
+            has_value,
+            move |message| {
+                let mut messages_value = MESSAGES.read().as_ref().clone().unwrap();
+                messages_value.push(format!("{}: {}", name, message.unwrap()));
+                MESSAGES.write(TaskValue::Unstable(messages_value));
+                chat(name)
+            },
+        )
 }
 
-lazy_static! {
-    static ref MESSAGES: ShareVec<ShareValue<String>> = ShareVec::new(Some(Vec::new()));
+fn index() -> impl Task {
+    view("Please enter your name:")
+        .right(enter::<String>())
+        .step()
+        .on(Trigger::Button(Button::new("Ok")), has_value, |name| {
+            chat(name.unwrap())
+        })
 }
 
 #[tokio::main]
