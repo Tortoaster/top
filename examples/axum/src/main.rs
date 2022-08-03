@@ -11,12 +11,12 @@ use top::share::{ShareRead, ShareValue, ShareVec, ShareWrite};
 use top::task::edit::{edit, edit_shared, enter, EditValue, EditVec};
 use top::task::parallel::{Parallel, TaskParallelExt};
 use top::task::sequential::{always, has_value, Button, Sequential, TaskSequentialExt, Trigger};
-use top::task::view::{view, view_shared};
+use top::task::view::{view, view_shared, ViewDisplay, ViewVec};
 use top::task::{Task, TaskValue};
 
 type IndexTask = Sequential<
     Parallel<
-        EditVec<ShareVec<ShareValue<String>>, EditValue<ShareValue<String>>>,
+        ViewVec<ShareVec<ShareValue<String>>, ViewDisplay<ShareValue<String>>>,
         EditValue<ShareValue<String>>,
         fn(TaskValue<Vec<String>>, TaskValue<String>) -> TaskValue<String>,
     >,
@@ -24,7 +24,7 @@ type IndexTask = Sequential<
 >;
 
 fn index() -> IndexTask {
-    edit_shared(MESSAGES.clone())
+    view_shared(MESSAGES.clone())
         .right(enter::<String>())
         .step()
         .on(Trigger::Button(Button::new("Send")), has_value, |message| {

@@ -1,5 +1,7 @@
-use crate::share::ShareValue;
+use crate::share::{ShareValue, ShareVec};
 use crate::task::view::display::ViewDisplay;
+use crate::task::view::view_shared::ViewShared;
+use crate::task::view::ViewVec;
 use crate::task::Value;
 
 pub trait View: Sized {
@@ -42,3 +44,15 @@ impl_view!(
     &'static str,
     String
 );
+
+impl<T> View for Vec<T>
+where
+    T: ViewShared<ShareValue<T>> + Clone + Send,
+    T::Task: Send + Sync,
+{
+    type Task = ViewVec<ShareVec<ShareValue<T>>, T::Task>;
+
+    fn view(self) -> Self::Task {
+        ViewVec::new(ShareVec::new(Some(self)))
+    }
+}

@@ -1,10 +1,12 @@
 pub use display::ViewDisplay;
+pub use vec::ViewVec;
 
 use crate::share::ShareRead;
 use crate::task::view::view::View;
 use crate::task::view::view_shared::ViewShared;
 
 mod display;
+mod vec;
 mod view;
 mod view_shared;
 
