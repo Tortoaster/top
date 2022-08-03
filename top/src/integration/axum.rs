@@ -1,23 +1,25 @@
+use std::collections::BTreeSet;
 use std::convert::Infallible;
 use std::task::Poll;
+use std::time::Duration;
 
-use async_trait::async_trait;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::WebSocketUpgrade;
 use axum::http::{Request, StatusCode};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service, MethodRouter};
-use futures::stream::{SplitSink, SplitStream};
+use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use log::{error, warn};
 use tower_http::services::ServeFile;
 use tower_service::Service;
 use uuid::Uuid;
 
+use tokio::time::timeout;
+
 use crate::html::event::{Change, Feedback};
-use crate::html::{Handler, Refresh, ToHtml};
-use crate::task::Value;
+use crate::task::Task;
 
 #[derive(Clone, Debug)]
 pub struct TopService(MethodRouter);
@@ -90,33 +92,15 @@ async fn wrapper() -> impl IntoResponse {
     Html(crate::html::Html::wrapper("Top Axum").await.to_string())
 }
 
-async fn connect<T>(ws: WebSocketUpgrade, task: T) -> impl IntoResponse
+async fn connect<T>(ws: WebSocketUpgrade, mut task: T) -> impl IntoResponse
 where
     T: Task + Send + Sync + 'static,
 {
     ws.on_upgrade(|socket| async move {
-        let (sender, receiver) = socket.split();
-        task.execute(sender, receiver).await;
-    })
-}
+        let (mut sender, mut receiver) = socket.split();
 
-#[async_trait]
-pub trait Task {
-    async fn execute(self, sender: SplitSink<WebSocket, Message>, receiver: SplitStream<WebSocket>);
-}
-
-#[async_trait]
-impl<T> Task for T
-where
-    T: Value + Handler + Refresh + ToHtml + Send + Sync,
-{
-    async fn execute(
-        mut self,
-        mut sender: SplitSink<WebSocket, Message>,
-        mut receiver: SplitStream<WebSocket>,
-    ) {
         // Initial page
-        let html = self.to_html().await;
+        let html = task.to_html().await;
         let feedback = Feedback::from(Change::AppendContent {
             id: Uuid::nil(),
             html,
@@ -124,24 +108,38 @@ where
         send_feedback(&mut sender, feedback).await;
 
         // Respond to input
-        while let Some(Ok(message)) = receiver.next().await {
-            match message.into_text() {
-                Ok(text) => match serde_json::from_str(&text) {
-                    Ok(event) => {
-                        let mut feedback = self.on_event(event).await;
-                        let ids = feedback.shares().clone();
-                        let refresh = self.refresh(&ids).await;
-                        feedback = feedback.merged_with(refresh).unwrap();
-                        if !feedback.is_empty() {
-                            send_feedback(&mut sender, feedback).await;
+        loop {
+            match timeout(Duration::from_secs(1), receiver.next()).await {
+                // Received message
+                Ok(Some(Ok(message))) => match message.into_text() {
+                    Ok(text) => match serde_json::from_str(&text) {
+                        Ok(event) => {
+                            let mut feedback = task.on_event(event).await;
+                            let ids = feedback.shares().clone();
+                            let refresh = task.refresh(&ids).await;
+                            feedback = feedback.merged_with(refresh).unwrap();
+                            if !feedback.is_empty() {
+                                send_feedback(&mut sender, feedback).await;
+                            }
                         }
-                    }
-                    Err(_) => warn!("not an event"),
+                        Err(_) => warn!("not an event"),
+                    },
+                    Err(_) => warn!("non-text message"),
                 },
-                Err(_) => warn!("non-text message"),
+                // Received error
+                Ok(Some(Err(_))) => warn!("something went wrong"),
+                // Stream closed
+                Ok(None) => return,
+                // Timeout, update shares
+                Err(_) => {
+                    let feedback = task.refresh(&BTreeSet::new()).await;
+                    if !feedback.is_empty() {
+                        send_feedback(&mut sender, feedback).await;
+                    }
+                }
             }
         }
-    }
+    })
 }
 
 async fn send_feedback(sender: &mut SplitSink<WebSocket, Message>, feedback: Feedback) {

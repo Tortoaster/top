@@ -24,7 +24,7 @@ pub trait ShareWrite {
 
     fn create(value: TaskValue<Self::Value>) -> Self;
 
-    fn write(&mut self, value: TaskValue<Self::Value>);
+    fn write(&self, value: TaskValue<Self::Value>);
 }
 
 pub trait ShareUpdate {

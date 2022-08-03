@@ -1,22 +1,42 @@
+use std::convert::Infallible;
 use std::env;
 use std::net::SocketAddr;
 
 use axum::{Router, Server};
+use lazy_static::lazy_static;
 use log::debug;
 
-use top::integration::axum::{task, Task, TopService};
-use top::share::{ShareValue, ShareVec};
-use top::task::edit::{edit, edit_shared, enter, EditValue};
-use top::task::parallel::TaskParallelExt;
-use top::task::sequential::{always, has_value, Button, TaskSequentialExt, Trigger};
+use top::integration::axum::{task, TopService};
+use top::share::{ShareRead, ShareValue, ShareVec, ShareWrite};
+use top::task::edit::{edit, edit_shared, enter, EditValue, EditVec};
+use top::task::parallel::{Parallel, TaskParallelExt};
+use top::task::sequential::{always, has_value, Button, Sequential, TaskSequentialExt, Trigger};
 use top::task::view::{view, view_shared};
+use top::task::{Task, TaskValue};
 
-fn index() -> impl Task {
-    enter::<i32>()
+type IndexTask = Sequential<
+    Parallel<
+        EditVec<ShareVec<ShareValue<String>>, EditValue<ShareValue<String>>>,
+        EditValue<ShareValue<String>>,
+        fn(TaskValue<Vec<String>>, TaskValue<String>) -> TaskValue<String>,
+    >,
+    Infallible,
+>;
+
+fn index() -> IndexTask {
+    edit_shared(MESSAGES.clone())
+        .right(enter::<String>())
         .step()
-        .on(Trigger::Button(Button::new("Ok")), has_value, |value| {
-            view(value.unwrap() + 1)
+        .on(Trigger::Button(Button::new("Send")), has_value, |message| {
+            let mut current = MESSAGES.read().as_ref().clone().unwrap();
+            current.push(message.unwrap());
+            MESSAGES.write(TaskValue::Unstable(current));
+            index()
         })
+}
+
+lazy_static! {
+    static ref MESSAGES: ShareVec<ShareValue<String>> = ShareVec::new(Some(Vec::new()));
 }
 
 #[tokio::main]
@@ -25,7 +45,7 @@ async fn main() {
 
     let router = Router::new()
         .nest("/top", TopService::new())
-        .route("/", task(index));
+        .route("/", task(|| index()));
 
     let host = env::var("HOST")
         .as_deref()

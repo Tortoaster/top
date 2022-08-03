@@ -72,8 +72,19 @@ where
         }
     }
 
-    fn write(&mut self, value: TaskValue<Self::Value>) {
-        self.shares = Self::create(value).shares;
+    fn write(&self, value: TaskValue<Self::Value>) {
+        *self.shares.lock().unwrap() = match value {
+            TaskValue::Stable(value) => value
+                .into_iter()
+                .map(|value| S::create(TaskValue::Stable(value)))
+                .collect(),
+            TaskValue::Unstable(value) => value
+                .into_iter()
+                .map(|value| S::create(TaskValue::Unstable(value)))
+                .collect(),
+            TaskValue::Error(error) => vec![S::create(TaskValue::Error(error))],
+            TaskValue::Empty => vec![S::create(TaskValue::Empty)],
+        };
     }
 }
 

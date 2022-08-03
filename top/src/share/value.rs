@@ -52,7 +52,7 @@ impl<T> ShareWrite for ShareValue<T> {
         ShareValue::new(value.into())
     }
 
-    fn write(&mut self, value: TaskValue<Self::Value>) {
+    fn write(&self, value: TaskValue<Self::Value>) {
         *self.value.lock().unwrap() = value;
     }
 }
